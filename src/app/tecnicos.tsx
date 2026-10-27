@@ -1,9 +1,18 @@
-import { Text, View } from "react-native";
+import { ScrollView, Text } from "react-native";
+
+import { ListaTecnicos } from "../components/ListaTecnicos";
+import { tecnicosIniciales } from "../data/tecnicosIniciales";
 
 export default function TecnicosScreen() {
   return (
-    <View>
+    <ScrollView
+      contentContainerStyle={{
+        paddingBottom: 120,
+      }}
+    >
       <Text>Técnicos</Text>
-    </View>
+
+      <ListaTecnicos tecnicos={tecnicosIniciales} />
+    </ScrollView>
   );
 }
