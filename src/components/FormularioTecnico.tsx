@@ -6,6 +6,7 @@ interface FormularioTecnicoProps {
   editando: boolean;
   onCambiarNombre: (nombre: string) => void;
   onGuardar: () => void;
+  onCancelar: () => void;
 }
 
 export function FormularioTecnico({
@@ -14,6 +15,7 @@ export function FormularioTecnico({
   editando,
   onCambiarNombre,
   onGuardar,
+  onCancelar,
 }: FormularioTecnicoProps) {
   return (
     <>
@@ -29,6 +31,13 @@ export function FormularioTecnico({
         title={editando ? "Guardar cambios" : "Guardar técnico"}
         onPress={onGuardar}
       />
+
+      {editando && (
+        <Button
+          title="Cancelar"
+          onPress={onCancelar}
+        />
+      )}
     </>
   );
 }

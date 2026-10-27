@@ -114,4 +114,31 @@ describe("useTecnicos", () => {
     expect(result.current.tecnicoEditandoId).toBe("1");
     expect(result.current.nombre).toBe("Carlos");
   });
+
+  test("cancela la edición sin modificar los técnicos", async () => {
+    const { result } = await renderHook(() => useTecnicos());
+
+    const tecnicosOriginales = [...result.current.tecnicos];
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.tecnicos[0]);
+    });
+
+    expect(result.current.tecnicoEditandoId).toBe("1");
+
+    await act(() => {
+      result.current.setNombre("Carlos modificado");
+    });
+
+    await act(() => {
+      result.current.cancelarEdicion();
+    });
+
+    expect(result.current.tecnicos).toEqual(tecnicosOriginales);
+    expect(result.current.tecnicos[0].nombre).toBe("Carlos");
+    expect(result.current.tecnicos[1]).toEqual(tecnicosOriginales[1]);
+    expect(result.current.tecnicoEditandoId).toBeNull();
+    expect(result.current.nombre).toBe("");
+    expect(result.current.error).toBe("");
+  });
 });

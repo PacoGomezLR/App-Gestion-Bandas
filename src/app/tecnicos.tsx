@@ -13,6 +13,7 @@ export default function TecnicosScreen() {
     setNombre,
     guardarTecnico,
     prepararEdicion,
+    cancelarEdicion,
     eliminarTecnico,
   } = useTecnicos();
 
@@ -30,6 +31,7 @@ export default function TecnicosScreen() {
         editando={tecnicoEditandoId !== null}
         onCambiarNombre={setNombre}
         onGuardar={guardarTecnico}
+        onCancelar={cancelarEdicion}
       />
 
       <ListaTecnicos
