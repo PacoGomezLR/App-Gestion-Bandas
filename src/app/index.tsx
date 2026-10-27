@@ -23,6 +23,7 @@ export default function Index() {
     guardarEvento,
     eliminarEvento,
     prepararEdicion,
+    cancelarEdicion,
   } = useEventos();
 
   const eventosVisibles =
@@ -51,6 +52,7 @@ export default function Index() {
         onCambiarEstado={setEstado}
         onSeleccionarFecha={setFecha}
         onGuardar={guardarEvento}
+        onCancelar={cancelarEdicion}
       />
 
       {fecha !== "" && (

@@ -76,6 +76,7 @@ function crearValorUseEventos(
     guardarEvento: jest.fn(),
     eliminarEvento: jest.fn(),
     prepararEdicion: jest.fn(),
+    cancelarEdicion: jest.fn(),
   };
 }
 

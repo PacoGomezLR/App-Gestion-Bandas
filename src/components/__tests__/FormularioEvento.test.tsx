@@ -27,6 +27,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
       />
     );
 
@@ -37,6 +38,7 @@ describe("FormularioEvento", () => {
 
     expect(getByText("Guardar evento")).toBeTruthy();
     expect(queryByText("Guardar cambios")).toBeNull();
+    expect(queryByText("Cancelar")).toBeNull();
   });
 
   test("envía las acciones del formulario mediante callbacks", async () => {
@@ -59,6 +61,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={onCambiarEstado}
         onSeleccionarFecha={jest.fn()}
         onGuardar={onGuardar}
+        onCancelar={jest.fn()}
       />
     );
 
@@ -92,6 +95,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
       />
     );
 
@@ -115,10 +119,39 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
       />
     );
 
     expect(getByText("Guardar cambios")).toBeTruthy();
     expect(queryByText("Guardar evento")).toBeNull();
+  });
+
+  test("permite cancelar cuando está editando", async () => {
+    const onCancelar = jest.fn();
+
+    const { getByText } = await render(
+      <FormularioEvento
+        titulo="Ensayo general"
+        tipo="ensayo"
+        estado="pendiente"
+        fecha="2026-10-02"
+        fechasConEventos={[]}
+        error=""
+        editando={true}
+        onCambiarTitulo={jest.fn()}
+        onCambiarTipo={jest.fn()}
+        onCambiarEstado={jest.fn()}
+        onSeleccionarFecha={jest.fn()}
+        onGuardar={jest.fn()}
+        onCancelar={onCancelar}
+      />
+    );
+
+    expect(getByText("Cancelar")).toBeTruthy();
+
+    await fireEvent.press(getByText("Cancelar"));
+
+    expect(onCancelar).toHaveBeenCalledTimes(1);
   });
 });

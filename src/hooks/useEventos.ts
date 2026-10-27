@@ -70,6 +70,11 @@ export function useEventos() {
     }
   }
 
+  function cancelarEdicion() {
+    setEventoEditandoId(null);
+    limpiarFormulario();
+  }
+
   function prepararEdicion(evento: Evento) {
     setEventoEditandoId(evento.id);
     setTitulo(evento.titulo);
@@ -93,5 +98,6 @@ export function useEventos() {
     guardarEvento,
     eliminarEvento,
     prepararEdicion,
+    cancelarEdicion,
   };
 }

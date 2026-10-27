@@ -154,4 +154,32 @@ describe("useEventos", () => {
     expect(result.current.tipo).toBe(eventoEditado.tipo);
     expect(result.current.estado).toBe(eventoEditado.estado);
   });
+
+  test("cancela la edición sin modificar los eventos", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    const eventosOriginales = [...result.current.eventos];
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    expect(result.current.eventoEditandoId).toBe("1");
+
+    await act(() => {
+      result.current.setTitulo("Título modificado");
+    });
+
+    await act(() => {
+      result.current.cancelarEdicion();
+    });
+
+    expect(result.current.eventos).toEqual(eventosOriginales);
+    expect(result.current.eventoEditandoId).toBeNull();
+    expect(result.current.titulo).toBe("");
+    expect(result.current.fecha).toBe("");
+    expect(result.current.tipo).toBe("concierto");
+    expect(result.current.estado).toBe("pendiente");
+    expect(result.current.error).toBe("");
+  });
 });

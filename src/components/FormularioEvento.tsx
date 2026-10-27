@@ -15,6 +15,7 @@ interface FormularioEventoProps {
   onCambiarEstado: (estado: EstadoEvento) => void;
   onSeleccionarFecha: (fecha: string) => void;
   onGuardar: () => void;
+  onCancelar: () => void;
 }
 
 export function FormularioEvento({
@@ -30,6 +31,7 @@ export function FormularioEvento({
   onCambiarEstado,
   onSeleccionarFecha,
   onGuardar,
+  onCancelar,
 }: FormularioEventoProps) {
   return (
     <>
@@ -75,6 +77,13 @@ export function FormularioEvento({
         title={editando ? "Guardar cambios" : "Guardar evento"}
         onPress={onGuardar}
       />
+
+      {editando && (
+        <Button
+          title="Cancelar"
+          onPress={onCancelar}
+        />
+      )}
 
       <Text>Estado: {estado}</Text>
 
