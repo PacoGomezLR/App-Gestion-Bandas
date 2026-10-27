@@ -1,9 +1,15 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import Index from "../../app/index";
+import { useTecnicosContext } from "../../context/TecnicosContext";
 import { useEventos } from "../../hooks/useEventos";
 import type { Evento } from "../../types/evento";
 
 jest.mock("../../hooks/useEventos");
+
+jest.mock("../../context/TecnicosContext", () => ({
+  ...jest.requireActual("../../context/TecnicosContext"),
+  useTecnicosContext: jest.fn(),
+}));
 
 jest.mock("../../components/ListaEventos", () => {
   const { Text, View } = require("react-native");
@@ -32,6 +38,7 @@ jest.mock("../../components/FormularioEvento", () => {
 });
 
 const mockUseEventos = jest.mocked(useEventos);
+const mockUseTecnicosContext = jest.mocked(useTecnicosContext);
 
 const eventos: Evento[] = [
   {
@@ -40,6 +47,7 @@ const eventos: Evento[] = [
     tipo: "concierto",
     fecha: "2026-09-30",
     estado: "confirmado",
+    tecnicoIds: [],
   },
   {
     id: "2",
@@ -47,6 +55,7 @@ const eventos: Evento[] = [
     tipo: "ensayo",
     fecha: "2026-10-02",
     estado: "pendiente",
+    tecnicoIds: [],
   },
   {
     id: "3",
@@ -54,6 +63,7 @@ const eventos: Evento[] = [
     tipo: "reunion",
     fecha: "2026-10-05",
     estado: "pendiente",
+    tecnicoIds: [],
   },
 ];
 
@@ -67,12 +77,14 @@ function crearValorUseEventos(
     tipo: "concierto",
     estado: "pendiente",
     fecha,
+    tecnicoIds: [],
     error: "",
     eventoEditandoId: null,
     setTitulo: jest.fn(),
     setTipo: jest.fn(),
     setEstado: jest.fn(),
     setFecha,
+    alternarTecnico: jest.fn(),
     guardarEvento: jest.fn(),
     eliminarEvento: jest.fn(),
     prepararEdicion: jest.fn(),
@@ -80,7 +92,30 @@ function crearValorUseEventos(
   };
 }
 
+function crearValorUseTecnicosContext(): ReturnType<typeof useTecnicosContext> {
+  return {
+    tecnicos: [
+      {
+        id: "1",
+        nombre: "Carlos",
+      },
+    ],
+    nombre: "",
+    error: "",
+    tecnicoEditandoId: null,
+    setNombre: jest.fn(),
+    guardarTecnico: jest.fn(),
+    prepararEdicion: jest.fn(),
+    cancelarEdicion: jest.fn(),
+    eliminarTecnico: jest.fn(),
+  };
+}
+
 describe("Index", () => {
+  beforeEach(() => {
+    mockUseTecnicosContext.mockReturnValue(crearValorUseTecnicosContext());
+  });
+
   test("con fecha seleccionada muestra solo sus eventos y permite ver todos", async () => {
     const setFecha = jest.fn();
     mockUseEventos.mockReturnValue(

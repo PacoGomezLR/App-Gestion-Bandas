@@ -1,4 +1,5 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import type { Tecnico } from "../../types/tecnico";
 import { FormularioEvento } from "../FormularioEvento";
 
 jest.mock("../CalendarioEventos", () => {
@@ -20,12 +21,15 @@ describe("FormularioEvento", () => {
         estado="confirmado"
         fecha="2026-12-20"
         fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
         error=""
         editando={false}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
       />
@@ -54,12 +58,15 @@ describe("FormularioEvento", () => {
         estado="pendiente"
         fecha="2026-12-20"
         fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
         error=""
         editando={false}
         onCambiarTitulo={onCambiarTitulo}
         onCambiarTipo={onCambiarTipo}
         onCambiarEstado={onCambiarEstado}
         onSeleccionarFecha={jest.fn()}
+        onAlternarTecnico={jest.fn()}
         onGuardar={onGuardar}
         onCancelar={jest.fn()}
       />
@@ -88,12 +95,15 @@ describe("FormularioEvento", () => {
         estado="pendiente"
         fecha=""
         fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
         error="El título y la fecha son obligatorios"
         editando={false}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
       />
@@ -112,12 +122,15 @@ describe("FormularioEvento", () => {
         estado="pendiente"
         fecha="2026-10-02"
         fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
         error=""
         editando={true}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
       />
@@ -137,12 +150,15 @@ describe("FormularioEvento", () => {
         estado="pendiente"
         fecha="2026-10-02"
         fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
         error=""
         editando={true}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={onCancelar}
       />
@@ -153,5 +169,53 @@ describe("FormularioEvento", () => {
     await fireEvent.press(getByText("Cancelar"));
 
     expect(onCancelar).toHaveBeenCalledTimes(1);
+  });
+
+  test("permite seleccionar y deseleccionar técnicos", async () => {
+    const tecnicos: Tecnico[] = [
+      {
+        id: "1",
+        nombre: "Carlos",
+      },
+      {
+        id: "2",
+        nombre: "Miguel",
+      },
+    ];
+    const onAlternarTecnico = jest.fn();
+
+    const { getByText } = await render(
+      <FormularioEvento
+        titulo="Ensayo general"
+        tipo="ensayo"
+        estado="pendiente"
+        fecha="2026-10-02"
+        fechasConEventos={[]}
+        tecnicos={tecnicos}
+        tecnicoIds={["1"]}
+        error=""
+        editando={false}
+        onCambiarTitulo={jest.fn()}
+        onCambiarTipo={jest.fn()}
+        onCambiarEstado={jest.fn()}
+        onSeleccionarFecha={jest.fn()}
+        onAlternarTecnico={onAlternarTecnico}
+        onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Técnicos asignados")).toBeTruthy();
+    expect(getByText("Carlos ✓")).toBeTruthy();
+    expect(getByText("Miguel")).toBeTruthy();
+
+    await fireEvent.press(getByText("Miguel"));
+
+    expect(onAlternarTecnico).toHaveBeenCalledWith("2");
+
+    await fireEvent.press(getByText("Carlos ✓"));
+
+    expect(onAlternarTecnico).toHaveBeenCalledWith("1");
+    expect(onAlternarTecnico).toHaveBeenCalledTimes(2);
   });
 });

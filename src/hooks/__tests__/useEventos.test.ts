@@ -10,6 +10,8 @@ describe("useEventos", () => {
     await act(() => {
       result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
+      result.current.alternarTecnico("1");
+      result.current.alternarTecnico("2");
     });
 
     await act(() => {
@@ -23,7 +25,10 @@ describe("useEventos", () => {
       tipo: "concierto",
       fecha: "2026-11-15",
       estado: "pendiente",
+      tecnicoIds: ["1", "2"],
     });
+
+    expect(result.current.tecnicoIds).toEqual([]);
   });
 
   test("no crea un evento si faltan título o fecha", async () => {
@@ -181,5 +186,70 @@ describe("useEventos", () => {
     expect(result.current.tipo).toBe("concierto");
     expect(result.current.estado).toBe("pendiente");
     expect(result.current.error).toBe("");
+  });
+
+  test("asigna y desasigna técnicos en el formulario", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    expect(result.current.tecnicoIds).toEqual([]);
+
+    await act(() => {
+      result.current.alternarTecnico("1");
+    });
+
+    expect(result.current.tecnicoIds).toEqual(["1"]);
+
+    await act(() => {
+      result.current.alternarTecnico("2");
+    });
+
+    expect(result.current.tecnicoIds).toEqual(["1", "2"]);
+
+    await act(() => {
+      result.current.alternarTecnico("1");
+    });
+
+    expect(result.current.tecnicoIds).toEqual(["2"]);
+  });
+
+  test("carga y modifica los técnicos asignados al editar", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    // Primero se asigna un técnico al evento "2" para tener asignaciones que cargar
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[1]);
+    });
+
+    await act(() => {
+      result.current.alternarTecnico("1");
+    });
+
+    await act(() => {
+      result.current.guardarEvento();
+    });
+
+    expect(result.current.eventos[1].tecnicoIds).toEqual(["1"]);
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[1]);
+    });
+
+    expect(result.current.tecnicoIds).toEqual(["1"]);
+
+    await act(() => {
+      result.current.alternarTecnico("1");
+      result.current.alternarTecnico("2");
+    });
+
+    await act(() => {
+      result.current.guardarEvento();
+    });
+
+    expect(result.current.eventos).toHaveLength(3);
+    expect(result.current.eventos[1]).toMatchObject({
+      id: "2",
+      tecnicoIds: ["2"],
+    });
+    expect(result.current.tecnicoIds).toEqual([]);
   });
 });

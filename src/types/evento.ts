@@ -15,4 +15,5 @@ export type TipoEvento =
   tipo: TipoEvento;
   fecha: string;
   estado: EstadoEvento;
+  tecnicoIds: string[];
 }

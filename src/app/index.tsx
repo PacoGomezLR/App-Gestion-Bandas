@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { FormularioEvento } from "../components/FormularioEvento";
 import { ListaEventos } from "../components/ListaEventos";
+import { useTecnicosContext } from "../context/TecnicosContext";
 import { useEventos } from "../hooks/useEventos";
 
 export default function Index() {
@@ -14,17 +15,21 @@ export default function Index() {
     tipo,
     estado,
     fecha,
+    tecnicoIds,
     error,
     eventoEditandoId,
     setTitulo,
     setTipo,
     setEstado,
     setFecha,
+    alternarTecnico,
     guardarEvento,
     eliminarEvento,
     prepararEdicion,
     cancelarEdicion,
   } = useEventos();
+
+  const { tecnicos } = useTecnicosContext();
 
   const eventosVisibles =
     fecha === ""
@@ -45,12 +50,15 @@ export default function Index() {
         estado={estado}
         fecha={fecha}
         fechasConEventos={eventos.map((evento) => evento.fecha)}
+        tecnicos={tecnicos}
+        tecnicoIds={tecnicoIds}
         error={error}
         editando={eventoEditandoId !== null}
         onCambiarTitulo={setTitulo}
         onCambiarTipo={setTipo}
         onCambiarEstado={setEstado}
         onSeleccionarFecha={setFecha}
+        onAlternarTecnico={alternarTecnico}
         onGuardar={guardarEvento}
         onCancelar={cancelarEdicion}
       />
@@ -64,6 +72,7 @@ export default function Index() {
 
       <ListaEventos
         eventos={eventosVisibles}
+        tecnicos={tecnicos}
         onEliminar={eliminarEvento}
         onEditar={prepararEdicion}
       />

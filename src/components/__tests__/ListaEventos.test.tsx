@@ -1,6 +1,18 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import type { Evento } from "../../types/evento";
+import type { Tecnico } from "../../types/tecnico";
 import { ListaEventos } from "../ListaEventos";
+
+const tecnicos: Tecnico[] = [
+  {
+    id: "1",
+    nombre: "Carlos",
+  },
+  {
+    id: "2",
+    nombre: "Miguel",
+  },
+];
 
 const eventos: Evento[] = [
   {
@@ -9,6 +21,7 @@ const eventos: Evento[] = [
     tipo: "concierto",
     fecha: "2026-11-15",
     estado: "confirmado",
+    tecnicoIds: ["1", "2"],
   },
   {
     id: "2",
@@ -16,6 +29,7 @@ const eventos: Evento[] = [
     tipo: "ensayo",
     fecha: "2026-11-20",
     estado: "pendiente",
+    tecnicoIds: [],
   },
 ];
 
@@ -27,6 +41,7 @@ describe("ListaEventos", () => {
     const { getByText } = await render(
       <ListaEventos
         eventos={eventos}
+        tecnicos={tecnicos}
         onEliminar={onEliminar}
         onEditar={onEditar}
       />
@@ -49,6 +64,7 @@ describe("ListaEventos", () => {
     const { getAllByText } = await render(
       <ListaEventos
         eventos={eventos}
+        tecnicos={tecnicos}
         onEliminar={onEliminar}
         onEditar={onEditar}
       />
@@ -67,6 +83,7 @@ describe("ListaEventos", () => {
     const { getAllByText } = await render(
       <ListaEventos
         eventos={eventos}
+        tecnicos={tecnicos}
         onEliminar={onEliminar}
         onEditar={onEditar}
       />
@@ -76,5 +93,37 @@ describe("ListaEventos", () => {
 
     expect(onEditar).toHaveBeenCalledTimes(1);
     expect(onEditar).toHaveBeenCalledWith(eventos[1]);
+  });
+
+  test("muestra los técnicos asignados a cada evento", async () => {
+    const { getByText } = await render(
+      <ListaEventos
+        eventos={eventos}
+        tecnicos={tecnicos}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Técnicos: Carlos, Miguel")).toBeTruthy();
+    expect(getByText("Técnicos: Sin asignar")).toBeTruthy();
+  });
+
+  test("ignora los ids que no corresponden a ningún técnico", async () => {
+    const eventoConIdInexistente: Evento = {
+      ...eventos[0],
+      tecnicoIds: ["1", "99"],
+    };
+
+    const { getByText } = await render(
+      <ListaEventos
+        eventos={[eventoConIdInexistente]}
+        tecnicos={tecnicos}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Técnicos: Carlos")).toBeTruthy();
   });
 });

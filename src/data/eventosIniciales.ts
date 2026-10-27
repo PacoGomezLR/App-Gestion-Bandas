@@ -7,6 +7,7 @@ export const eventosIniciales: Evento[] = [
     tipo: "concierto",
     fecha: "2026-09-30",
     estado: "confirmado",
+    tecnicoIds: [],
   },
   {
     id: "2",
@@ -14,6 +15,7 @@ export const eventosIniciales: Evento[] = [
     tipo: "ensayo",
     fecha: "2026-10-02",
     estado: "pendiente",
+    tecnicoIds: [],
   },
   {
     id: "3",
@@ -21,5 +23,6 @@ export const eventosIniciales: Evento[] = [
     tipo: "reunion",
     fecha: "2026-10-05",
     estado: "pendiente",
+    tecnicoIds: [],
   },
 ];
