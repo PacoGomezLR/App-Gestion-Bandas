@@ -2,7 +2,7 @@ import { ScrollView, Text } from "react-native";
 
 import { FormularioTecnico } from "../components/FormularioTecnico";
 import { ListaTecnicos } from "../components/ListaTecnicos";
-import { useTecnicos } from "../hooks/useTecnicos";
+import { useTecnicosContext } from "../context/TecnicosContext";
 
 export default function TecnicosScreen() {
   const {
@@ -15,7 +15,7 @@ export default function TecnicosScreen() {
     prepararEdicion,
     cancelarEdicion,
     eliminarTecnico,
-  } = useTecnicos();
+  } = useTecnicosContext();
 
   return (
     <ScrollView
