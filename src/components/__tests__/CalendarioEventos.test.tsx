@@ -42,10 +42,10 @@ jest.mock("react-native-calendars", () => {
 });
 
 describe("CalendarioEventos", () => {
-  test("muestra la fecha formateada y avisa al pulsar un día", () => {
+  test("muestra la fecha formateada y avisa al pulsar un día", async () => {
     const onSeleccionarFecha = jest.fn();
 
-    const { getByTestId, getByText } = render(
+    const { getByTestId, getByText } = await render(
       <CalendarioEventos
         fecha="2026-12-20"
         fechasConEventos={[
@@ -73,7 +73,7 @@ describe("CalendarioEventos", () => {
       selected: true,
     });
 
-    fireEvent.press(
+    await fireEvent.press(
       getByText("Seleccionar día de prueba")
     );
 

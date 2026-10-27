@@ -20,11 +20,11 @@ const eventos: Evento[] = [
 ];
 
 describe("ListaEventos", () => {
-  test("muestra los eventos recibidos", () => {
+  test("muestra los eventos recibidos", async () => {
     const onEliminar = jest.fn();
     const onEditar = jest.fn();
 
-    const { getByText } = render(
+    const { getByText } = await render(
       <ListaEventos
         eventos={eventos}
         onEliminar={onEliminar}
@@ -42,11 +42,11 @@ describe("ListaEventos", () => {
     expect(getByText("pendiente")).toBeTruthy();
   });
 
-  test("llama a onEliminar con el id correcto", () => {
+  test("llama a onEliminar con el id correcto", async () => {
     const onEliminar = jest.fn();
     const onEditar = jest.fn();
 
-    const { getAllByText } = render(
+    const { getAllByText } = await render(
       <ListaEventos
         eventos={eventos}
         onEliminar={onEliminar}
@@ -54,17 +54,17 @@ describe("ListaEventos", () => {
       />
     );
 
-    fireEvent.press(getAllByText("Eliminar")[0]);
+    await fireEvent.press(getAllByText("Eliminar")[0]);
 
     expect(onEliminar).toHaveBeenCalledTimes(1);
     expect(onEliminar).toHaveBeenCalledWith("1");
   });
 
-  test("llama a onEditar con el evento correcto", () => {
+  test("llama a onEditar con el evento correcto", async () => {
     const onEliminar = jest.fn();
     const onEditar = jest.fn();
 
-    const { getAllByText } = render(
+    const { getAllByText } = await render(
       <ListaEventos
         eventos={eventos}
         onEliminar={onEliminar}
@@ -72,7 +72,7 @@ describe("ListaEventos", () => {
       />
     );
 
-    fireEvent.press(getAllByText("Editar")[1]);
+    await fireEvent.press(getAllByText("Editar")[1]);
 
     expect(onEditar).toHaveBeenCalledTimes(1);
     expect(onEditar).toHaveBeenCalledWith(eventos[1]);

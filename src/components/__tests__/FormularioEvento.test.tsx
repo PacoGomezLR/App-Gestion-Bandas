@@ -12,8 +12,8 @@ jest.mock("../CalendarioEventos", () => {
 });
 
 describe("FormularioEvento", () => {
-  test("muestra los valores recibidos por props", () => {
-    const { getByDisplayValue, getByText, queryByText } = render(
+  test("muestra los valores recibidos por props", async () => {
+    const { getByDisplayValue, getByText, queryByText } = await render(
       <FormularioEvento
         titulo="Concierto en Málaga"
         tipo="concierto"
@@ -39,13 +39,13 @@ describe("FormularioEvento", () => {
     expect(queryByText("Guardar cambios")).toBeNull();
   });
 
-  test("envía las acciones del formulario mediante callbacks", () => {
+  test("envía las acciones del formulario mediante callbacks", async () => {
     const onCambiarTitulo = jest.fn();
     const onCambiarTipo = jest.fn();
     const onCambiarEstado = jest.fn();
     const onGuardar = jest.fn();
 
-    const { getByDisplayValue, getByText } = render(
+    const { getByDisplayValue, getByText } = await render(
       <FormularioEvento
         titulo="Concierto inicial"
         tipo="concierto"
@@ -62,14 +62,14 @@ describe("FormularioEvento", () => {
       />
     );
 
-    fireEvent.changeText(
+    await fireEvent.changeText(
       getByDisplayValue("Concierto inicial"),
       "Ensayo del viernes"
     );
 
-    fireEvent.press(getByText("Ensayo"));
-    fireEvent.press(getByText("Cancelado"));
-    fireEvent.press(getByText("Guardar evento"));
+    await fireEvent.press(getByText("Ensayo"));
+    await fireEvent.press(getByText("Cancelado"));
+    await fireEvent.press(getByText("Guardar evento"));
 
     expect(onCambiarTitulo).toHaveBeenCalledWith("Ensayo del viernes");
     expect(onCambiarTipo).toHaveBeenCalledWith("ensayo");
@@ -77,8 +77,8 @@ describe("FormularioEvento", () => {
     expect(onGuardar).toHaveBeenCalledTimes(1);
   });
 
-  test("muestra el mensaje de error", () => {
-    const { getByText } = render(
+  test("muestra el mensaje de error", async () => {
+    const { getByText } = await render(
       <FormularioEvento
         titulo=""
         tipo="concierto"
@@ -100,8 +100,8 @@ describe("FormularioEvento", () => {
     ).toBeTruthy();
   });
 
-  test("muestra Guardar cambios cuando está editando", () => {
-    const { getByText, queryByText } = render(
+  test("muestra Guardar cambios cuando está editando", async () => {
+    const { getByText, queryByText } = await render(
       <FormularioEvento
         titulo="Ensayo general"
         tipo="ensayo"

@@ -2,17 +2,17 @@ import { act, renderHook } from "@testing-library/react-native";
 import { useEventos } from "../useEventos";
 
 describe("useEventos", () => {
-  test("crea un evento", () => {
-    const { result } = renderHook(() => useEventos());
+  test("crea un evento", async () => {
+    const { result } = await renderHook(() => useEventos());
 
     expect(result.current.eventos).toHaveLength(3);
 
-    act(() => {
+    await act(() => {
       result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
     });
 
-    act(() => {
+    await act(() => {
       result.current.guardarEvento();
     });
 
@@ -26,14 +26,14 @@ describe("useEventos", () => {
     });
   });
 
-  test("no crea un evento si faltan título o fecha", () => {
-    const { result } = renderHook(() => useEventos());
+  test("no crea un evento si faltan título o fecha", async () => {
+    const { result } = await renderHook(() => useEventos());
 
-    act(() => {
+    await act(() => {
       result.current.setTitulo("Concierto sin fecha");
     });
 
-    act(() => {
+    await act(() => {
       result.current.guardarEvento();
     });
 
@@ -43,23 +43,23 @@ describe("useEventos", () => {
     );
   });
 
-  test("edita un evento existente", () => {
-    const { result } = renderHook(() => useEventos());
+  test("edita un evento existente", async () => {
+    const { result } = await renderHook(() => useEventos());
 
     const primerEventoOriginal = result.current.eventos[0];
     const eventoOriginal = result.current.eventos[1];
     const tercerEventoOriginal = result.current.eventos[2];
 
-    act(() => {
+    await act(() => {
       result.current.prepararEdicion(eventoOriginal);
     });
 
-    act(() => {
+    await act(() => {
       result.current.setTitulo("Ensayo completo");
       result.current.setEstado("confirmado");
     });
 
-    act(() => {
+    await act(() => {
       result.current.guardarEvento();
     });
 
@@ -77,14 +77,14 @@ describe("useEventos", () => {
     expect(result.current.eventos[2]).toEqual(tercerEventoOriginal);
   });
 
-  test("elimina un evento existente", () => {
-    const { result } = renderHook(() => useEventos());
+  test("elimina un evento existente", async () => {
+    const { result } = await renderHook(() => useEventos());
 
     const primerEventoOriginal = result.current.eventos[0];
     const eventoAEliminar = result.current.eventos[1];
     const tercerEventoOriginal = result.current.eventos[2];
 
-    act(() => {
+    await act(() => {
       result.current.eliminarEvento(eventoAEliminar.id);
     });
 
