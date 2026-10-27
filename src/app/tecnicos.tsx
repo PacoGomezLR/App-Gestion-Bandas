@@ -1,9 +1,18 @@
 import { ScrollView, Text } from "react-native";
 
+import { FormularioTecnico } from "../components/FormularioTecnico";
 import { ListaTecnicos } from "../components/ListaTecnicos";
-import { tecnicosIniciales } from "../data/tecnicosIniciales";
+import { useTecnicos } from "../hooks/useTecnicos";
 
 export default function TecnicosScreen() {
+  const {
+    tecnicos,
+    nombre,
+    error,
+    setNombre,
+    guardarTecnico,
+  } = useTecnicos();
+
   return (
     <ScrollView
       contentContainerStyle={{
@@ -12,7 +21,14 @@ export default function TecnicosScreen() {
     >
       <Text>Técnicos</Text>
 
-      <ListaTecnicos tecnicos={tecnicosIniciales} />
+      <FormularioTecnico
+        nombre={nombre}
+        error={error}
+        onCambiarNombre={setNombre}
+        onGuardar={guardarTecnico}
+      />
+
+      <ListaTecnicos tecnicos={tecnicos} />
     </ScrollView>
   );
 }
