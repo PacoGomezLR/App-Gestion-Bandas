@@ -51,6 +51,20 @@ export function useTecnicos() {
     setError("");
   }
 
+  function eliminarTecnico(id: string) {
+    const tecnicosActualizados = tecnicos.filter(
+      (tecnico) => tecnico.id !== id
+    );
+
+    setTecnicos(tecnicosActualizados);
+
+    if (tecnicoEditandoId === id) {
+      setTecnicoEditandoId(null);
+      setNombre("");
+      setError("");
+    }
+  }
+
   return {
     tecnicos,
     nombre,
@@ -59,5 +73,6 @@ export function useTecnicos() {
     setNombre,
     guardarTecnico,
     prepararEdicion,
+    eliminarTecnico,
   };
 }

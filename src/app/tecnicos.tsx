@@ -13,6 +13,7 @@ export default function TecnicosScreen() {
     setNombre,
     guardarTecnico,
     prepararEdicion,
+    eliminarTecnico,
   } = useTecnicos();
 
   return (
@@ -34,6 +35,7 @@ export default function TecnicosScreen() {
       <ListaTecnicos
         tecnicos={tecnicos}
         onEditar={prepararEdicion}
+        onEliminar={eliminarTecnico}
       />
     </ScrollView>
   );
