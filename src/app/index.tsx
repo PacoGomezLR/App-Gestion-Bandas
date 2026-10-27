@@ -30,6 +30,7 @@ export default function Index() {
         tipo={tipo}
         estado={estado}
         fecha={fecha}
+        fechasConEventos={eventos.map((evento) => evento.fecha)}
         error={error}
         editando={eventoEditandoId !== null}
         onCambiarTitulo={setTitulo}

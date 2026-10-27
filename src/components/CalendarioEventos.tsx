@@ -5,13 +5,32 @@ import { formatearFecha } from "../utils/fechas";
 
 interface CalendarioEventosProps {
   fecha: string;
+  fechasConEventos: string[];
   onSeleccionarFecha: (fecha: string) => void;
 }
 
 export function CalendarioEventos({
   fecha,
+  fechasConEventos,
   onSeleccionarFecha,
 }: CalendarioEventosProps) {
+  const fechasMarcadas = fechasConEventos.reduce<
+    Record<string, { marked?: boolean; selected?: boolean }>
+  >((resultado, fechaEvento) => {
+    resultado[fechaEvento] = {
+      marked: true,
+    };
+
+    return resultado;
+  }, {});
+
+  if (fecha !== "") {
+    fechasMarcadas[fecha] = {
+      ...fechasMarcadas[fecha],
+      selected: true,
+    };
+  }
+
   return (
     <>
       <Text>Fecha seleccionada: {formatearFecha(fecha)}</Text>
@@ -21,11 +40,7 @@ export function CalendarioEventos({
         onDayPress={(day) => {
           onSeleccionarFecha(day.dateString);
         }}
-        markedDates={{
-          [fecha]: {
-            selected: true,
-          },
-        }}
+        markedDates={fechasMarcadas}
       />
     </>
   );

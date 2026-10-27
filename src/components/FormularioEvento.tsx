@@ -7,6 +7,7 @@ interface FormularioEventoProps {
   tipo: TipoEvento;
   estado: EstadoEvento;
   fecha: string;
+  fechasConEventos: string[];
   error: string;
   editando: boolean;
   onCambiarTitulo: (titulo: string) => void;
@@ -21,6 +22,7 @@ export function FormularioEvento({
   tipo,
   estado,
   fecha,
+  fechasConEventos,
   error,
   editando,
   onCambiarTitulo,
@@ -39,6 +41,7 @@ export function FormularioEvento({
 
       <CalendarioEventos
         fecha={fecha}
+        fechasConEventos={fechasConEventos}
         onSeleccionarFecha={onSeleccionarFecha}
       />
 
