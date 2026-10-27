@@ -1,4 +1,8 @@
-import { Text, View } from "react-native";
+import {
+  Button,
+  ScrollView,
+  Text,
+} from "react-native";
 import { FormularioEvento } from "../components/FormularioEvento";
 import { ListaEventos } from "../components/ListaEventos";
 import { useEventos } from "../hooks/useEventos";
@@ -21,8 +25,17 @@ export default function Index() {
     prepararEdicion,
   } = useEventos();
 
+  const eventosVisibles =
+    fecha === ""
+      ? eventos
+      : eventos.filter((evento) => evento.fecha === fecha);
+
   return (
-    <View>
+    <ScrollView
+      contentContainerStyle={{
+        paddingBottom: 120,
+      }}
+    >
       <Text>Calendario</Text>
 
       <FormularioEvento
@@ -40,11 +53,18 @@ export default function Index() {
         onGuardar={guardarEvento}
       />
 
+      {fecha !== "" && (
+        <Button
+          title="Ver todos"
+          onPress={() => setFecha("")}
+        />
+      )}
+
       <ListaEventos
-        eventos={eventos}
+        eventos={eventosVisibles}
         onEliminar={eliminarEvento}
         onEditar={prepararEdicion}
       />
-    </View>
+    </ScrollView>
   );
 }
