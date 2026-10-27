@@ -10,6 +10,7 @@ describe("FormularioTecnico", () => {
       <FormularioTecnico
         nombre="Carlos"
         error="El nombre es obligatorio"
+        editando={false}
         onCambiarNombre={onCambiarNombre}
         onGuardar={onGuardar}
       />
@@ -23,5 +24,20 @@ describe("FormularioTecnico", () => {
 
     expect(onCambiarNombre).toHaveBeenCalledWith("Lucía");
     expect(onGuardar).toHaveBeenCalledTimes(1);
+  });
+
+  test("muestra Guardar cambios cuando está editando", async () => {
+    const { getByText, queryByText } = await render(
+      <FormularioTecnico
+        nombre="Carlos"
+        error=""
+        editando={true}
+        onCambiarNombre={jest.fn()}
+        onGuardar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Guardar cambios")).toBeTruthy();
+    expect(queryByText("Guardar técnico")).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { Button, Text, TextInput } from "react-native";
 interface FormularioTecnicoProps {
   nombre: string;
   error: string;
+  editando: boolean;
   onCambiarNombre: (nombre: string) => void;
   onGuardar: () => void;
 }
@@ -10,6 +11,7 @@ interface FormularioTecnicoProps {
 export function FormularioTecnico({
   nombre,
   error,
+  editando,
   onCambiarNombre,
   onGuardar,
 }: FormularioTecnicoProps) {
@@ -24,7 +26,7 @@ export function FormularioTecnico({
       {error !== "" && <Text>{error}</Text>}
 
       <Button
-        title="Guardar técnico"
+        title={editando ? "Guardar cambios" : "Guardar técnico"}
         onPress={onGuardar}
       />
     </>

@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 import type { Tecnico } from "../../types/tecnico";
 import { ListaTecnicos } from "../ListaTecnicos";
 
@@ -16,10 +16,23 @@ const tecnicos: Tecnico[] = [
 describe("ListaTecnicos", () => {
   test("muestra los técnicos recibidos", async () => {
     const { getByText } = await render(
-      <ListaTecnicos tecnicos={tecnicos} />
+      <ListaTecnicos tecnicos={tecnicos} onEditar={jest.fn()} />
     );
 
     expect(getByText("Carlos")).toBeTruthy();
     expect(getByText("Miguel")).toBeTruthy();
+  });
+
+  test("llama a onEditar con el técnico correcto", async () => {
+    const onEditar = jest.fn();
+
+    const { getAllByText } = await render(
+      <ListaTecnicos tecnicos={tecnicos} onEditar={onEditar} />
+    );
+
+    await fireEvent.press(getAllByText("Editar")[1]);
+
+    expect(onEditar).toHaveBeenCalledTimes(1);
+    expect(onEditar).toHaveBeenCalledWith(tecnicos[1]);
   });
 });

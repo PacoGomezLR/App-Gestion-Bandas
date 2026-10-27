@@ -31,4 +31,35 @@ describe("useTecnicos", () => {
     expect(result.current.tecnicos).toHaveLength(2);
     expect(result.current.error).toBe("El nombre es obligatorio");
   });
+
+  test("edita un técnico existente", async () => {
+    const { result } = await renderHook(() => useTecnicos());
+
+    const segundoTecnicoOriginal = result.current.tecnicos[1];
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.tecnicos[0]);
+    });
+
+    expect(result.current.tecnicoEditandoId).toBe("1");
+    expect(result.current.nombre).toBe("Carlos");
+
+    await act(() => {
+      result.current.setNombre("Carlos García");
+    });
+
+    await act(() => {
+      result.current.guardarTecnico();
+    });
+
+    expect(result.current.tecnicos).toHaveLength(2);
+    expect(result.current.tecnicos[0]).toEqual({
+      id: "1",
+      nombre: "Carlos García",
+    });
+    expect(result.current.tecnicos[1]).toEqual(segundoTecnicoOriginal);
+    expect(result.current.tecnicoEditandoId).toBeNull();
+    expect(result.current.nombre).toBe("");
+    expect(result.current.error).toBe("");
+  });
 });

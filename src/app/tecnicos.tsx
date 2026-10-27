@@ -9,8 +9,10 @@ export default function TecnicosScreen() {
     tecnicos,
     nombre,
     error,
+    tecnicoEditandoId,
     setNombre,
     guardarTecnico,
+    prepararEdicion,
   } = useTecnicos();
 
   return (
@@ -24,11 +26,15 @@ export default function TecnicosScreen() {
       <FormularioTecnico
         nombre={nombre}
         error={error}
+        editando={tecnicoEditandoId !== null}
         onCambiarNombre={setNombre}
         onGuardar={guardarTecnico}
       />
 
-      <ListaTecnicos tecnicos={tecnicos} />
+      <ListaTecnicos
+        tecnicos={tecnicos}
+        onEditar={prepararEdicion}
+      />
     </ScrollView>
   );
 }

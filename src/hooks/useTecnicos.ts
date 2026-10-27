@@ -9,10 +9,29 @@ export function useTecnicos() {
 
   const [nombre, setNombre] = useState("");
   const [error, setError] = useState("");
+  const [tecnicoEditandoId, setTecnicoEditandoId] =
+    useState<string | null>(null);
 
   function guardarTecnico() {
     if (nombre.trim() === "") {
       setError("El nombre es obligatorio");
+      return;
+    }
+
+    if (tecnicoEditandoId !== null) {
+      const tecnicosActualizados = tecnicos.map((tecnico) =>
+        tecnico.id === tecnicoEditandoId
+          ? {
+              ...tecnico,
+              nombre: nombre.trim(),
+            }
+          : tecnico
+      );
+
+      setTecnicos(tecnicosActualizados);
+      setTecnicoEditandoId(null);
+      setNombre("");
+      setError("");
       return;
     }
 
@@ -26,11 +45,19 @@ export function useTecnicos() {
     setError("");
   }
 
+  function prepararEdicion(tecnico: Tecnico) {
+    setTecnicoEditandoId(tecnico.id);
+    setNombre(tecnico.nombre);
+    setError("");
+  }
+
   return {
     tecnicos,
     nombre,
     error,
+    tecnicoEditandoId,
     setNombre,
     guardarTecnico,
+    prepararEdicion,
   };
 }
