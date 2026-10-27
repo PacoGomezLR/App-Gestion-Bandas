@@ -99,4 +99,59 @@ describe("useEventos", () => {
     expect(result.current.eventos[0]).toEqual(primerEventoOriginal);
     expect(result.current.eventos[1]).toEqual(tercerEventoOriginal);
   });
+
+  test("sale del modo edición si elimina el evento que estaba editando", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    const eventoEditado = result.current.eventos[0];
+
+    await act(() => {
+      result.current.prepararEdicion(eventoEditado);
+    });
+
+    expect(result.current.eventoEditandoId).toBe("1");
+    expect(result.current.titulo).toBe(eventoEditado.titulo);
+    expect(result.current.tipo).toBe(eventoEditado.tipo);
+    expect(result.current.fecha).toBe(eventoEditado.fecha);
+    expect(result.current.estado).toBe(eventoEditado.estado);
+
+    await act(() => {
+      result.current.eliminarEvento("1");
+    });
+
+    expect(result.current.eventos).toHaveLength(2);
+    expect(
+      result.current.eventos.some((evento) => evento.id === "1")
+    ).toBe(false);
+    expect(result.current.eventoEditandoId).toBeNull();
+    expect(result.current.titulo).toBe("");
+    expect(result.current.fecha).toBe("");
+    expect(result.current.tipo).toBe("concierto");
+    expect(result.current.estado).toBe("pendiente");
+    expect(result.current.error).toBe("");
+  });
+
+  test("mantiene la edición si elimina otro evento", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    const eventoEditado = result.current.eventos[0];
+
+    await act(() => {
+      result.current.prepararEdicion(eventoEditado);
+    });
+
+    await act(() => {
+      result.current.eliminarEvento("2");
+    });
+
+    expect(result.current.eventos).toHaveLength(2);
+    expect(
+      result.current.eventos.some((evento) => evento.id === "2")
+    ).toBe(false);
+    expect(result.current.eventoEditandoId).toBe("1");
+    expect(result.current.titulo).toBe(eventoEditado.titulo);
+    expect(result.current.fecha).toBe(eventoEditado.fecha);
+    expect(result.current.tipo).toBe(eventoEditado.tipo);
+    expect(result.current.estado).toBe(eventoEditado.estado);
+  });
 });

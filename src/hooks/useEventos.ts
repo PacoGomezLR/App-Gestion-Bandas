@@ -63,6 +63,11 @@ export function useEventos() {
     );
 
     setEventos(eventosActualizados);
+
+    if (eventoEditandoId === id) {
+      setEventoEditandoId(null);
+      limpiarFormulario();
+    }
   }
 
   function prepararEdicion(evento: Evento) {
