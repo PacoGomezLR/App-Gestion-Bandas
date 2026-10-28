@@ -2,6 +2,7 @@ import { ScrollView, Text } from "react-native";
 
 import { FormularioMiembro } from "../components/FormularioMiembro";
 import { ListaMiembros } from "../components/ListaMiembros";
+import { useEventosContext } from "../context/EventosContext";
 import { useMiembrosContext } from "../context/MiembrosContext";
 
 export default function MiembrosScreen() {
@@ -18,9 +19,14 @@ export default function MiembrosScreen() {
     eliminarMiembro,
     cargando,
     errorPersistencia,
+    errorEliminacion,
   } = useMiembrosContext();
 
-  if (cargando) {
+  const {
+    cargando: cargandoEventos,
+  } = useEventosContext();
+
+  if (cargando || cargandoEventos) {
     return <Text>Cargando datos...</Text>;
   }
 
@@ -44,6 +50,10 @@ export default function MiembrosScreen() {
 
       {errorPersistencia !== "" && (
         <Text>{errorPersistencia}</Text>
+      )}
+
+      {errorEliminacion !== "" && (
+        <Text>{errorEliminacion}</Text>
       )}
 
       <ListaMiembros

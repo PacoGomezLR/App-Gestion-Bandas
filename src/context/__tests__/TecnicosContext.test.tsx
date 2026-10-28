@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import type { ReactElement } from "react";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { type ReactElement, useState } from "react";
 import { Button, Text, TextInput, View } from "react-native";
 
 import { eventosIniciales } from "../../data/eventosIniciales";
@@ -137,6 +137,7 @@ function ConsumidorEventos() {
 function ConsumidorTecnicos() {
   const { tecnicos, eliminarTecnico, errorEliminacion, errorPersistencia } =
     useTecnicosContext();
+  const [resultado, setResultado] = useState("sin intentar");
 
   return (
     <View>
@@ -148,10 +149,13 @@ function ConsumidorTecnicos() {
         {errorEliminacion !== "" ? errorEliminacion : "Sin error de eliminación"}
       </Text>
       {errorPersistencia !== "" && <Text>{errorPersistencia}</Text>}
+      <Text>Resultado: {resultado}</Text>
       <Button
         title="Eliminar Carlos"
         onPress={() => {
-          void eliminarTecnico("1");
+          void eliminarTecnico("1").then((eliminado) =>
+            setResultado(String(eliminado))
+          );
         }}
       />
     </View>
@@ -327,6 +331,40 @@ describe("TecnicosContext", () => {
     expect(getByText("Evento 1: 1")).toBeTruthy();
     expect(getByText("Evento 2: 1")).toBeTruthy();
     expect(mockEliminarTecnicoEnBase).not.toHaveBeenCalled();
+  });
+
+  test("no permite eliminar mientras los eventos están cargando", async () => {
+    let terminarCargaEventos: (eventos: typeof eventosIniciales) => void =
+      () => {};
+    mockListarEventos.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          terminarCargaEventos = resolve;
+        })
+    );
+
+    const { getByText, findByText } = await render(
+      <EventosProvider>
+        <TecnicosProvider>
+          <ConsumidorTecnicos />
+        </TecnicosProvider>
+      </EventosProvider>
+    );
+
+    // Los técnicos ya están cargados, pero los eventos siguen pendientes
+    expect(await findByText("Técnico: Carlos")).toBeTruthy();
+
+    await fireEvent.press(getByText("Eliminar Carlos"));
+
+    expect(await findByText("Resultado: false")).toBeTruthy();
+    expect(getByText("Técnico: Carlos")).toBeTruthy();
+    expect(getByText("Total técnicos: 2")).toBeTruthy();
+    expect(getByText("Sin error de eliminación")).toBeTruthy();
+    expect(mockEliminarTecnicoEnBase).not.toHaveBeenCalled();
+
+    await act(async () => {
+      terminarCargaEventos(eventosIniciales);
+    });
   });
 
   test("falla si se usa fuera del provider", async () => {

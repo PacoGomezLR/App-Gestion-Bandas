@@ -15,11 +15,17 @@ import {
 } from "../database/repositories/miembrosRepository";
 import { useMiembros } from "../hooks/useMiembros";
 import type { Miembro } from "../types/miembro";
+import { useEventosContext } from "./EventosContext";
 
-type MiembrosContextValue = ReturnType<typeof useMiembros> & {
-  cargando: boolean;
-  errorPersistencia: string;
-};
+type UseMiembrosValue = ReturnType<typeof useMiembros>;
+
+type MiembrosContextValue =
+  Omit<UseMiembrosValue, "eliminarMiembro"> & {
+    eliminarMiembro: (id: string) => Promise<boolean>;
+    errorEliminacion: string;
+    cargando: boolean;
+    errorPersistencia: string;
+  };
 
 const MiembrosContext =
   createContext<MiembrosContextValue | null>(null);
@@ -58,6 +64,14 @@ export function MiembrosProvider({
     eliminarMiembroPersistido,
   });
 
+  const {
+    eventos,
+    cargando: cargandoEventos,
+  } = useEventosContext();
+
+  const [errorEliminacion, setErrorEliminacion] =
+    useState("");
+
   const { reemplazarMiembros } = miembrosState;
 
   useEffect(() => {
@@ -92,10 +106,50 @@ export function MiembrosProvider({
     };
   }, [reemplazarMiembros]);
 
+  async function eliminarMiembro(id: string): Promise<boolean> {
+    // Sin los eventos cargados no se puede saber si el músico está asignado
+    if (cargandoEventos) {
+      return false;
+    }
+
+    const miembro = miembrosState.miembros.find(
+      (miembro) => miembro.id === id
+    );
+
+    const eventosAsignados = eventos.filter((evento) =>
+      evento.miembroIds.includes(id)
+    );
+
+    // La regla se comprueba antes de tocar la base; la FK RESTRICT queda como segunda barrera
+    if (eventosAsignados.length > 0) {
+      const cantidad = eventosAsignados.length;
+
+      setErrorEliminacion(
+        `No se puede eliminar a ${
+          miembro?.nombre ?? "este músico"
+        } porque está asignado a ${cantidad} ${
+          cantidad === 1 ? "evento" : "eventos"
+        }`
+      );
+
+      return false;
+    }
+
+    const eliminado = await miembrosState.eliminarMiembro(id);
+
+    if (eliminado) {
+      setErrorEliminacion("");
+    }
+
+    return eliminado;
+  }
+
   return (
     <MiembrosContext.Provider
       value={{
         ...miembrosState,
+        eliminarMiembro,
+        errorEliminacion,
         cargando,
         errorPersistencia,
       }}

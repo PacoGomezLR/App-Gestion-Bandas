@@ -2,6 +2,7 @@ import { ScrollView, Text } from "react-native";
 
 import { FormularioTecnico } from "../components/FormularioTecnico";
 import { ListaTecnicos } from "../components/ListaTecnicos";
+import { useEventosContext } from "../context/EventosContext";
 import { useTecnicosContext } from "../context/TecnicosContext";
 
 export default function TecnicosScreen() {
@@ -21,7 +22,11 @@ export default function TecnicosScreen() {
     errorPersistencia,
   } = useTecnicosContext();
 
-  if (cargando) {
+  const {
+    cargando: cargandoEventos,
+  } = useEventosContext();
+
+  if (cargando || cargandoEventos) {
     return <Text>Cargando datos...</Text>;
   }
 

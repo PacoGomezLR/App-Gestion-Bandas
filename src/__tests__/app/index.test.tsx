@@ -153,6 +153,7 @@ function crearValorUseMiembrosContext(): ReturnType<typeof useMiembrosContext> {
     prepararEdicion: jest.fn(),
     cancelarEdicion: jest.fn(),
     eliminarMiembro: jest.fn(),
+    errorEliminacion: "",
     cargando: false,
     errorPersistencia: "",
   };

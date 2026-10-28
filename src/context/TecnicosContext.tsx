@@ -63,7 +63,10 @@ export function TecnicosProvider({
     persistirTecnico,
     eliminarTecnicoPersistido,
   });
-  const { eventos } = useEventosContext();
+  const {
+    eventos,
+    cargando: cargandoEventos,
+  } = useEventosContext();
 
   const [errorEliminacion, setErrorEliminacion] =
     useState("");
@@ -103,6 +106,11 @@ export function TecnicosProvider({
   }, [reemplazarTecnicos]);
 
   async function eliminarTecnico(id: string): Promise<boolean> {
+    // Sin los eventos cargados no se puede saber si el técnico está asignado
+    if (cargandoEventos) {
+      return false;
+    }
+
     const tecnico = tecnicosState.tecnicos.find(
       (tecnico) => tecnico.id === id
     );
