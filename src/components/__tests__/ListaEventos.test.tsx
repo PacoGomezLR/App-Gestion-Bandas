@@ -42,6 +42,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        procesando={false}
         onEliminar={onEliminar}
         onEditar={onEditar}
       />
@@ -65,6 +66,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        procesando={false}
         onEliminar={onEliminar}
         onEditar={onEditar}
       />
@@ -84,6 +86,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        procesando={false}
         onEliminar={onEliminar}
         onEditar={onEditar}
       />
@@ -100,6 +103,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        procesando={false}
         onEliminar={jest.fn()}
         onEditar={jest.fn()}
       />
@@ -119,11 +123,36 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={[eventoConIdInexistente]}
         tecnicos={tecnicos}
+        procesando={false}
         onEliminar={jest.fn()}
         onEditar={jest.fn()}
       />
     );
 
     expect(getByText("Técnicos: Carlos")).toBeTruthy();
+  });
+
+  test("deshabilita Editar y Eliminar mientras procesa", async () => {
+    const onEliminar = jest.fn();
+    const onEditar = jest.fn();
+
+    const { getAllByRole, getAllByText } = await render(
+      <ListaEventos
+        eventos={eventos}
+        tecnicos={tecnicos}
+        procesando={true}
+        onEliminar={onEliminar}
+        onEditar={onEditar}
+      />
+    );
+
+    expect(getAllByRole("button", { name: "Editar", disabled: true })).toHaveLength(2);
+    expect(getAllByRole("button", { name: "Eliminar", disabled: true })).toHaveLength(2);
+
+    await fireEvent.press(getAllByText("Editar")[0]);
+    await fireEvent.press(getAllByText("Eliminar")[0]);
+
+    expect(onEditar).not.toHaveBeenCalled();
+    expect(onEliminar).not.toHaveBeenCalled();
   });
 });

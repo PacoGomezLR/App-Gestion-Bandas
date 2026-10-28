@@ -10,6 +10,7 @@ export default function TecnicosScreen() {
     nombre,
     error,
     tecnicoEditandoId,
+    procesando,
     setNombre,
     guardarTecnico,
     prepararEdicion,
@@ -36,6 +37,7 @@ export default function TecnicosScreen() {
         nombre={nombre}
         error={error}
         editando={tecnicoEditandoId !== null}
+        procesando={procesando}
         onCambiarNombre={setNombre}
         onGuardar={guardarTecnico}
         onCancelar={cancelarEdicion}
@@ -51,6 +53,7 @@ export default function TecnicosScreen() {
 
       <ListaTecnicos
         tecnicos={tecnicos}
+        procesando={procesando}
         onEditar={prepararEdicion}
         onEliminar={eliminarTecnico}
       />

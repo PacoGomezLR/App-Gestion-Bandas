@@ -18,6 +18,7 @@ describe("ListaTecnicos", () => {
     const { getByText } = await render(
       <ListaTecnicos
         tecnicos={tecnicos}
+        procesando={false}
         onEditar={jest.fn()}
         onEliminar={jest.fn()}
       />
@@ -33,6 +34,7 @@ describe("ListaTecnicos", () => {
     const { getAllByText } = await render(
       <ListaTecnicos
         tecnicos={tecnicos}
+        procesando={false}
         onEditar={onEditar}
         onEliminar={jest.fn()}
       />
@@ -50,6 +52,7 @@ describe("ListaTecnicos", () => {
     const { getAllByText } = await render(
       <ListaTecnicos
         tecnicos={tecnicos}
+        procesando={false}
         onEditar={jest.fn()}
         onEliminar={onEliminar}
       />
@@ -59,5 +62,28 @@ describe("ListaTecnicos", () => {
 
     expect(onEliminar).toHaveBeenCalledTimes(1);
     expect(onEliminar).toHaveBeenCalledWith("1");
+  });
+
+  test("deshabilita Editar y Eliminar mientras procesa", async () => {
+    const onEditar = jest.fn();
+    const onEliminar = jest.fn();
+
+    const { getAllByRole, getAllByText } = await render(
+      <ListaTecnicos
+        tecnicos={tecnicos}
+        procesando={true}
+        onEditar={onEditar}
+        onEliminar={onEliminar}
+      />
+    );
+
+    expect(getAllByRole("button", { name: "Editar", disabled: true })).toHaveLength(2);
+    expect(getAllByRole("button", { name: "Eliminar", disabled: true })).toHaveLength(2);
+
+    await fireEvent.press(getAllByText("Editar")[0]);
+    await fireEvent.press(getAllByText("Eliminar")[0]);
+
+    expect(onEditar).not.toHaveBeenCalled();
+    expect(onEliminar).not.toHaveBeenCalled();
   });
 });

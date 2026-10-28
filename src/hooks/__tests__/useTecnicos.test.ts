@@ -233,4 +233,174 @@ describe("useTecnicos", () => {
     expect(persistirTecnico.mock.calls[0][0]).toBe(result.current.tecnicos[2]);
     expect(result.current.tecnicos[2].nombre).toBe("Lucía");
   });
+
+  test("impide guardar dos veces mientras una escritura está pendiente", async () => {
+    let resolverPersistencia!: (valor: boolean) => void;
+
+    const persistenciaPendiente = new Promise<boolean>((resolve) => {
+      resolverPersistencia = resolve;
+    });
+
+    const persistirTecnico = jest.fn(
+      (_tecnico: Tecnico) => persistenciaPendiente
+    );
+
+    const { result } = await renderHook(() =>
+      useTecnicos({ persistirTecnico })
+    );
+
+    await act(() => {
+      result.current.setNombre("Lucía");
+    });
+
+    let primerGuardado: Promise<boolean> | undefined;
+
+    await act(async () => {
+      primerGuardado = result.current.guardarTecnico();
+    });
+
+    expect(result.current.procesando).toBe(true);
+
+    let segundoGuardado: boolean | undefined;
+
+    await act(async () => {
+      segundoGuardado = await result.current.guardarTecnico();
+    });
+
+    expect(segundoGuardado).toBe(false);
+    expect(persistirTecnico).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolverPersistencia(true);
+      await primerGuardado;
+    });
+
+    expect(result.current.tecnicos).toHaveLength(3);
+    expect(
+      result.current.tecnicos.filter((tecnico) => tecnico.nombre === "Lucía")
+    ).toHaveLength(1);
+    expect(result.current.procesando).toBe(false);
+  });
+
+  test("impide eliminar dos veces mientras una escritura está pendiente", async () => {
+    let resolverEliminacion!: (valor: boolean) => void;
+
+    const eliminacionPendiente = new Promise<boolean>((resolve) => {
+      resolverEliminacion = resolve;
+    });
+
+    const eliminarTecnicoPersistido = jest.fn(
+      (_id: string) => eliminacionPendiente
+    );
+
+    const { result } = await renderHook(() =>
+      useTecnicos({ eliminarTecnicoPersistido })
+    );
+
+    let primeraEliminacion: Promise<boolean> | undefined;
+
+    await act(async () => {
+      primeraEliminacion = result.current.eliminarTecnico("1");
+    });
+
+    expect(result.current.procesando).toBe(true);
+
+    let segundaEliminacion: boolean | undefined;
+
+    await act(async () => {
+      segundaEliminacion = await result.current.eliminarTecnico("2");
+    });
+
+    expect(segundaEliminacion).toBe(false);
+    expect(eliminarTecnicoPersistido).toHaveBeenCalledTimes(1);
+    expect(eliminarTecnicoPersistido).toHaveBeenCalledWith("1");
+
+    await act(async () => {
+      resolverEliminacion(true);
+      await primeraEliminacion;
+    });
+
+    expect(result.current.tecnicos).toEqual([{ id: "2", nombre: "Miguel" }]);
+    expect(result.current.procesando).toBe(false);
+  });
+
+  test("no permite cambiar ni cancelar la edición durante una escritura", async () => {
+    let resolverPersistencia!: (valor: boolean) => void;
+
+    const persistenciaPendiente = new Promise<boolean>((resolve) => {
+      resolverPersistencia = resolve;
+    });
+
+    const { result } = await renderHook(() =>
+      useTecnicos({ persistirTecnico: () => persistenciaPendiente })
+    );
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.tecnicos[0]);
+    });
+
+    let guardado: Promise<boolean> | undefined;
+
+    await act(async () => {
+      guardado = result.current.guardarTecnico();
+    });
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.tecnicos[1]);
+      result.current.cancelarEdicion();
+    });
+
+    expect(result.current.tecnicoEditandoId).toBe("1");
+    expect(result.current.nombre).toBe("Carlos");
+
+    await act(async () => {
+      resolverPersistencia(true);
+      await guardado;
+    });
+
+    expect(result.current.tecnicoEditandoId).toBeNull();
+    expect(result.current.procesando).toBe(false);
+  });
+
+  test("libera el bloqueo aunque la persistencia falle o lance un error", async () => {
+    const persistirTecnico = jest
+      .fn<Promise<boolean>, [Tecnico]>()
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error("fallo inesperado"))
+      .mockResolvedValueOnce(true);
+
+    const { result } = await renderHook(() =>
+      useTecnicos({ persistirTecnico })
+    );
+
+    await act(() => {
+      result.current.setNombre("Lucía");
+    });
+
+    let resultado: boolean | undefined;
+
+    await act(async () => {
+      resultado = await result.current.guardarTecnico();
+    });
+
+    expect(resultado).toBe(false);
+    expect(result.current.procesando).toBe(false);
+
+    await act(async () => {
+      await expect(result.current.guardarTecnico()).rejects.toThrow(
+        "fallo inesperado"
+      );
+    });
+
+    expect(result.current.procesando).toBe(false);
+
+    await act(async () => {
+      resultado = await result.current.guardarTecnico();
+    });
+
+    expect(resultado).toBe(true);
+    expect(persistirTecnico).toHaveBeenCalledTimes(3);
+    expect(result.current.tecnicos).toHaveLength(3);
+    expect(result.current.procesando).toBe(false);
+  });
 });

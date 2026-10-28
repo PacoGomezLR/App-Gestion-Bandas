@@ -93,6 +93,7 @@ function crearValorUseEventosContext(
     eliminarEvento: jest.fn(),
     prepararEdicion: jest.fn(),
     cancelarEdicion: jest.fn(),
+    procesando: false,
     cargando: false,
     errorPersistencia: "",
   };
@@ -116,6 +117,7 @@ function crearValorUseTecnicosContext(): ReturnType<typeof useTecnicosContext> {
     cancelarEdicion: jest.fn(),
     eliminarTecnico: jest.fn(),
     errorEliminacion: "",
+    procesando: false,
     cargando: false,
     errorPersistencia: "",
   };
@@ -155,6 +157,22 @@ describe("Index", () => {
     expect(getByText("Ensayo general")).toBeTruthy();
     expect(getByText("Reunión de la banda")).toBeTruthy();
     expect(queryByText("Ver todos")).toBeNull();
+  });
+
+  test("deshabilita Ver todos mientras se está procesando", async () => {
+    const setFecha = jest.fn();
+    mockUseEventosContext.mockReturnValue({
+      ...crearValorUseEventosContext("2026-10-02", setFecha),
+      procesando: true,
+    });
+
+    const { getByRole, getByText } = await render(<Index />);
+
+    expect(getByRole("button", { name: "Ver todos", disabled: true })).toBeTruthy();
+
+    await fireEvent.press(getByText("Ver todos"));
+
+    expect(setFecha).not.toHaveBeenCalled();
   });
 
   test("muestra solo Cargando datos... mientras se cargan los datos", async () => {

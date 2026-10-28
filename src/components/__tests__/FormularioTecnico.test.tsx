@@ -11,6 +11,7 @@ describe("FormularioTecnico", () => {
         nombre="Carlos"
         error="El nombre es obligatorio"
         editando={false}
+        procesando={false}
         onCambiarNombre={onCambiarNombre}
         onGuardar={onGuardar}
         onCancelar={jest.fn()}
@@ -34,6 +35,7 @@ describe("FormularioTecnico", () => {
         nombre="Carlos"
         error=""
         editando={true}
+        procesando={false}
         onCambiarNombre={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
@@ -52,6 +54,7 @@ describe("FormularioTecnico", () => {
         nombre="Carlos"
         error=""
         editando={true}
+        procesando={false}
         onCambiarNombre={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={onCancelar}
@@ -63,5 +66,32 @@ describe("FormularioTecnico", () => {
     await fireEvent.press(getByText("Cancelar"));
 
     expect(onCancelar).toHaveBeenCalledTimes(1);
+  });
+
+  test("bloquea el formulario mientras procesa", async () => {
+    const onGuardar = jest.fn();
+    const onCancelar = jest.fn();
+
+    const { getByPlaceholderText, getByRole, getByText } = await render(
+      <FormularioTecnico
+        nombre="Carlos"
+        error=""
+        editando={true}
+        procesando={true}
+        onCambiarNombre={jest.fn()}
+        onGuardar={onGuardar}
+        onCancelar={onCancelar}
+      />
+    );
+
+    expect(getByPlaceholderText("Nombre del técnico").props.editable).toBe(false);
+    expect(getByRole("button", { name: "Guardar cambios", disabled: true })).toBeTruthy();
+    expect(getByRole("button", { name: "Cancelar", disabled: true })).toBeTruthy();
+
+    await fireEvent.press(getByText("Guardar cambios"));
+    await fireEvent.press(getByText("Cancelar"));
+
+    expect(onGuardar).not.toHaveBeenCalled();
+    expect(onCancelar).not.toHaveBeenCalled();
   });
 });

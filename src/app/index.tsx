@@ -27,6 +27,7 @@ export default function Index() {
     eliminarEvento,
     prepararEdicion,
     cancelarEdicion,
+    procesando,
     cargando: cargandoEventos,
     errorPersistencia: errorPersistenciaEventos,
   } = useEventosContext();
@@ -72,6 +73,7 @@ export default function Index() {
         tecnicoIds={tecnicoIds}
         error={error}
         editando={eventoEditandoId !== null}
+        procesando={procesando}
         onCambiarTitulo={setTitulo}
         onCambiarTipo={setTipo}
         onCambiarEstado={setEstado}
@@ -85,12 +87,14 @@ export default function Index() {
         <Button
           title="Ver todos"
           onPress={() => setFecha("")}
+          disabled={procesando}
         />
       )}
 
       <ListaEventos
         eventos={eventosVisibles}
         tecnicos={tecnicos}
+        procesando={procesando}
         onEliminar={eliminarEvento}
         onEditar={prepararEdicion}
       />

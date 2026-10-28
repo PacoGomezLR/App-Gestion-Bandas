@@ -359,4 +359,184 @@ describe("useEventos", () => {
       tecnicoIds: ["2"],
     });
   });
+
+  test("impide guardar dos veces mientras una escritura está pendiente", async () => {
+    let resolverPersistencia!: (valor: boolean) => void;
+
+    const persistenciaPendiente = new Promise<boolean>((resolve) => {
+      resolverPersistencia = resolve;
+    });
+
+    const persistirEvento = jest.fn((_evento: Evento) => persistenciaPendiente);
+
+    const { result } = await renderHook(() =>
+      useEventos({ persistirEvento })
+    );
+
+    await act(() => {
+      result.current.setTitulo("Concierto en Sevilla");
+      result.current.setFecha("2026-11-15");
+    });
+
+    let primerGuardado: Promise<boolean> | undefined;
+
+    await act(async () => {
+      primerGuardado = result.current.guardarEvento();
+    });
+
+    expect(result.current.procesando).toBe(true);
+
+    let segundoGuardado: boolean | undefined;
+
+    await act(async () => {
+      segundoGuardado = await result.current.guardarEvento();
+    });
+
+    expect(segundoGuardado).toBe(false);
+    expect(persistirEvento).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolverPersistencia(true);
+      await primerGuardado;
+    });
+
+    expect(await primerGuardado).toBe(true);
+    expect(result.current.eventos).toHaveLength(4);
+    expect(
+      result.current.eventos.filter(
+        (evento) => evento.titulo === "Concierto en Sevilla"
+      )
+    ).toHaveLength(1);
+    expect(result.current.procesando).toBe(false);
+  });
+
+  test("impide eliminar dos veces mientras una escritura está pendiente", async () => {
+    let resolverEliminacion!: (valor: boolean) => void;
+
+    const eliminacionPendiente = new Promise<boolean>((resolve) => {
+      resolverEliminacion = resolve;
+    });
+
+    const eliminarEventoPersistido = jest.fn(
+      (_id: string) => eliminacionPendiente
+    );
+
+    const { result } = await renderHook(() =>
+      useEventos({ eliminarEventoPersistido })
+    );
+
+    let primeraEliminacion: Promise<boolean> | undefined;
+
+    await act(async () => {
+      primeraEliminacion = result.current.eliminarEvento("1");
+    });
+
+    expect(result.current.procesando).toBe(true);
+
+    let segundaEliminacion: boolean | undefined;
+
+    await act(async () => {
+      segundaEliminacion = await result.current.eliminarEvento("2");
+    });
+
+    expect(segundaEliminacion).toBe(false);
+    expect(eliminarEventoPersistido).toHaveBeenCalledTimes(1);
+    expect(eliminarEventoPersistido).toHaveBeenCalledWith("1");
+
+    await act(async () => {
+      resolverEliminacion(true);
+      await primeraEliminacion;
+    });
+
+    expect(result.current.eventos.map((evento) => evento.id)).toEqual(["2", "3"]);
+    expect(result.current.procesando).toBe(false);
+  });
+
+  test("no permite cambiar ni cancelar la edición durante una escritura", async () => {
+    let resolverPersistencia!: (valor: boolean) => void;
+
+    const persistenciaPendiente = new Promise<boolean>((resolve) => {
+      resolverPersistencia = resolve;
+    });
+
+    const { result } = await renderHook(() =>
+      useEventos({ persistirEvento: () => persistenciaPendiente })
+    );
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    let guardado: Promise<boolean> | undefined;
+
+    await act(async () => {
+      guardado = result.current.guardarEvento();
+    });
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[1]);
+    });
+
+    expect(result.current.eventoEditandoId).toBe("1");
+    expect(result.current.titulo).toBe("Concierto en Córdoba");
+
+    await act(() => {
+      result.current.cancelarEdicion();
+    });
+
+    expect(result.current.eventoEditandoId).toBe("1");
+    expect(result.current.titulo).toBe("Concierto en Córdoba");
+
+    await act(async () => {
+      resolverPersistencia(true);
+      await guardado;
+    });
+
+    expect(result.current.eventoEditandoId).toBeNull();
+    expect(result.current.procesando).toBe(false);
+  });
+
+  test("libera el bloqueo aunque la persistencia falle o lance un error", async () => {
+    const persistirEvento = jest
+      .fn<Promise<boolean>, [Evento]>()
+      .mockResolvedValueOnce(false)
+      .mockRejectedValueOnce(new Error("fallo inesperado"))
+      .mockResolvedValueOnce(true);
+
+    const { result } = await renderHook(() =>
+      useEventos({ persistirEvento })
+    );
+
+    await act(() => {
+      result.current.setTitulo("Concierto en Sevilla");
+      result.current.setFecha("2026-11-15");
+    });
+
+    let resultado: boolean | undefined;
+
+    await act(async () => {
+      resultado = await result.current.guardarEvento();
+    });
+
+    expect(resultado).toBe(false);
+    expect(result.current.procesando).toBe(false);
+
+    await act(async () => {
+      await expect(result.current.guardarEvento()).rejects.toThrow(
+        "fallo inesperado"
+      );
+    });
+
+    expect(result.current.procesando).toBe(false);
+
+    // Tras los dos fallos, el siguiente guardado funciona: no quedó bloqueado
+    await act(async () => {
+      resultado = await result.current.guardarEvento();
+    });
+
+    expect(resultado).toBe(true);
+    expect(persistirEvento).toHaveBeenCalledTimes(3);
+    expect(result.current.eventos).toHaveLength(4);
+    expect(result.current.procesando).toBe(false);
+  });
 });

@@ -6,11 +6,12 @@ import { formatearFecha } from "../utils/fechas";
 interface ListaEventosProps {
   eventos: Evento[];
   tecnicos: Tecnico[];
+  procesando: boolean;
   onEliminar: (id: string) => void;
   onEditar: (evento: Evento) => void;
 }
 
-export function ListaEventos({ eventos, tecnicos, onEliminar, onEditar }: ListaEventosProps) {
+export function ListaEventos({ eventos, tecnicos, procesando, onEliminar, onEditar }: ListaEventosProps) {
   return (
     <>
       {eventos.map((evento) => {
@@ -35,11 +36,13 @@ export function ListaEventos({ eventos, tecnicos, onEliminar, onEditar }: ListaE
             <Button
               title="Eliminar"
               onPress={() => onEliminar(evento.id)}
+              disabled={procesando}
             />
 
             <Button
               title="Editar"
               onPress={() => onEditar(evento)}
+              disabled={procesando}
             />
           </View>
         );

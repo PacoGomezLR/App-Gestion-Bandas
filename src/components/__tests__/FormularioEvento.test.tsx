@@ -3,11 +3,23 @@ import type { Tecnico } from "../../types/tecnico";
 import { FormularioEvento } from "../FormularioEvento";
 
 jest.mock("../CalendarioEventos", () => {
-  const { Text } = require("react-native");
+  const { Button, Text } = require("react-native");
 
   return {
-    CalendarioEventos: ({ fecha }: { fecha: string }) => (
-      <Text>Fecha del calendario: {fecha}</Text>
+    CalendarioEventos: ({
+      fecha,
+      onSeleccionarFecha,
+    }: {
+      fecha: string;
+      onSeleccionarFecha: (fecha: string) => void;
+    }) => (
+      <>
+        <Text>Fecha del calendario: {fecha}</Text>
+        <Button
+          title="Elegir día de prueba"
+          onPress={() => onSeleccionarFecha("2026-12-24")}
+        />
+      </>
     ),
   };
 });
@@ -25,6 +37,7 @@ describe("FormularioEvento", () => {
         tecnicoIds={[]}
         error=""
         editando={false}
+        procesando={false}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
@@ -62,6 +75,7 @@ describe("FormularioEvento", () => {
         tecnicoIds={[]}
         error=""
         editando={false}
+        procesando={false}
         onCambiarTitulo={onCambiarTitulo}
         onCambiarTipo={onCambiarTipo}
         onCambiarEstado={onCambiarEstado}
@@ -99,6 +113,7 @@ describe("FormularioEvento", () => {
         tecnicoIds={[]}
         error="El título y la fecha son obligatorios"
         editando={false}
+        procesando={false}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
@@ -126,6 +141,7 @@ describe("FormularioEvento", () => {
         tecnicoIds={[]}
         error=""
         editando={true}
+        procesando={false}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
@@ -154,6 +170,7 @@ describe("FormularioEvento", () => {
         tecnicoIds={[]}
         error=""
         editando={true}
+        procesando={false}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
@@ -195,6 +212,7 @@ describe("FormularioEvento", () => {
         tecnicoIds={["1"]}
         error=""
         editando={false}
+        procesando={false}
         onCambiarTitulo={jest.fn()}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
@@ -217,5 +235,65 @@ describe("FormularioEvento", () => {
 
     expect(onAlternarTecnico).toHaveBeenCalledWith("1");
     expect(onAlternarTecnico).toHaveBeenCalledTimes(2);
+  });
+
+  test("bloquea todos los controles mientras procesa", async () => {
+    const onCambiarTitulo = jest.fn();
+    const onCambiarTipo = jest.fn();
+    const onCambiarEstado = jest.fn();
+    const onSeleccionarFecha = jest.fn();
+    const onAlternarTecnico = jest.fn();
+    const onGuardar = jest.fn();
+    const onCancelar = jest.fn();
+
+    const { getByPlaceholderText, getByRole, getByText } = await render(
+      <FormularioEvento
+        titulo="Ensayo general"
+        tipo="ensayo"
+        estado="pendiente"
+        fecha="2026-10-02"
+        fechasConEventos={[]}
+        tecnicos={[{ id: "1", nombre: "Carlos" }]}
+        tecnicoIds={[]}
+        error=""
+        editando={true}
+        procesando={true}
+        onCambiarTitulo={onCambiarTitulo}
+        onCambiarTipo={onCambiarTipo}
+        onCambiarEstado={onCambiarEstado}
+        onSeleccionarFecha={onSeleccionarFecha}
+        onAlternarTecnico={onAlternarTecnico}
+        onGuardar={onGuardar}
+        onCancelar={onCancelar}
+      />
+    );
+
+    expect(getByPlaceholderText("Título del evento").props.editable).toBe(false);
+
+    for (const boton of [
+      "Concierto",
+      "Ensayo",
+      "Reunión",
+      "Otro",
+      "Carlos",
+      "Guardar cambios",
+      "Cancelar",
+      "Pendiente",
+      "Confirmado",
+      "Cancelado",
+    ]) {
+      expect(getByRole("button", { name: boton, disabled: true })).toBeTruthy();
+      await fireEvent.press(getByText(boton));
+    }
+
+    // El calendario no se deshabilita, pero la fecha elegida se ignora
+    await fireEvent.press(getByText("Elegir día de prueba"));
+
+    expect(onCambiarTipo).not.toHaveBeenCalled();
+    expect(onCambiarEstado).not.toHaveBeenCalled();
+    expect(onAlternarTecnico).not.toHaveBeenCalled();
+    expect(onGuardar).not.toHaveBeenCalled();
+    expect(onCancelar).not.toHaveBeenCalled();
+    expect(onSeleccionarFecha).not.toHaveBeenCalled();
   });
 });

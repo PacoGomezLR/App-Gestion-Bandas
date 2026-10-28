@@ -13,6 +13,7 @@ interface FormularioEventoProps {
   tecnicoIds: string[];
   error: string;
   editando: boolean;
+  procesando: boolean;
   onCambiarTitulo: (titulo: string) => void;
   onCambiarTipo: (tipo: TipoEvento) => void;
   onCambiarEstado: (estado: EstadoEvento) => void;
@@ -32,6 +33,7 @@ export function FormularioEvento({
   tecnicoIds,
   error,
   editando,
+  procesando,
   onCambiarTitulo,
   onCambiarTipo,
   onCambiarEstado,
@@ -46,12 +48,18 @@ export function FormularioEvento({
         placeholder="Título del evento"
         value={titulo}
         onChangeText={onCambiarTitulo}
+        editable={!procesando}
       />
 
       <CalendarioEventos
         fecha={fecha}
         fechasConEventos={fechasConEventos}
-        onSeleccionarFecha={onSeleccionarFecha}
+        onSeleccionarFecha={(fechaSeleccionada) => {
+          // El calendario no tiene modo deshabilitado: se ignora la fecha mientras se guarda
+          if (!procesando) {
+            onSeleccionarFecha(fechaSeleccionada);
+          }
+        }}
       />
 
       <Text>Tipo de evento: {tipo}</Text>
@@ -60,21 +68,25 @@ export function FormularioEvento({
         <Button
           title="Concierto"
           onPress={() => onCambiarTipo("concierto")}
+          disabled={procesando}
         />
 
         <Button
           title="Ensayo"
           onPress={() => onCambiarTipo("ensayo")}
+          disabled={procesando}
         />
 
         <Button
           title="Reunión"
           onPress={() => onCambiarTipo("reunion")}
+          disabled={procesando}
         />
 
         <Button
           title="Otro"
           onPress={() => onCambiarTipo("otro")}
+          disabled={procesando}
         />
       </View>
 
@@ -93,6 +105,7 @@ export function FormularioEvento({
                   : tecnico.nombre
               }
               onPress={() => onAlternarTecnico(tecnico.id)}
+              disabled={procesando}
             />
           );
         })}
@@ -103,12 +116,14 @@ export function FormularioEvento({
       <Button
         title={editando ? "Guardar cambios" : "Guardar evento"}
         onPress={onGuardar}
+        disabled={procesando}
       />
 
       {editando && (
         <Button
           title="Cancelar"
           onPress={onCancelar}
+          disabled={procesando}
         />
       )}
 
@@ -118,16 +133,19 @@ export function FormularioEvento({
         <Button
           title="Pendiente"
           onPress={() => onCambiarEstado("pendiente")}
+          disabled={procesando}
         />
 
         <Button
           title="Confirmado"
           onPress={() => onCambiarEstado("confirmado")}
+          disabled={procesando}
         />
 
         <Button
           title="Cancelado"
           onPress={() => onCambiarEstado("cancelado")}
+          disabled={procesando}
         />
       </View>
     </>
