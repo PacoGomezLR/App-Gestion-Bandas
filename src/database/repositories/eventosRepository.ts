@@ -14,6 +14,11 @@ export interface FilaEventoTecnico {
   tecnico_id: string;
 }
 
+export interface FilaEventoMiembro {
+  evento_id: string;
+  miembro_id: string;
+}
+
 // Record obliga a listar todos los valores de cada unión: si se añade uno al tipo, TypeScript avisa aquí
 const TIPOS_EVENTO: Record<TipoEvento, true> = {
   concierto: true,
@@ -36,23 +41,37 @@ export function esEstadoEvento(valor: string): valor is EstadoEvento {
   return Object.prototype.hasOwnProperty.call(ESTADOS_EVENTO, valor);
 }
 
+function agruparIdsPorEvento<Relacion extends { evento_id: string }>(
+  relaciones: Relacion[],
+  obtenerId: (relacion: Relacion) => string
+): Map<string, string[]> {
+  const idsPorEvento = new Map<string, string[]>();
+
+  for (const relacion of relaciones) {
+    const ids = idsPorEvento.get(relacion.evento_id) ?? [];
+    ids.push(obtenerId(relacion));
+    idsPorEvento.set(relacion.evento_id, ids);
+  }
+
+  return idsPorEvento;
+}
+
 export function agruparTecnicoIdsPorEvento(
   relaciones: FilaEventoTecnico[]
 ): Map<string, string[]> {
-  const tecnicoIdsPorEvento = new Map<string, string[]>();
+  return agruparIdsPorEvento(relaciones, (relacion) => relacion.tecnico_id);
+}
 
-  for (const relacion of relaciones) {
-    const tecnicoIds = tecnicoIdsPorEvento.get(relacion.evento_id) ?? [];
-    tecnicoIds.push(relacion.tecnico_id);
-    tecnicoIdsPorEvento.set(relacion.evento_id, tecnicoIds);
-  }
-
-  return tecnicoIdsPorEvento;
+export function agruparMiembroIdsPorEvento(
+  relaciones: FilaEventoMiembro[]
+): Map<string, string[]> {
+  return agruparIdsPorEvento(relaciones, (relacion) => relacion.miembro_id);
 }
 
 export function convertirFilaAEvento(
   fila: FilaEvento,
-  tecnicoIds: string[]
+  tecnicoIds: string[],
+  miembroIds: string[]
 ): Evento {
   if (!esTipoEvento(fila.tipo)) {
     throw new Error(`Tipo de evento no válido en la base de datos: ${fila.tipo}`);
@@ -69,17 +88,24 @@ export function convertirFilaAEvento(
     fecha: fila.fecha,
     estado: fila.estado,
     tecnicoIds,
+    miembroIds,
   };
 }
 
 export function construirEventos(
   filas: FilaEvento[],
-  relaciones: FilaEventoTecnico[]
+  relacionesTecnicos: FilaEventoTecnico[],
+  relacionesMiembros: FilaEventoMiembro[]
 ): Evento[] {
-  const tecnicoIdsPorEvento = agruparTecnicoIdsPorEvento(relaciones);
+  const tecnicoIdsPorEvento = agruparTecnicoIdsPorEvento(relacionesTecnicos);
+  const miembroIdsPorEvento = agruparMiembroIdsPorEvento(relacionesMiembros);
 
   return filas.map((fila) =>
-    convertirFilaAEvento(fila, tecnicoIdsPorEvento.get(fila.id) ?? [])
+    convertirFilaAEvento(
+      fila,
+      tecnicoIdsPorEvento.get(fila.id) ?? [],
+      miembroIdsPorEvento.get(fila.id) ?? []
+    )
   );
 }
 
@@ -91,11 +117,15 @@ export async function listarEventos(): Promise<Evento[]> {
   );
 
   // rowid conserva el orden en que se guardaron las asignaciones
-  const relaciones = await db.getAllAsync<FilaEventoTecnico>(
+  const relacionesTecnicos = await db.getAllAsync<FilaEventoTecnico>(
     "SELECT evento_id, tecnico_id FROM evento_tecnicos ORDER BY rowid;"
   );
 
-  return construirEventos(filas, relaciones);
+  const relacionesMiembros = await db.getAllAsync<FilaEventoMiembro>(
+    "SELECT evento_id, miembro_id FROM evento_miembros ORDER BY rowid;"
+  );
+
+  return construirEventos(filas, relacionesTecnicos, relacionesMiembros);
 }
 
 export async function guardarEvento(evento: Evento): Promise<void> {
@@ -131,12 +161,25 @@ export async function guardarEvento(evento: Evento): Promise<void> {
         tecnicoId
       );
     }
+
+    await db.runAsync(
+      "DELETE FROM evento_miembros WHERE evento_id = ?;",
+      evento.id
+    );
+
+    for (const miembroId of evento.miembroIds) {
+      await db.runAsync(
+        "INSERT INTO evento_miembros (evento_id, miembro_id) VALUES (?, ?);",
+        evento.id,
+        miembroId
+      );
+    }
   });
 }
 
 export async function eliminarEvento(id: string): Promise<void> {
   const db = await getDatabase();
 
-  // Las filas de evento_tecnicos de este evento se borran solas por ON DELETE CASCADE
+  // Las filas de evento_tecnicos y evento_miembros de este evento se borran solas por ON DELETE CASCADE
   await db.runAsync("DELETE FROM eventos WHERE id = ?;", id);
 }

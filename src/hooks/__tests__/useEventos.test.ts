@@ -269,6 +269,7 @@ describe("useEventos", () => {
         fecha: "2026-12-01",
         estado: "confirmado",
         tecnicoIds: ["1"],
+        miembroIds: [],
       },
     ];
 
@@ -342,6 +343,7 @@ describe("useEventos", () => {
       result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("2");
+      result.current.alternarMiembro("1");
     });
 
     let guardado: boolean | undefined;
@@ -353,11 +355,158 @@ describe("useEventos", () => {
     expect(guardado).toBe(true);
     expect(persistirEvento).toHaveBeenCalledTimes(1);
     expect(persistirEvento.mock.calls[0][0]).toBe(result.current.eventos[3]);
+    expect(persistirEvento.mock.calls[0][0].miembroIds).toEqual(["1"]);
     expect(result.current.eventos[3]).toMatchObject({
       titulo: "Concierto en Sevilla",
       fecha: "2026-11-15",
       tecnicoIds: ["2"],
+      miembroIds: ["1"],
     });
+  });
+
+  test("asigna y desasigna miembros en el formulario", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    expect(result.current.miembroIds).toEqual([]);
+
+    await act(() => {
+      result.current.alternarMiembro("1");
+    });
+
+    expect(result.current.miembroIds).toEqual(["1"]);
+
+    await act(() => {
+      result.current.alternarMiembro("2");
+    });
+
+    expect(result.current.miembroIds).toEqual(["1", "2"]);
+
+    await act(() => {
+      result.current.alternarMiembro("1");
+    });
+
+    expect(result.current.miembroIds).toEqual(["2"]);
+  });
+
+  test("permite guardar un evento sin miembros asignados", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    await act(() => {
+      result.current.setTitulo("Ensayo sin banda completa");
+      result.current.setFecha("2026-11-20");
+    });
+
+    let guardado: boolean | undefined;
+
+    await act(async () => {
+      guardado = await result.current.guardarEvento();
+    });
+
+    expect(guardado).toBe(true);
+    expect(result.current.error).toBe("");
+    expect(result.current.eventos).toHaveLength(4);
+    expect(result.current.eventos[3]).toMatchObject({
+      titulo: "Ensayo sin banda completa",
+      miembroIds: [],
+    });
+  });
+
+  test("crea un evento con miembros y limpia la selección", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    await act(() => {
+      result.current.setTitulo("Concierto con banda");
+      result.current.setFecha("2026-12-05");
+      result.current.alternarMiembro("1");
+      result.current.alternarMiembro("2");
+    });
+
+    await act(async () => {
+      await result.current.guardarEvento();
+    });
+
+    expect(result.current.eventos[3].miembroIds).toEqual(["1", "2"]);
+    expect(result.current.miembroIds).toEqual([]);
+  });
+
+  test("edita los miembros de un evento, incluso dejándolo sin ninguno", async () => {
+    const eventoConMiembros: Evento = {
+      id: "50",
+      titulo: "Concierto de primavera",
+      tipo: "concierto",
+      fecha: "2027-04-10",
+      estado: "pendiente",
+      tecnicoIds: [],
+      miembroIds: ["1", "2"],
+    };
+
+    const { result } = await renderHook(() =>
+      useEventos({ datosIniciales: [eventoConMiembros] })
+    );
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    expect(result.current.miembroIds).toEqual(["1", "2"]);
+
+    await act(() => {
+      result.current.alternarMiembro("1");
+    });
+
+    await act(async () => {
+      await result.current.guardarEvento();
+    });
+
+    expect(result.current.eventos).toHaveLength(1);
+    expect(result.current.eventos[0]).toMatchObject({
+      id: "50",
+      miembroIds: ["2"],
+    });
+    expect(result.current.miembroIds).toEqual([]);
+
+    // Se puede volver a editar y quitar todos los miembros
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    await act(() => {
+      result.current.alternarMiembro("2");
+    });
+
+    let guardado: boolean | undefined;
+
+    await act(async () => {
+      guardado = await result.current.guardarEvento();
+    });
+
+    expect(guardado).toBe(true);
+    expect(result.current.eventos).toHaveLength(1);
+    expect(result.current.eventos[0]).toMatchObject({
+      id: "50",
+      miembroIds: [],
+    });
+  });
+
+  test("cancelar la edición limpia también la selección de miembros", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    await act(() => {
+      result.current.alternarMiembro("3");
+    });
+
+    expect(result.current.miembroIds).toEqual(["3"]);
+
+    await act(() => {
+      result.current.cancelarEdicion();
+    });
+
+    expect(result.current.miembroIds).toEqual([]);
+    expect(result.current.eventos[0].miembroIds).toEqual([]);
   });
 
   test("impide guardar dos veces mientras una escritura está pendiente", async () => {

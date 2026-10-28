@@ -191,7 +191,7 @@ describe("MiembrosContext", () => {
     await fireEvent.changeText(getByPlaceholderText("Nombre en A"), "Carla");
     await fireEvent.press(getByText("Guardar en A"));
 
-    expect(await findByText("No se ha podido guardar el miembro")).toBeTruthy();
+    expect(await findByText("No se ha podido guardar el músico")).toBeTruthy();
     expect(getByText("Total en B: 2")).toBeTruthy();
     expect(queryByText("B ve a Carla")).toBeNull();
     expect(getByDisplayValue("Carla")).toBeTruthy();
@@ -209,7 +209,7 @@ describe("MiembrosContext", () => {
 
     await fireEvent.press(getByText("Eliminar miembro 1"));
 
-    expect(await findByText("No se ha podido eliminar el miembro")).toBeTruthy();
+    expect(await findByText("No se ha podido eliminar el músico")).toBeTruthy();
     expect(mockEliminarMiembroEnBase).toHaveBeenCalledWith("1");
     expect(getByText("B ve a Ana")).toBeTruthy();
     expect(getByText("Total en B: 2")).toBeTruthy();

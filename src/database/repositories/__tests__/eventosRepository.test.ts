@@ -1,4 +1,5 @@
 import {
+  agruparMiembroIdsPorEvento,
   agruparTecnicoIdsPorEvento,
   construirEventos,
   convertirFilaAEvento,
@@ -46,28 +47,56 @@ describe("eventosRepository: conversión de filas", () => {
     expect(tecnicoIdsPorEvento.get("3")).toBeUndefined();
   });
 
+  test("agrupa los miembros de cada evento conservando el orden", () => {
+    const miembroIdsPorEvento = agruparMiembroIdsPorEvento([
+      { evento_id: "2", miembro_id: "3" },
+      { evento_id: "2", miembro_id: "1" },
+    ]);
+
+    expect(miembroIdsPorEvento.get("2")).toEqual(["3", "1"]);
+    expect(miembroIdsPorEvento.get("1")).toBeUndefined();
+  });
+
   test("construye los eventos con sus técnicos y con lista vacía si no tienen", () => {
     const eventos = construirEventos(
       [filaConcierto, filaEnsayo],
       [
         { evento_id: "1", tecnico_id: "1" },
         { evento_id: "1", tecnico_id: "2" },
+      ],
+      []
+    );
+
+    expect(eventos).toEqual([
+      { ...filaConcierto, tecnicoIds: ["1", "2"], miembroIds: [] },
+      { ...filaEnsayo, tecnicoIds: [], miembroIds: [] },
+    ]);
+  });
+
+  test("reconstruye miembroIds sin mezclarlos con tecnicoIds", () => {
+    const eventos = construirEventos(
+      [filaConcierto, filaEnsayo],
+      [{ evento_id: "1", tecnico_id: "2" }],
+      [
+        { evento_id: "1", miembro_id: "1" },
+        { evento_id: "1", miembro_id: "3" },
       ]
     );
 
     expect(eventos).toEqual([
-      { ...filaConcierto, tecnicoIds: ["1", "2"] },
-      { ...filaEnsayo, tecnicoIds: [] },
+      { ...filaConcierto, tecnicoIds: ["2"], miembroIds: ["1", "3"] },
+      // Un evento sin miembros es válido y recibe []
+      { ...filaEnsayo, tecnicoIds: [], miembroIds: [] },
     ]);
   });
 
   test("rechaza filas con un tipo o un estado desconocido", () => {
     expect(() =>
-      convertirFilaAEvento({ ...filaConcierto, tipo: "fiesta" }, [])
+      convertirFilaAEvento({ ...filaConcierto, tipo: "fiesta" }, [], [])
     ).toThrow("Tipo de evento no válido en la base de datos: fiesta");
 
     expect(() =>
-      convertirFilaAEvento({ ...filaConcierto, estado: "borrador" }, [])
+      convertirFilaAEvento({ ...filaConcierto, estado: "borrador" }, [], [])
     ).toThrow("Estado de evento no válido en la base de datos: borrador");
   });
 });

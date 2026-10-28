@@ -29,7 +29,7 @@ export default function AppTabs() {
             <TabButton>Técnicos</TabButton>
           </TabTrigger>
           <TabTrigger name="miembros" href="/miembros" asChild>
-            <TabButton>Miembros</TabButton>
+            <TabButton>Músicos</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>

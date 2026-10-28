@@ -1,4 +1,5 @@
 import { fireEvent, render } from "@testing-library/react-native";
+import type { Miembro } from "../../types/miembro";
 import type { Tecnico } from "../../types/tecnico";
 import { FormularioEvento } from "../FormularioEvento";
 
@@ -35,6 +36,8 @@ describe("FormularioEvento", () => {
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
+        miembros={[]}
+        miembroIds={[]}
         error=""
         editando={false}
         procesando={false}
@@ -43,6 +46,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
       />
@@ -73,6 +77,8 @@ describe("FormularioEvento", () => {
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
+        miembros={[]}
+        miembroIds={[]}
         error=""
         editando={false}
         procesando={false}
@@ -81,6 +87,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={onCambiarEstado}
         onSeleccionarFecha={jest.fn()}
         onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={jest.fn()}
         onGuardar={onGuardar}
         onCancelar={jest.fn()}
       />
@@ -111,6 +118,8 @@ describe("FormularioEvento", () => {
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
+        miembros={[]}
+        miembroIds={[]}
         error="El título y la fecha son obligatorios"
         editando={false}
         procesando={false}
@@ -119,6 +128,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
       />
@@ -139,6 +149,8 @@ describe("FormularioEvento", () => {
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
+        miembros={[]}
+        miembroIds={[]}
         error=""
         editando={true}
         procesando={false}
@@ -147,6 +159,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
       />
@@ -168,6 +181,8 @@ describe("FormularioEvento", () => {
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
+        miembros={[]}
+        miembroIds={[]}
         error=""
         editando={true}
         procesando={false}
@@ -176,6 +191,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={onCancelar}
       />
@@ -210,6 +226,8 @@ describe("FormularioEvento", () => {
         fechasConEventos={[]}
         tecnicos={tecnicos}
         tecnicoIds={["1"]}
+        miembros={[]}
+        miembroIds={[]}
         error=""
         editando={false}
         procesando={false}
@@ -218,6 +236,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
         onAlternarTecnico={onAlternarTecnico}
+        onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
         onCancelar={jest.fn()}
       />
@@ -243,6 +262,7 @@ describe("FormularioEvento", () => {
     const onCambiarEstado = jest.fn();
     const onSeleccionarFecha = jest.fn();
     const onAlternarTecnico = jest.fn();
+    const onAlternarMiembro = jest.fn();
     const onGuardar = jest.fn();
     const onCancelar = jest.fn();
 
@@ -255,6 +275,8 @@ describe("FormularioEvento", () => {
         fechasConEventos={[]}
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
+        miembros={[{ id: "1", nombre: "Paco" }]}
+        miembroIds={[]}
         error=""
         editando={true}
         procesando={true}
@@ -263,6 +285,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={onCambiarEstado}
         onSeleccionarFecha={onSeleccionarFecha}
         onAlternarTecnico={onAlternarTecnico}
+        onAlternarMiembro={onAlternarMiembro}
         onGuardar={onGuardar}
         onCancelar={onCancelar}
       />
@@ -276,6 +299,7 @@ describe("FormularioEvento", () => {
       "Reunión",
       "Otro",
       "Carlos",
+      "Paco",
       "Guardar cambios",
       "Cancelar",
       "Pendiente",
@@ -292,8 +316,57 @@ describe("FormularioEvento", () => {
     expect(onCambiarTipo).not.toHaveBeenCalled();
     expect(onCambiarEstado).not.toHaveBeenCalled();
     expect(onAlternarTecnico).not.toHaveBeenCalled();
+    expect(onAlternarMiembro).not.toHaveBeenCalled();
     expect(onGuardar).not.toHaveBeenCalled();
     expect(onCancelar).not.toHaveBeenCalled();
     expect(onSeleccionarFecha).not.toHaveBeenCalled();
+  });
+
+  test("permite seleccionar miembros opcionalmente", async () => {
+    const miembros: Miembro[] = [
+      { id: "1", nombre: "Paco" },
+      { id: "2", nombre: "Rafa" },
+    ];
+    const onAlternarMiembro = jest.fn();
+
+    const { getByText, queryByText } = await render(
+      <FormularioEvento
+        titulo="Ensayo general"
+        tipo="ensayo"
+        estado="pendiente"
+        fecha="2026-10-02"
+        fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
+        miembros={miembros}
+        miembroIds={["1"]}
+        error=""
+        editando={false}
+        procesando={false}
+        onCambiarTitulo={jest.fn()}
+        onCambiarTipo={jest.fn()}
+        onCambiarEstado={jest.fn()}
+        onSeleccionarFecha={jest.fn()}
+        onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={onAlternarMiembro}
+        onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Músicos que asistirán")).toBeTruthy();
+    expect(getByText("Paco ✓")).toBeTruthy();
+    expect(getByText("Rafa")).toBeTruthy();
+    // Seleccionar miembros es opcional: no hay mensaje de obligatoriedad
+    expect(queryByText(/al menos un miembro/i)).toBeNull();
+
+    await fireEvent.press(getByText("Rafa"));
+
+    expect(onAlternarMiembro).toHaveBeenCalledWith("2");
+
+    await fireEvent.press(getByText("Paco ✓"));
+
+    expect(onAlternarMiembro).toHaveBeenCalledWith("1");
+    expect(onAlternarMiembro).toHaveBeenCalledTimes(2);
   });
 });

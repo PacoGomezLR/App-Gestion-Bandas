@@ -30,7 +30,7 @@ export default function MiembrosScreen() {
         paddingBottom: 120,
       }}
     >
-      <Text>Miembros</Text>
+      <Text>Músicos</Text>
 
       <FormularioMiembro
         nombre={nombre}

@@ -1,5 +1,6 @@
 import { Button, Text, TextInput, View } from "react-native";
 import type { EstadoEvento, TipoEvento } from "../types/evento";
+import type { Miembro } from "../types/miembro";
 import type { Tecnico } from "../types/tecnico";
 import { CalendarioEventos } from "./CalendarioEventos";
 
@@ -11,6 +12,8 @@ interface FormularioEventoProps {
   fechasConEventos: string[];
   tecnicos: Tecnico[];
   tecnicoIds: string[];
+  miembros: Miembro[];
+  miembroIds: string[];
   error: string;
   editando: boolean;
   procesando: boolean;
@@ -19,6 +22,7 @@ interface FormularioEventoProps {
   onCambiarEstado: (estado: EstadoEvento) => void;
   onSeleccionarFecha: (fecha: string) => void;
   onAlternarTecnico: (tecnicoId: string) => void;
+  onAlternarMiembro: (miembroId: string) => void;
   onGuardar: () => void;
   onCancelar: () => void;
 }
@@ -31,6 +35,8 @@ export function FormularioEvento({
   fechasConEventos,
   tecnicos,
   tecnicoIds,
+  miembros,
+  miembroIds,
   error,
   editando,
   procesando,
@@ -39,6 +45,7 @@ export function FormularioEvento({
   onCambiarEstado,
   onSeleccionarFecha,
   onAlternarTecnico,
+  onAlternarMiembro,
   onGuardar,
   onCancelar,
 }: FormularioEventoProps) {
@@ -105,6 +112,28 @@ export function FormularioEvento({
                   : tecnico.nombre
               }
               onPress={() => onAlternarTecnico(tecnico.id)}
+              disabled={procesando}
+            />
+          );
+        })}
+      </View>
+
+      {/* Opcional: no se exige seleccionar ningún miembro */}
+      <Text>Músicos que asistirán</Text>
+
+      <View>
+        {miembros.map((miembro) => {
+          const seleccionado = miembroIds.includes(miembro.id);
+
+          return (
+            <Button
+              key={miembro.id}
+              title={
+                seleccionado
+                  ? `${miembro.nombre} ✓`
+                  : miembro.nombre
+              }
+              onPress={() => onAlternarMiembro(miembro.id)}
               disabled={procesando}
             />
           );

@@ -36,7 +36,7 @@ export function MiembrosProvider({
       setErrorPersistencia("");
       return true;
     } catch {
-      setErrorPersistencia("No se ha podido guardar el miembro");
+      setErrorPersistencia("No se ha podido guardar el músico");
       return false;
     }
   }, []);
@@ -47,7 +47,7 @@ export function MiembrosProvider({
       setErrorPersistencia("");
       return true;
     } catch {
-      setErrorPersistencia("No se ha podido eliminar el miembro");
+      setErrorPersistencia("No se ha podido eliminar el músico");
       return false;
     }
   }, []);
@@ -76,7 +76,7 @@ export function MiembrosProvider({
         setErrorPersistencia("");
       } catch {
         if (activo) {
-          setErrorPersistencia("No se han podido cargar los miembros");
+          setErrorPersistencia("No se han podido cargar los músicos");
         }
       } finally {
         if (activo) {

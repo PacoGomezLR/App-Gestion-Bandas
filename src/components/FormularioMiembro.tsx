@@ -22,7 +22,7 @@ export function FormularioMiembro({
   return (
     <>
       <TextInput
-        placeholder="Nombre del miembro"
+        placeholder="Nombre del músico"
         value={nombre}
         onChangeText={onCambiarNombre}
         editable={!procesando}
@@ -31,7 +31,7 @@ export function FormularioMiembro({
       {error !== "" && <Text>{error}</Text>}
 
       <Button
-        title={editando ? "Guardar cambios" : "Guardar miembro"}
+        title={editando ? "Guardar cambios" : "Guardar músico"}
         onPress={onGuardar}
         disabled={procesando}
       />

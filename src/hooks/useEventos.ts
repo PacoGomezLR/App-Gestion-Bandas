@@ -21,6 +21,7 @@ export function useEventos(options: UseEventosOptions = {}) {
   const [estado, setEstado] = useState<EstadoEvento>("pendiente");
   const [fecha, setFecha] = useState("");
   const [tecnicoIds, setTecnicoIds] = useState<string[]>([]);
+  const [miembroIds, setMiembroIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [eventoEditandoId, setEventoEditandoId] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
@@ -53,6 +54,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setTipo("concierto");
     setEstado("pendiente");
     setTecnicoIds([]);
+    setMiembroIds([]);
     setError("");
   }
 
@@ -61,6 +63,15 @@ export function useEventos(options: UseEventosOptions = {}) {
       idsActuales.includes(tecnicoId)
         ? idsActuales.filter((id) => id !== tecnicoId)
         : [...idsActuales, tecnicoId]
+    );
+  }
+
+  // Asignar miembros es opcional: un evento sin miembros es válido
+  function alternarMiembro(miembroId: string) {
+    setMiembroIds((idsActuales) =>
+      idsActuales.includes(miembroId)
+        ? idsActuales.filter((id) => id !== miembroId)
+        : [...idsActuales, miembroId]
     );
   }
 
@@ -84,6 +95,7 @@ export function useEventos(options: UseEventosOptions = {}) {
         fecha: fecha,
         estado: estado,
         tecnicoIds: [...tecnicoIds],
+        miembroIds: [...miembroIds],
       };
 
       // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
@@ -163,6 +175,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setFecha(evento.fecha);
     setEstado(evento.estado);
     setTecnicoIds([...evento.tecnicoIds]);
+    setMiembroIds([...evento.miembroIds]);
   }
 
   return {
@@ -172,6 +185,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     estado,
     fecha,
     tecnicoIds,
+    miembroIds,
     error,
     eventoEditandoId,
     procesando,
@@ -180,6 +194,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setEstado,
     setFecha,
     alternarTecnico,
+    alternarMiembro,
     reemplazarEventos,
     guardarEvento,
     eliminarEvento,

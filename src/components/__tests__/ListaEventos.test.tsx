@@ -1,5 +1,6 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import type { Evento } from "../../types/evento";
+import type { Miembro } from "../../types/miembro";
 import type { Tecnico } from "../../types/tecnico";
 import { ListaEventos } from "../ListaEventos";
 
@@ -14,6 +15,17 @@ const tecnicos: Tecnico[] = [
   },
 ];
 
+const miembros: Miembro[] = [
+  {
+    id: "1",
+    nombre: "Paco",
+  },
+  {
+    id: "2",
+    nombre: "Rafa",
+  },
+];
+
 const eventos: Evento[] = [
   {
     id: "1",
@@ -22,6 +34,7 @@ const eventos: Evento[] = [
     fecha: "2026-11-15",
     estado: "confirmado",
     tecnicoIds: ["1", "2"],
+    miembroIds: ["1", "2"],
   },
   {
     id: "2",
@@ -30,6 +43,7 @@ const eventos: Evento[] = [
     fecha: "2026-11-20",
     estado: "pendiente",
     tecnicoIds: [],
+    miembroIds: [],
   },
 ];
 
@@ -42,6 +56,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        miembros={miembros}
         procesando={false}
         onEliminar={onEliminar}
         onEditar={onEditar}
@@ -66,6 +81,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        miembros={miembros}
         procesando={false}
         onEliminar={onEliminar}
         onEditar={onEditar}
@@ -86,6 +102,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        miembros={miembros}
         procesando={false}
         onEliminar={onEliminar}
         onEditar={onEditar}
@@ -103,6 +120,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        miembros={miembros}
         procesando={false}
         onEliminar={jest.fn()}
         onEditar={jest.fn()}
@@ -123,6 +141,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={[eventoConIdInexistente]}
         tecnicos={tecnicos}
+        miembros={miembros}
         procesando={false}
         onEliminar={jest.fn()}
         onEditar={jest.fn()}
@@ -130,6 +149,82 @@ describe("ListaEventos", () => {
     );
 
     expect(getByText("Técnicos: Carlos")).toBeTruthy();
+  });
+
+  test("muestra los músicos asignados", async () => {
+    const { getByText, getAllByText } = await render(
+      <ListaEventos
+        eventos={eventos}
+        tecnicos={tecnicos}
+        miembros={miembros}
+        procesando={false}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
+    // Solo el evento con músicos tiene la línea
+    expect(getAllByText(/^Músicos:/)).toHaveLength(1);
+  });
+
+  test("no muestra ninguna línea de músicos si el evento no tiene", async () => {
+    const { getByText, queryByText } = await render(
+      <ListaEventos
+        eventos={[eventos[1]]}
+        tecnicos={tecnicos}
+        miembros={miembros}
+        procesando={false}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    // Sin músicos es un estado válido: el evento se ve, pero sin línea de músicos
+    expect(getByText("Ensayo general")).toBeTruthy();
+    expect(queryByText(/^Músicos:/)).toBeNull();
+    expect(queryByText(/Músicos|Miembros/)).toBeNull();
+  });
+
+  test("ignora ids de músicos inexistentes", async () => {
+    const eventoConMiembroInexistente: Evento = {
+      ...eventos[0],
+      miembroIds: ["99", "2"],
+    };
+
+    const { getByText } = await render(
+      <ListaEventos
+        eventos={[eventoConMiembroInexistente]}
+        tecnicos={tecnicos}
+        miembros={miembros}
+        procesando={false}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Músicos: Rafa")).toBeTruthy();
+  });
+
+  test("no muestra la línea de músicos si todos los ids son inexistentes", async () => {
+    const eventoSoloConIdsInexistentes: Evento = {
+      ...eventos[0],
+      miembroIds: ["98", "99"],
+    };
+
+    const { getByText, queryByText } = await render(
+      <ListaEventos
+        eventos={[eventoSoloConIdsInexistentes]}
+        tecnicos={tecnicos}
+        miembros={miembros}
+        procesando={false}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Concierto en Sevilla")).toBeTruthy();
+    expect(queryByText(/^Músicos:/)).toBeNull();
   });
 
   test("deshabilita Editar y Eliminar mientras procesa", async () => {
@@ -140,6 +235,7 @@ describe("ListaEventos", () => {
       <ListaEventos
         eventos={eventos}
         tecnicos={tecnicos}
+        miembros={miembros}
         procesando={true}
         onEliminar={onEliminar}
         onEditar={onEditar}

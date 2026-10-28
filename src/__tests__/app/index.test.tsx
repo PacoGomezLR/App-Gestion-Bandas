@@ -1,12 +1,18 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import Index from "../../app/index";
 import { useEventosContext } from "../../context/EventosContext";
+import { useMiembrosContext } from "../../context/MiembrosContext";
 import { useTecnicosContext } from "../../context/TecnicosContext";
 import type { Evento } from "../../types/evento";
 
 jest.mock("../../context/EventosContext", () => ({
   ...jest.requireActual("../../context/EventosContext"),
   useEventosContext: jest.fn(),
+}));
+
+jest.mock("../../context/MiembrosContext", () => ({
+  ...jest.requireActual("../../context/MiembrosContext"),
+  useMiembrosContext: jest.fn(),
 }));
 
 jest.mock("../../context/TecnicosContext", () => ({
@@ -42,6 +48,7 @@ jest.mock("../../components/FormularioEvento", () => {
 
 const mockUseEventosContext = jest.mocked(useEventosContext);
 const mockUseTecnicosContext = jest.mocked(useTecnicosContext);
+const mockUseMiembrosContext = jest.mocked(useMiembrosContext);
 
 const eventos: Evento[] = [
   {
@@ -51,6 +58,7 @@ const eventos: Evento[] = [
     fecha: "2026-09-30",
     estado: "confirmado",
     tecnicoIds: [],
+    miembroIds: [],
   },
   {
     id: "2",
@@ -59,6 +67,7 @@ const eventos: Evento[] = [
     fecha: "2026-10-02",
     estado: "pendiente",
     tecnicoIds: [],
+    miembroIds: [],
   },
   {
     id: "3",
@@ -67,6 +76,7 @@ const eventos: Evento[] = [
     fecha: "2026-10-05",
     estado: "pendiente",
     tecnicoIds: [],
+    miembroIds: [],
   },
 ];
 
@@ -81,6 +91,7 @@ function crearValorUseEventosContext(
     estado: "pendiente",
     fecha,
     tecnicoIds: [],
+    miembroIds: [],
     error: "",
     eventoEditandoId: null,
     setTitulo: jest.fn(),
@@ -88,6 +99,7 @@ function crearValorUseEventosContext(
     setEstado: jest.fn(),
     setFecha,
     alternarTecnico: jest.fn(),
+    alternarMiembro: jest.fn(),
     reemplazarEventos: jest.fn(),
     guardarEvento: jest.fn(),
     eliminarEvento: jest.fn(),
@@ -123,9 +135,33 @@ function crearValorUseTecnicosContext(): ReturnType<typeof useTecnicosContext> {
   };
 }
 
+function crearValorUseMiembrosContext(): ReturnType<typeof useMiembrosContext> {
+  return {
+    miembros: [
+      {
+        id: "1",
+        nombre: "Paco",
+      },
+    ],
+    nombre: "",
+    error: "",
+    miembroEditandoId: null,
+    procesando: false,
+    setNombre: jest.fn(),
+    reemplazarMiembros: jest.fn(),
+    guardarMiembro: jest.fn(),
+    prepararEdicion: jest.fn(),
+    cancelarEdicion: jest.fn(),
+    eliminarMiembro: jest.fn(),
+    cargando: false,
+    errorPersistencia: "",
+  };
+}
+
 describe("Index", () => {
   beforeEach(() => {
     mockUseTecnicosContext.mockReturnValue(crearValorUseTecnicosContext());
+    mockUseMiembrosContext.mockReturnValue(crearValorUseMiembrosContext());
   });
 
   test("con fecha seleccionada muestra solo sus eventos y permite ver todos", async () => {
@@ -186,5 +222,20 @@ describe("Index", () => {
     expect(getByText("Cargando datos...")).toBeTruthy();
     expect(queryByText("Formulario simulado")).toBeNull();
     expect(queryByText("Ensayo general")).toBeNull();
+  });
+
+  test("espera también a que carguen los miembros", async () => {
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("", jest.fn())
+    );
+    mockUseMiembrosContext.mockReturnValue({
+      ...crearValorUseMiembrosContext(),
+      cargando: true,
+    });
+
+    const { getByText, queryByText } = await render(<Index />);
+
+    expect(getByText("Cargando datos...")).toBeTruthy();
+    expect(queryByText("Formulario simulado")).toBeNull();
   });
 });

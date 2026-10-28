@@ -146,6 +146,7 @@ describe("EventosContext", () => {
         fecha: "2027-01-15",
         estado: "confirmado",
         tecnicoIds: ["2"],
+        miembroIds: [],
       },
     ];
     mockListarEventos.mockResolvedValue(eventosGuardados);
@@ -190,6 +191,7 @@ describe("EventosContext", () => {
         tipo: "concierto",
         estado: "pendiente",
         tecnicoIds: [],
+        miembroIds: [],
       })
     );
     expect(queryByText("Concierto compartido")).toBeNull();

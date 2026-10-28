@@ -23,7 +23,7 @@ describe("FormularioMiembro", () => {
     expect(queryByText("Cancelar")).toBeNull();
 
     await fireEvent.changeText(getByDisplayValue("Ana"), "Carla");
-    await fireEvent.press(getByText("Guardar miembro"));
+    await fireEvent.press(getByText("Guardar músico"));
 
     expect(onCambiarNombre).toHaveBeenCalledWith("Carla");
     expect(onGuardar).toHaveBeenCalledTimes(1);
@@ -45,7 +45,7 @@ describe("FormularioMiembro", () => {
     );
 
     expect(getByText("Guardar cambios")).toBeTruthy();
-    expect(queryByText("Guardar miembro")).toBeNull();
+    expect(queryByText("Guardar músico")).toBeNull();
 
     await fireEvent.press(getByText("Cancelar"));
 
@@ -68,7 +68,7 @@ describe("FormularioMiembro", () => {
       />
     );
 
-    expect(getByPlaceholderText("Nombre del miembro").props.editable).toBe(false);
+    expect(getByPlaceholderText("Nombre del músico").props.editable).toBe(false);
     expect(getByRole("button", { name: "Guardar cambios", disabled: true })).toBeTruthy();
     expect(getByRole("button", { name: "Cancelar", disabled: true })).toBeTruthy();
 
