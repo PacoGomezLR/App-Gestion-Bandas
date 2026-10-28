@@ -4,7 +4,7 @@ import { eventosIniciales } from "../data/eventosIniciales";
 import { tecnicosIniciales } from "../data/tecnicosIniciales";
 import { getDatabase } from "./database";
 
-const VERSION_ESQUEMA = 6;
+const VERSION_ESQUEMA = 7;
 
 let inicializacionPromise: Promise<void> | null = null;
 
@@ -132,6 +132,12 @@ async function convertirTiposEventoAntiguos(db: SQLiteDatabase): Promise<void> {
   );
 }
 
+// Migración 7: un evento cancelado ya no existe como estado, se elimina.
+// Sus filas de evento_tecnicos y evento_miembros se borran por ON DELETE CASCADE.
+async function eliminarEventosCancelados(db: SQLiteDatabase): Promise<void> {
+  await db.runAsync("DELETE FROM eventos WHERE estado = 'cancelado';");
+}
+
 export async function migrarBaseDeDatos(): Promise<void> {
   const db = await getDatabase();
 
@@ -193,6 +199,13 @@ export async function migrarBaseDeDatos(): Promise<void> {
     await db.withTransactionAsync(async () => {
       await convertirTiposEventoAntiguos(db);
       await db.execAsync("PRAGMA user_version = 6;");
+    });
+  }
+
+  if (versionActual < 7) {
+    await db.withTransactionAsync(async () => {
+      await eliminarEventosCancelados(db);
+      await db.execAsync("PRAGMA user_version = 7;");
     });
   }
 }

@@ -48,8 +48,12 @@ describe("eventosRepository: conversión de filas", () => {
     expect(esTipoEvento("fiesta")).toBe(false);
     expect(esTipoEvento("toString")).toBe(false);
 
-    expect(esEstadoEvento("cancelado")).toBe(true);
+    expect(esEstadoEvento("pendiente")).toBe(true);
+    expect(esEstadoEvento("confirmado")).toBe(true);
+    // Un evento cancelado se elimina: la migración 7 borra los antiguos
+    expect(esEstadoEvento("cancelado")).toBe(false);
     expect(esEstadoEvento("borrador")).toBe(false);
+    expect(esEstadoEvento("toString")).toBe(false);
   });
 
   test("agrupa los técnicos de cada evento conservando el orden", () => {

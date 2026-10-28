@@ -7,8 +7,7 @@ export type TipoEvento =
 
   export type EstadoEvento =
   | "pendiente"
-  | "confirmado"
-  | "cancelado";
+  | "confirmado";
 
   export interface Evento {
   readonly id: string;

@@ -561,6 +561,33 @@ describe("useEventos", () => {
     });
   });
 
+  test("guarda eventos pendientes y confirmados y vuelve a pendiente", async () => {
+    const { result } = await renderHook(() =>
+      useEventos({ datosIniciales: [] })
+    );
+
+    expect(result.current.estado).toBe("pendiente");
+
+    for (const estado of ["pendiente", "confirmado"] as const) {
+      await act(() => {
+        result.current.setTitulo(`Evento ${estado}`);
+        result.current.setFecha("2026-12-21");
+        result.current.setEstado(estado);
+      });
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(result.current.estado).toBe("pendiente");
+    }
+
+    expect(result.current.eventos.map((evento) => evento.estado)).toEqual([
+      "pendiente",
+      "confirmado",
+    ]);
+  });
+
   test("cancelar la edición limpia hora, lugar y notas", async () => {
     const { result } = await renderHook(() => useEventos());
 

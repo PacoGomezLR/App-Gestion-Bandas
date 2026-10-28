@@ -1,4 +1,5 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 import type { Evento } from "../../types/evento";
 import type { Miembro } from "../../types/miembro";
 import type { Tecnico } from "../../types/tecnico";
@@ -53,272 +54,319 @@ const eventos: Evento[] = [
   },
 ];
 
+const boda: Evento = {
+  id: "30",
+  titulo: "Boda de María y Juan",
+  tipo: "boda",
+  fecha: "2027-05-15",
+  hora: "20:30",
+  lugar: "Lucena",
+  notas: "Prueba de sonido a las 18:00",
+  estado: "confirmado",
+  tecnicoIds: ["1"],
+  miembroIds: ["1", "2"],
+};
+
+const fiesta: Evento = {
+  id: "31",
+  titulo: "Cumpleaños de Laura",
+  tipo: "fiesta_privada",
+  fecha: "2027-06-01",
+  hora: "",
+  lugar: "Córdoba",
+  notas: "",
+  estado: "pendiente",
+  tecnicoIds: [],
+  miembroIds: [],
+};
+
+async function renderizar(lista: Evento[], procesando = false) {
+  const onEliminar = jest.fn();
+  const onEditar = jest.fn();
+
+  const resultado = await render(
+    <ListaEventos
+      eventos={lista}
+      tecnicos={tecnicos}
+      miembros={miembros}
+      procesando={procesando}
+      onEliminar={onEliminar}
+      onEditar={onEditar}
+    />
+  );
+
+  return { ...resultado, onEliminar, onEditar };
+}
+
+async function abrir(vistaPrevia: string) {
+  await fireEvent.press(screen.getByText(vistaPrevia));
+}
+
 describe("ListaEventos", () => {
-  test("muestra los eventos recibidos", async () => {
-    const onEliminar = jest.fn();
-    const onEditar = jest.fn();
+  test("muestra una vista previa cerrada con tipo y lugar", async () => {
+    const { getByText, queryByText } = await renderizar([boda]);
 
-    const { getByText } = await render(
-      <ListaEventos
-        eventos={eventos}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={onEliminar}
-        onEditar={onEditar}
-      />
-    );
+    expect(getByText("Boda Lucena")).toBeTruthy();
+    expect(queryByText(/^Título:/)).toBeNull();
+    expect(queryByText(/^Tipo de evento:/)).toBeNull();
+    expect(queryByText(/^Nota:/)).toBeNull();
+    expect(queryByText("Editar")).toBeNull();
+    expect(queryByText("Eliminar")).toBeNull();
+  });
 
-    expect(getByText("Concierto en Sevilla")).toBeTruthy();
-    expect(getByText("Ensayo general")).toBeTruthy();
+  test("muestra el badge Confirmado en la vista previa sin abrir el evento", async () => {
+    const { getByText, queryByText } = await renderizar([boda]);
 
-    expect(getByText("15-11-2026")).toBeTruthy();
-    expect(getByText("20-11-2026")).toBeTruthy();
+    expect(getByText("Boda Lucena")).toBeTruthy();
+    expect(getByText("Confirmado")).toBeTruthy();
+    // El detalle sigue cerrado
+    expect(queryByText(/^Estado:/)).toBeNull();
+    expect(queryByText(/^Título:/)).toBeNull();
+  });
 
-    expect(getByText("confirmado")).toBeTruthy();
-    expect(getByText("pendiente")).toBeTruthy();
+  test("muestra el badge Pendiente en la vista previa sin abrir el evento", async () => {
+    const { getByText, queryByText } = await renderizar([fiesta]);
+
+    expect(getByText("Fiesta privada Córdoba")).toBeTruthy();
+    expect(getByText("Pendiente")).toBeTruthy();
+    expect(queryByText(/^Título:/)).toBeNull();
+  });
+
+  test("Pendiente y Confirmado usan colores distintos y siempre muestran texto", async () => {
+    const { getByText } = await renderizar([boda, fiesta]);
+
+    const colorConfirmado = StyleSheet.flatten(getByText("Confirmado").props.style);
+    const colorPendiente = StyleSheet.flatten(getByText("Pendiente").props.style);
+
+    expect(colorConfirmado.color).toBeDefined();
+    expect(colorPendiente.color).toBeDefined();
+    expect(colorConfirmado.color).not.toBe(colorPendiente.color);
+  });
+
+  test("al pulsar la vista previa muestra el detalle completo", async () => {
+    const { getByText } = await renderizar([boda]);
+
+    await abrir("Boda Lucena");
+
+    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
+    expect(getByText("Fecha: 15-05-2027")).toBeTruthy();
+    expect(getByText("Hora: 20:30")).toBeTruthy();
+    expect(getByText("Lugar: Lucena")).toBeTruthy();
+    expect(getByText("Estado: Confirmado")).toBeTruthy();
+    expect(screen.queryByText("Estado: confirmado")).toBeNull();
+    expect(getByText("Técnico: Carlos")).toBeTruthy();
+    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
+    expect(getByText("Editar")).toBeTruthy();
+    expect(getByText("Eliminar")).toBeTruthy();
+  });
+
+  test("muestra la nota completa y no el antiguo aviso", async () => {
+    const { getByText, queryByText } = await renderizar([boda]);
+
+    await abrir("Boda Lucena");
+
+    expect(getByText("Nota: Prueba de sonido a las 18:00")).toBeTruthy();
+    expect(queryByText("Tiene notas")).toBeNull();
+  });
+
+  test("usa la etiqueta Técnico en singular", async () => {
+    const { getByText, queryByText } = await renderizar([boda]);
+
+    await abrir("Boda Lucena");
+
+    expect(getByText("Técnico: Carlos")).toBeTruthy();
+    expect(queryByText(/Técnicos:/)).toBeNull();
+  });
+
+  test("usa Técnico en singular también con varios técnicos", async () => {
+    const { getByText, queryByText } = await renderizar(eventos);
+
+    await abrir("Concierto abierto");
+
+    expect(getByText("Técnico: Carlos, Miguel")).toBeTruthy();
+    expect(queryByText(/Técnicos:/)).toBeNull();
+  });
+
+  test("muestra Técnico: Sin asignar si no hay técnicos", async () => {
+    const { getByText } = await renderizar(eventos);
+
+    await abrir("Ensayo");
+
+    expect(getByText("Técnico: Sin asignar")).toBeTruthy();
+  });
+
+  test("ignora los ids que no corresponden a ningún técnico", async () => {
+    const { getByText } = await renderizar([
+      { ...eventos[0], tecnicoIds: ["1", "99"] },
+    ]);
+
+    await abrir("Concierto abierto");
+
+    expect(getByText("Técnico: Carlos")).toBeTruthy();
+  });
+
+  test("muestra los músicos asignados", async () => {
+    const { getByText } = await renderizar(eventos);
+
+    await abrir("Concierto abierto");
+
+    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
+  });
+
+  test("no muestra ninguna línea de músicos si el evento no tiene", async () => {
+    const { getByText, queryByText } = await renderizar(eventos);
+
+    await abrir("Ensayo");
+
+    // Sin músicos es un estado válido: el detalle se ve, pero sin línea de músicos
+    expect(getByText("Título: Ensayo general")).toBeTruthy();
+    expect(queryByText(/^Músicos:/)).toBeNull();
+    expect(queryByText(/Músicos|Miembros/)).toBeNull();
+  });
+
+  test("ignora ids de músicos inexistentes", async () => {
+    const { getByText } = await renderizar([
+      { ...eventos[0], miembroIds: ["99", "2"] },
+    ]);
+
+    await abrir("Concierto abierto");
+
+    expect(getByText("Músicos: Rafa")).toBeTruthy();
+  });
+
+  test("no muestra la línea de músicos si todos los ids son inexistentes", async () => {
+    const { getByText, queryByText } = await renderizar([
+      { ...eventos[0], miembroIds: ["98", "99"] },
+    ]);
+
+    await abrir("Concierto abierto");
+
+    expect(getByText("Título: Concierto en Sevilla")).toBeTruthy();
+    expect(queryByText(/^Músicos:/)).toBeNull();
+  });
+
+  test("sin lugar la vista previa es solo el tipo y no hay líneas vacías", async () => {
+    const bodaSinDetalles: Evento = {
+      ...boda,
+      hora: "",
+      lugar: "",
+      notas: "",
+    };
+
+    const { getByText, queryByText } = await renderizar([bodaSinDetalles]);
+
+    expect(getByText("Boda")).toBeTruthy();
+    expect(getByText("Confirmado")).toBeTruthy();
+    // No se usa el título del evento como relleno de la vista previa
+    expect(queryByText("Boda de María y Juan")).toBeNull();
+
+    await abrir("Boda");
+
+    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+    expect(queryByText(/^Hora:/)).toBeNull();
+    expect(queryByText(/^Lugar:/)).toBeNull();
+    expect(queryByText(/^Nota:/)).toBeNull();
+  });
+
+  test("muestra el tipo con su etiqueta y no con el valor interno", async () => {
+    const { getByText, queryByText } = await renderizar([
+      { ...eventos[0], id: "10", tipo: "fiesta_privada" },
+      { ...eventos[1], id: "11", tipo: "concierto_abierto" },
+    ]);
+
+    expect(getByText("Fiesta privada")).toBeTruthy();
+    expect(getByText("Concierto abierto")).toBeTruthy();
+
+    await abrir("Fiesta privada");
+
+    expect(getByText("Tipo de evento: Fiesta privada")).toBeTruthy();
+    expect(queryByText(/_/)).toBeNull();
+  });
+
+  test("pulsar de nuevo cierra el detalle", async () => {
+    const { getByText, queryByText } = await renderizar([boda]);
+
+    await abrir("Boda Lucena");
+    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+
+    await abrir("Boda Lucena");
+
+    expect(queryByText(/^Título:/)).toBeNull();
+    expect(queryByText("Editar")).toBeNull();
+    expect(getByText("Boda Lucena")).toBeTruthy();
+  });
+
+  test("solo hay un evento abierto a la vez", async () => {
+    const { getAllByText, getByText, queryByText } = await renderizar([
+      boda,
+      fiesta,
+    ]);
+
+    await abrir("Boda Lucena");
+    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+
+    await abrir("Fiesta privada Córdoba");
+
+    expect(getByText("Título: Cumpleaños de Laura")).toBeTruthy();
+    expect(queryByText("Título: Boda de María y Juan")).toBeNull();
+    expect(getAllByText(/^Título:/)).toHaveLength(1);
+    expect(getAllByText("Editar")).toHaveLength(1);
+  });
+
+  test("la vista previa es un botón accesible que indica si está desplegado", async () => {
+    const { getByRole } = await renderizar([boda]);
+
+    expect(
+      getByRole("button", {
+        name: "Ver detalles de Boda Lucena. Estado Confirmado",
+        expanded: false,
+      })
+    ).toBeTruthy();
+
+    await abrir("Boda Lucena");
+
+    expect(
+      getByRole("button", {
+        name: "Ver detalles de Boda Lucena. Estado Confirmado",
+        expanded: true,
+      })
+    ).toBeTruthy();
   });
 
   test("llama a onEliminar con el id correcto", async () => {
-    const onEliminar = jest.fn();
-    const onEditar = jest.fn();
+    const { getByText, onEliminar } = await renderizar(eventos);
 
-    const { getAllByText } = await render(
-      <ListaEventos
-        eventos={eventos}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={onEliminar}
-        onEditar={onEditar}
-      />
-    );
-
-    await fireEvent.press(getAllByText("Eliminar")[0]);
+    await abrir("Concierto abierto");
+    await fireEvent.press(getByText("Eliminar"));
 
     expect(onEliminar).toHaveBeenCalledTimes(1);
     expect(onEliminar).toHaveBeenCalledWith("1");
   });
 
   test("llama a onEditar con el evento correcto", async () => {
-    const onEliminar = jest.fn();
-    const onEditar = jest.fn();
+    const { getByText, onEditar } = await renderizar(eventos);
 
-    const { getAllByText } = await render(
-      <ListaEventos
-        eventos={eventos}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={onEliminar}
-        onEditar={onEditar}
-      />
-    );
-
-    await fireEvent.press(getAllByText("Editar")[1]);
+    await abrir("Ensayo");
+    await fireEvent.press(getByText("Editar"));
 
     expect(onEditar).toHaveBeenCalledTimes(1);
     expect(onEditar).toHaveBeenCalledWith(eventos[1]);
   });
 
-  test("muestra los técnicos asignados a cada evento", async () => {
-    const { getByText } = await render(
-      <ListaEventos
-        eventos={eventos}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Técnicos: Carlos, Miguel")).toBeTruthy();
-    expect(getByText("Técnicos: Sin asignar")).toBeTruthy();
-  });
-
-  test("ignora los ids que no corresponden a ningún técnico", async () => {
-    const eventoConIdInexistente: Evento = {
-      ...eventos[0],
-      tecnicoIds: ["1", "99"],
-    };
-
-    const { getByText } = await render(
-      <ListaEventos
-        eventos={[eventoConIdInexistente]}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Técnicos: Carlos")).toBeTruthy();
-  });
-
-  test("muestra los músicos asignados", async () => {
-    const { getByText, getAllByText } = await render(
-      <ListaEventos
-        eventos={eventos}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
-    // Solo el evento con músicos tiene la línea
-    expect(getAllByText(/^Músicos:/)).toHaveLength(1);
-  });
-
-  test("no muestra ninguna línea de músicos si el evento no tiene", async () => {
-    const { getByText, queryByText } = await render(
-      <ListaEventos
-        eventos={[eventos[1]]}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    // Sin músicos es un estado válido: el evento se ve, pero sin línea de músicos
-    expect(getByText("Ensayo general")).toBeTruthy();
-    expect(queryByText(/^Músicos:/)).toBeNull();
-    expect(queryByText(/Músicos|Miembros/)).toBeNull();
-  });
-
-  test("ignora ids de músicos inexistentes", async () => {
-    const eventoConMiembroInexistente: Evento = {
-      ...eventos[0],
-      miembroIds: ["99", "2"],
-    };
-
-    const { getByText } = await render(
-      <ListaEventos
-        eventos={[eventoConMiembroInexistente]}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Músicos: Rafa")).toBeTruthy();
-  });
-
-  test("muestra hora, lugar y solo un aviso de notas", async () => {
-    const eventoConDetalles: Evento = {
-      ...eventos[0],
-      hora: "20:30",
-      lugar: "Sala Principal",
-      notas: "Texto largo con todas las indicaciones para el concierto",
-    };
-
-    const { getByText, queryByText } = await render(
-      <ListaEventos
-        eventos={[eventoConDetalles]}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Hora: 20:30")).toBeTruthy();
-    expect(getByText("Lugar: Sala Principal")).toBeTruthy();
-    expect(getByText("Tiene notas")).toBeTruthy();
-    // Las notas completas no se muestran en el listado
-    expect(queryByText(/Texto largo/)).toBeNull();
-  });
-
-  test("muestra el tipo con su etiqueta y no con el valor interno", async () => {
-    const eventosConTipos: Evento[] = [
-      { ...eventos[0], id: "10", tipo: "fiesta_privada" },
-      { ...eventos[1], id: "11", tipo: "concierto_abierto" },
-    ];
-
-    const { getByText, queryByText } = await render(
-      <ListaEventos
-        eventos={eventosConTipos}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Fiesta privada")).toBeTruthy();
-    expect(getByText("Concierto abierto")).toBeTruthy();
-    expect(queryByText(/_/)).toBeNull();
-  });
-
-  test("no muestra líneas de hora, lugar ni notas si están vacíos", async () => {
-    const { getByText, queryByText } = await render(
-      <ListaEventos
-        eventos={[eventos[1]]}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Ensayo general")).toBeTruthy();
-    expect(queryByText(/^Hora:/)).toBeNull();
-    expect(queryByText(/^Lugar:/)).toBeNull();
-    expect(queryByText("Tiene notas")).toBeNull();
-  });
-
-  test("no muestra la línea de músicos si todos los ids son inexistentes", async () => {
-    const eventoSoloConIdsInexistentes: Evento = {
-      ...eventos[0],
-      miembroIds: ["98", "99"],
-    };
-
-    const { getByText, queryByText } = await render(
-      <ListaEventos
-        eventos={[eventoSoloConIdsInexistentes]}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={false}
-        onEliminar={jest.fn()}
-        onEditar={jest.fn()}
-      />
-    );
-
-    expect(getByText("Concierto en Sevilla")).toBeTruthy();
-    expect(queryByText(/^Músicos:/)).toBeNull();
-  });
-
   test("deshabilita Editar y Eliminar mientras procesa", async () => {
-    const onEliminar = jest.fn();
-    const onEditar = jest.fn();
-
-    const { getAllByRole, getAllByText } = await render(
-      <ListaEventos
-        eventos={eventos}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={true}
-        onEliminar={onEliminar}
-        onEditar={onEditar}
-      />
+    const { getByRole, getByText, onEditar, onEliminar } = await renderizar(
+      eventos,
+      true
     );
 
-    expect(getAllByRole("button", { name: "Editar", disabled: true })).toHaveLength(2);
-    expect(getAllByRole("button", { name: "Eliminar", disabled: true })).toHaveLength(2);
+    await abrir("Concierto abierto");
 
-    await fireEvent.press(getAllByText("Editar")[0]);
-    await fireEvent.press(getAllByText("Eliminar")[0]);
+    expect(getByRole("button", { name: "Editar", disabled: true })).toBeTruthy();
+    expect(getByRole("button", { name: "Eliminar", disabled: true })).toBeTruthy();
+
+    await fireEvent.press(getByText("Editar"));
+    await fireEvent.press(getByText("Eliminar"));
 
     expect(onEditar).not.toHaveBeenCalled();
     expect(onEliminar).not.toHaveBeenCalled();

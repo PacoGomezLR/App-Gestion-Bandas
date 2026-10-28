@@ -2,6 +2,7 @@ import { Button, Text, TextInput, View } from "react-native";
 import type { EstadoEvento, TipoEvento } from "../types/evento";
 import type { Miembro } from "../types/miembro";
 import type { Tecnico } from "../types/tecnico";
+import { ESTADOS_EVENTO, etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { etiquetaTipoEvento, TIPOS_EVENTO } from "../utils/tiposEvento";
 import { CalendarioEventos } from "./CalendarioEventos";
 
@@ -177,26 +178,17 @@ export function FormularioEvento({
         />
       )}
 
-      <Text>Estado: {estado}</Text>
+      <Text>Estado: {etiquetaEstadoEvento(estado)}</Text>
 
       <View>
-        <Button
-          title="Pendiente"
-          onPress={() => onCambiarEstado("pendiente")}
-          disabled={procesando}
-        />
-
-        <Button
-          title="Confirmado"
-          onPress={() => onCambiarEstado("confirmado")}
-          disabled={procesando}
-        />
-
-        <Button
-          title="Cancelado"
-          onPress={() => onCambiarEstado("cancelado")}
-          disabled={procesando}
-        />
+        {ESTADOS_EVENTO.map((estadoEvento) => (
+          <Button
+            key={estadoEvento}
+            title={etiquetaEstadoEvento(estadoEvento)}
+            onPress={() => onCambiarEstado(estadoEvento)}
+            disabled={procesando}
+          />
+        ))}
       </View>
     </>
   );

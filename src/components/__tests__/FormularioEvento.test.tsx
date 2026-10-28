@@ -60,7 +60,7 @@ describe("FormularioEvento", () => {
 
     expect(getByDisplayValue("Concierto en Málaga")).toBeTruthy();
     expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
-    expect(getByText("Estado: confirmado")).toBeTruthy();
+    expect(getByText("Estado: Confirmado")).toBeTruthy();
     expect(getByText("Fecha del calendario: 2026-12-20")).toBeTruthy();
 
     expect(getByText("Guardar evento")).toBeTruthy();
@@ -74,7 +74,7 @@ describe("FormularioEvento", () => {
     const onCambiarEstado = jest.fn();
     const onGuardar = jest.fn();
 
-    const { getByDisplayValue, getByText } = await render(
+    const { getByDisplayValue, getByText, queryByText } = await render(
       <FormularioEvento
         titulo="Concierto inicial"
         tipo="concierto_abierto"
@@ -111,13 +111,20 @@ describe("FormularioEvento", () => {
     );
 
     await fireEvent.press(getByText("Ensayo"));
-    await fireEvent.press(getByText("Cancelado"));
+    await fireEvent.press(getByText("Confirmado"));
     await fireEvent.press(getByText("Guardar evento"));
 
     expect(onCambiarTitulo).toHaveBeenCalledWith("Ensayo del viernes");
     expect(onCambiarTipo).toHaveBeenCalledWith("ensayo");
-    expect(onCambiarEstado).toHaveBeenCalledWith("cancelado");
+    expect(onCambiarEstado).toHaveBeenCalledWith("confirmado");
     expect(onGuardar).toHaveBeenCalledTimes(1);
+
+    await fireEvent.press(getByText("Pendiente"));
+
+    expect(onCambiarEstado).toHaveBeenLastCalledWith("pendiente");
+    expect(onCambiarEstado).toHaveBeenCalledTimes(2);
+    // Un evento cancelado se elimina: ya no existe esa opción
+    expect(queryByText("Cancelado")).toBeNull();
   });
 
   test("muestra el mensaje de error", async () => {
@@ -350,7 +357,6 @@ describe("FormularioEvento", () => {
       "Cancelar",
       "Pendiente",
       "Confirmado",
-      "Cancelado",
     ]) {
       expect(getByRole("button", { name: boton, disabled: true })).toBeTruthy();
       await fireEvent.press(getByText(boton));

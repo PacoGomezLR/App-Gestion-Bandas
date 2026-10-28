@@ -34,7 +34,6 @@ const TIPOS_EVENTO: Record<TipoEvento, true> = {
 const ESTADOS_EVENTO: Record<EstadoEvento, true> = {
   pendiente: true,
   confirmado: true,
-  cancelado: true,
 };
 
 export function esTipoEvento(valor: string): valor is TipoEvento {
