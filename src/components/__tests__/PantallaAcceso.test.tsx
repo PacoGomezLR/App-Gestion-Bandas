@@ -2,6 +2,9 @@ import { act, fireEvent, render } from "@testing-library/react-native";
 import { type ResultadoCrearCuenta, useAuthContext } from "../../context/AuthContext";
 import { PantallaAcceso } from "../PantallaAcceso";
 
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 // Solo se simula el hook: el AuthContext real cargaría el cliente Supabase
 jest.mock("../../context/AuthContext", () => ({
   useAuthContext: jest.fn(),
@@ -44,9 +47,9 @@ async function rellenarRegistro(
   password: string,
   repetir: string
 ) {
-  await fireEvent.changeText(pantalla.getByPlaceholderText("Correo electrónico"), email);
-  await fireEvent.changeText(pantalla.getByPlaceholderText("Contraseña"), password);
-  await fireEvent.changeText(pantalla.getByPlaceholderText("Repetir contraseña"), repetir);
+  await fireEvent.changeText(pantalla.getByLabelText("Correo electrónico"), email);
+  await fireEvent.changeText(pantalla.getByLabelText("Contraseña"), password);
+  await fireEvent.changeText(pantalla.getByLabelText("Repetir contraseña"), repetir);
 }
 
 beforeEach(() => {
@@ -57,30 +60,32 @@ describe("PantallaAcceso: entrar", () => {
   test("empieza en modo Entrar con la acción Crear cuenta", async () => {
     simularAuth();
 
-    const { getByPlaceholderText, getByRole, getByText, queryByPlaceholderText, queryByText } =
+    const { getByLabelText, getByRole, getByText, queryByLabelText, queryByText } =
       await render(<PantallaAcceso />);
 
-    expect(getByText("Acceso")).toBeTruthy();
-    expect(getByPlaceholderText("Correo electrónico")).toBeTruthy();
-    expect(getByPlaceholderText("Contraseña").props.secureTextEntry).toBe(true);
+    expect(getByText("MI Banda")).toBeTruthy();
+    expect(getByText("Organiza tu banda en un solo lugar")).toBeTruthy();
+    expect(getByLabelText("Correo electrónico")).toBeTruthy();
+    expect(getByLabelText("Contraseña").props.secureTextEntry).toBe(true);
     expect(getByRole("button", { name: "Entrar" })).toBeTruthy();
     expect(getByRole("button", { name: "Crear cuenta" })).toBeTruthy();
-    expect(queryByPlaceholderText("Repetir contraseña")).toBeNull();
-    expect(queryByText("Ya tengo cuenta")).toBeNull();
+    expect(queryByLabelText("Repetir contraseña")).toBeNull();
+    expect(getByText("¿Aún no tienes cuenta?")).toBeTruthy();
+    expect(queryByText("¿Ya tienes cuenta?")).toBeNull();
   });
 
   test("con campos vacíos avisa y no intenta entrar", async () => {
     const iniciarSesion = jest.fn(async () => true);
     simularAuth({ iniciarSesion });
 
-    const { getByPlaceholderText, getByText } = await render(<PantallaAcceso />);
+    const { getByLabelText, getByText } = await render(<PantallaAcceso />);
 
     await fireEvent.press(getByText("Entrar"));
     expect(getByText("Introduce el correo electrónico y la contraseña")).toBeTruthy();
 
     // Un correo de solo espacios tampoco basta
-    await fireEvent.changeText(getByPlaceholderText("Correo electrónico"), "   ");
-    await fireEvent.changeText(getByPlaceholderText("Contraseña"), "secreta");
+    await fireEvent.changeText(getByLabelText("Correo electrónico"), "   ");
+    await fireEvent.changeText(getByLabelText("Contraseña"), "secreta");
     await fireEvent.press(getByText("Entrar"));
 
     expect(iniciarSesion).not.toHaveBeenCalled();
@@ -90,10 +95,10 @@ describe("PantallaAcceso: entrar", () => {
     const iniciarSesion = jest.fn(async () => true);
     simularAuth({ iniciarSesion });
 
-    const { getByPlaceholderText, getByText } = await render(<PantallaAcceso />);
+    const { getByLabelText, getByText } = await render(<PantallaAcceso />);
 
-    await fireEvent.changeText(getByPlaceholderText("Correo electrónico"), "usuario@email.com");
-    await fireEvent.changeText(getByPlaceholderText("Contraseña"), "secreta");
+    await fireEvent.changeText(getByLabelText("Correo electrónico"), "usuario@email.com");
+    await fireEvent.changeText(getByLabelText("Contraseña"), "secreta");
     await fireEvent.press(getByText("Entrar"));
 
     expect(iniciarSesion).toHaveBeenCalledTimes(1);
@@ -118,16 +123,16 @@ describe("PantallaAcceso: entrar", () => {
     );
     simularAuth({ iniciarSesion });
 
-    const { getByPlaceholderText, getByRole, getByText } = await render(<PantallaAcceso />);
+    const { getByLabelText, getByRole, getByText } = await render(<PantallaAcceso />);
 
-    await fireEvent.changeText(getByPlaceholderText("Correo electrónico"), "usuario@email.com");
-    await fireEvent.changeText(getByPlaceholderText("Contraseña"), "secreta");
+    await fireEvent.changeText(getByLabelText("Correo electrónico"), "usuario@email.com");
+    await fireEvent.changeText(getByLabelText("Contraseña"), "secreta");
     await fireEvent.press(getByText("Entrar"));
 
     expect(getByRole("button", { name: "Entrar", disabled: true })).toBeTruthy();
     expect(getByRole("button", { name: "Crear cuenta", disabled: true })).toBeTruthy();
-    expect(getByPlaceholderText("Correo electrónico").props.editable).toBe(false);
-    expect(getByPlaceholderText("Contraseña").props.editable).toBe(false);
+    expect(getByLabelText("Correo electrónico").props.editable).toBe(false);
+    expect(getByLabelText("Contraseña").props.editable).toBe(false);
 
     await fireEvent.press(getByText("Entrar"));
     expect(iniciarSesion).toHaveBeenCalledTimes(1);
@@ -137,7 +142,7 @@ describe("PantallaAcceso: entrar", () => {
     });
 
     expect(getByRole("button", { name: "Entrar", disabled: false })).toBeTruthy();
-    expect(getByPlaceholderText("Correo electrónico").props.editable).toBe(true);
+    expect(getByLabelText("Correo electrónico").props.editable).toBe(true);
   });
 });
 
@@ -148,16 +153,18 @@ describe("PantallaAcceso: crear cuenta", () => {
     const pantalla = await render(<PantallaAcceso />);
     await abrirRegistro(pantalla);
 
-    // Título y botón
-    expect(pantalla.getAllByText("Crear cuenta")).toHaveLength(2);
-    expect(pantalla.getByPlaceholderText("Correo electrónico")).toBeTruthy();
-    expect(pantalla.getByPlaceholderText("Contraseña")).toBeTruthy();
+    expect(pantalla.getByText("MI Banda")).toBeTruthy();
+    expect(pantalla.getByText("Crea tu cuenta")).toBeTruthy();
+    expect(pantalla.getByLabelText("Correo electrónico")).toBeTruthy();
+    expect(pantalla.getByLabelText("Contraseña")).toBeTruthy();
     expect(
-      pantalla.getByPlaceholderText("Repetir contraseña").props.secureTextEntry
+      pantalla.getByLabelText("Repetir contraseña").props.secureTextEntry
     ).toBe(true);
     expect(pantalla.getByRole("button", { name: "Crear cuenta" })).toBeTruthy();
-    expect(pantalla.getByRole("button", { name: "Ya tengo cuenta" })).toBeTruthy();
-    expect(pantalla.queryByRole("button", { name: "Entrar" })).toBeNull();
+    // Entrar pasa a ser la acción secundaria
+    expect(pantalla.getByText("¿Ya tienes cuenta?")).toBeTruthy();
+    expect(pantalla.getByRole("button", { name: "Entrar" })).toBeTruthy();
+    expect(pantalla.queryByText("¿Aún no tienes cuenta?")).toBeNull();
   });
 
   test("el registro no pide rol, banda ni nombre de músico", async () => {
@@ -168,8 +175,9 @@ describe("PantallaAcceso: crear cuenta", () => {
 
     // Solo dos acciones: crear la cuenta o volver a entrar
     expect(pantalla.getAllByRole("button")).toHaveLength(2);
-    expect(pantalla.queryByPlaceholderText(/rol|banda|músico|nombre/i)).toBeNull();
-    for (const texto of [/admin/i, /usuario/i, /\brol\b/i, /banda/i, /músico/i]) {
+    // Ningún campo de rol, banda, músico o nombre (el único texto con "Banda" es la marca)
+    expect(pantalla.queryByLabelText(/rol|banda|músico|nombre/i)).toBeNull();
+    for (const texto of [/admin/i, /usuario/i, /\brol\b/i, /músico/i]) {
       expect(pantalla.queryByText(texto)).toBeNull();
     }
   });
@@ -240,12 +248,12 @@ describe("PantallaAcceso: crear cuenta", () => {
 
     expect(pantalla.getByText(AVISO_CONFIRMACION)).toBeTruthy();
     expect(pantalla.getByRole("button", { name: "Entrar" })).toBeTruthy();
-    expect(pantalla.queryByPlaceholderText("Repetir contraseña")).toBeNull();
+    expect(pantalla.queryByLabelText("Repetir contraseña")).toBeNull();
     // Se conserva el correo y se limpia la contraseña
-    expect(pantalla.getByPlaceholderText("Correo electrónico").props.value).toBe(
+    expect(pantalla.getByLabelText("Correo electrónico").props.value).toBe(
       "paco@email.com"
     );
-    expect(pantalla.getByPlaceholderText("Contraseña").props.value).toBe("");
+    expect(pantalla.getByLabelText("Contraseña").props.value).toBe("");
   });
 
   test("si falla muestra el error del contexto", async () => {
@@ -282,10 +290,10 @@ describe("PantallaAcceso: crear cuenta", () => {
     expect(crearCuenta).toHaveBeenCalledTimes(1);
     expect(pantalla.getByRole("button", { name: "Crear cuenta", disabled: true })).toBeTruthy();
     expect(
-      pantalla.getByRole("button", { name: "Ya tengo cuenta", disabled: true })
+      pantalla.getByRole("button", { name: "Entrar", disabled: true })
     ).toBeTruthy();
     for (const campo of ["Correo electrónico", "Contraseña", "Repetir contraseña"]) {
-      expect(pantalla.getByPlaceholderText(campo).props.editable).toBe(false);
+      expect(pantalla.getByLabelText(campo).props.editable).toBe(false);
     }
 
     await act(async () => {
@@ -295,7 +303,7 @@ describe("PantallaAcceso: crear cuenta", () => {
     expect(pantalla.getByRole("button", { name: "Crear cuenta", disabled: false })).toBeTruthy();
   });
 
-  test("Ya tengo cuenta vuelve a Entrar sin llamar a Supabase", async () => {
+  test("Entrar desde el registro vuelve al modo Entrar sin llamar a Supabase", async () => {
     const iniciarSesion = jest.fn(async () => true);
     const crearCuenta = jest.fn(async (): Promise<ResultadoCrearCuenta> => "sesion_iniciada");
     simularAuth({ iniciarSesion, crearCuenta });
@@ -306,10 +314,11 @@ describe("PantallaAcceso: crear cuenta", () => {
     await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
     expect(pantalla.getByText("Las contraseñas no coinciden")).toBeTruthy();
 
-    await fireEvent.press(pantalla.getByRole("button", { name: "Ya tengo cuenta" }));
+    await fireEvent.press(pantalla.getByRole("button", { name: "Entrar" }));
 
-    expect(pantalla.getByRole("button", { name: "Entrar" })).toBeTruthy();
-    expect(pantalla.queryByPlaceholderText("Repetir contraseña")).toBeNull();
+    expect(pantalla.getByText("Organiza tu banda en un solo lugar")).toBeTruthy();
+    expect(pantalla.getByRole("button", { name: "Crear cuenta" })).toBeTruthy();
+    expect(pantalla.queryByLabelText("Repetir contraseña")).toBeNull();
     expect(pantalla.queryByText("Las contraseñas no coinciden")).toBeNull();
     expect(iniciarSesion).not.toHaveBeenCalled();
     expect(crearCuenta).not.toHaveBeenCalled();

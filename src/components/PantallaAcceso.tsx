@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { useAuthContext } from "../context/AuthContext";
+import { AccionSecundaria, BotonPrincipal, CampoFormulario, Mensaje, PantallaBase } from "./PantallaBase";
 
 type ModoAcceso = "entrar" | "registro";
 
@@ -84,11 +84,12 @@ export function PantallaAcceso() {
   const mensajeError = errorValidacion !== "" ? errorValidacion : error;
 
   return (
-    <View style={styles.contenedor}>
-      <Text>{registrando ? "Crear cuenta" : "Acceso"}</Text>
-
-      <TextInput
-        placeholder="Correo electrónico"
+    <PantallaBase
+      subtitulo={registrando ? "Crea tu cuenta" : "Organiza tu banda en un solo lugar"}
+    >
+      <CampoFormulario
+        etiqueta="Correo electrónico"
+        placeholder="nombre@correo.com"
         value={email}
         onChangeText={setEmail}
         editable={!procesando}
@@ -97,8 +98,8 @@ export function PantallaAcceso() {
         keyboardType="email-address"
       />
 
-      <TextInput
-        placeholder="Contraseña"
+      <CampoFormulario
+        etiqueta="Contraseña"
         value={password}
         onChangeText={setPassword}
         editable={!procesando}
@@ -108,8 +109,8 @@ export function PantallaAcceso() {
       />
 
       {registrando && (
-        <TextInput
-          placeholder="Repetir contraseña"
+        <CampoFormulario
+          etiqueta="Repetir contraseña"
           value={repetirPassword}
           onChangeText={setRepetirPassword}
           editable={!procesando}
@@ -119,32 +120,23 @@ export function PantallaAcceso() {
         />
       )}
 
-      {aviso !== "" && <Text>{aviso}</Text>}
-      {mensajeError !== "" && <Text>{mensajeError}</Text>}
+      {aviso !== "" && <Mensaje tipo="info" texto={aviso} />}
+      {mensajeError !== "" && <Mensaje tipo="error" texto={mensajeError} />}
 
-      <Button
-        title={registrando ? "Crear cuenta" : "Entrar"}
+      <BotonPrincipal
+        titulo={registrando ? "Crear cuenta" : "Entrar"}
         onPress={() => {
           void (registrando ? registrar() : entrar());
         }}
         disabled={procesando}
       />
 
-      <Button
-        title={registrando ? "Ya tengo cuenta" : "Crear cuenta"}
+      <AccionSecundaria
+        pregunta={registrando ? "¿Ya tienes cuenta?" : "¿Aún no tienes cuenta?"}
+        titulo={registrando ? "Entrar" : "Crear cuenta"}
         onPress={() => cambiarModo(registrando ? "entrar" : "registro")}
         disabled={procesando}
       />
-    </View>
+    </PantallaBase>
   );
 }
-
-const styles = StyleSheet.create({
-  contenedor: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 16,
-    padding: 24,
-    backgroundColor: "#ffffff",
-  },
-});

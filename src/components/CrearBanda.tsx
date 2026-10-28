@@ -1,11 +1,16 @@
-import { useState } from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Text } from "react-native";
 
 import { useBandaContext } from "../context/BandaContext";
+import { useTheme } from "@/hooks/use-theme";
+import { crearEstilosCrearBanda } from "./CrearBanda.styles";
+import { BotonPrincipal, CampoFormulario, Mensaje, PantallaBase } from "./PantallaBase";
 
 // Para una cuenta que aún no pertenece a ninguna banda
 export function CrearBanda() {
   const { crearBanda, error } = useBandaContext();
+  const tema = useTheme();
+  const estilos = useMemo(() => crearEstilosCrearBanda(tema), [tema]);
   const [nombre, setNombre] = useState("");
   const [errorValidacion, setErrorValidacion] = useState("");
   // Estado local: impide crear dos bandas con una doble pulsación
@@ -36,33 +41,30 @@ export function CrearBanda() {
   const mensajeError = errorValidacion !== "" ? errorValidacion : error;
 
   return (
-    <View style={styles.contenedor}>
-      <TextInput
-        placeholder="Nombre de la banda"
+    <PantallaBase subtitulo="Crea tu banda">
+      <Text style={estilos.introduccion}>
+        Empieza creando el espacio de tu banda.
+      </Text>
+
+      <CampoFormulario
+        etiqueta="Nombre de la banda"
+        placeholder="Ej. Cathaline"
         value={nombre}
         onChangeText={setNombre}
         editable={!creando}
+        autoCapitalize="words"
+        returnKeyType="done"
       />
 
-      {mensajeError !== "" && <Text>{mensajeError}</Text>}
+      {mensajeError !== "" && <Mensaje tipo="error" texto={mensajeError} />}
 
-      <Button
-        title="Crear banda"
+      <BotonPrincipal
+        titulo="Crear banda"
         onPress={() => {
           void crear();
         }}
         disabled={creando}
       />
-    </View>
+    </PantallaBase>
   );
 }
-
-const styles = StyleSheet.create({
-  contenedor: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 16,
-    padding: 24,
-    backgroundColor: "#ffffff",
-  },
-});

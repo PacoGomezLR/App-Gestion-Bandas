@@ -2,6 +2,9 @@ import { act, fireEvent, render } from "@testing-library/react-native";
 import { useBandaContext } from "../../context/BandaContext";
 import { CrearBanda } from "../CrearBanda";
 
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 // Solo se simula el hook: el BandaContext real cargaría el cliente Supabase
 jest.mock("../../context/BandaContext", () => ({
   useBandaContext: jest.fn(),
@@ -29,24 +32,28 @@ beforeEach(() => {
 });
 
 describe("CrearBanda", () => {
-  test("muestra el nombre de la banda y Crear banda, sin roles", async () => {
+  test("muestra MI Banda, Crea tu banda, el nombre de la banda y Crear banda, sin roles", async () => {
     simularBanda(jest.fn());
 
-    const { getByPlaceholderText, getByRole, queryByText } = await render(<CrearBanda />);
+    const { getByLabelText, getByRole, getByText, queryByText } = await render(<CrearBanda />);
 
-    expect(getByPlaceholderText("Nombre de la banda")).toBeTruthy();
+    expect(getByText("MI Banda")).toBeTruthy();
+    expect(getByText("Crea tu banda")).toBeTruthy();
+    expect(getByText("Empieza creando el espacio de tu banda.")).toBeTruthy();
+    expect(getByLabelText("Nombre de la banda")).toBeTruthy();
     expect(getByRole("button", { name: "Crear banda" })).toBeTruthy();
     expect(queryByText(/admin/i)).toBeNull();
+    expect(queryByText(/\brol\b|permiso/i)).toBeNull();
   });
 
   test("con el nombre vacío avisa y no crea", async () => {
     const crearBanda = jest.fn();
     simularBanda(crearBanda);
 
-    const { getByPlaceholderText, getByText } = await render(<CrearBanda />);
+    const { getByLabelText, getByText } = await render(<CrearBanda />);
 
     await fireEvent.press(getByText("Crear banda"));
-    await fireEvent.changeText(getByPlaceholderText("Nombre de la banda"), "   ");
+    await fireEvent.changeText(getByLabelText("Nombre de la banda"), "   ");
     await fireEvent.press(getByText("Crear banda"));
 
     expect(getByText("Escribe el nombre de la banda")).toBeTruthy();
@@ -57,9 +64,9 @@ describe("CrearBanda", () => {
     const crearBanda = jest.fn(async () => true);
     simularBanda(crearBanda);
 
-    const { getByPlaceholderText, getByText } = await render(<CrearBanda />);
+    const { getByLabelText, getByText } = await render(<CrearBanda />);
 
-    await fireEvent.changeText(getByPlaceholderText("Nombre de la banda"), "  Cathaline  ");
+    await fireEvent.changeText(getByLabelText("Nombre de la banda"), "  Cathaline  ");
     await fireEvent.press(getByText("Crear banda"));
 
     expect(crearBanda).toHaveBeenCalledTimes(1);
@@ -84,13 +91,13 @@ describe("CrearBanda", () => {
     );
     simularBanda(crearBanda);
 
-    const { getByPlaceholderText, getByRole, getByText } = await render(<CrearBanda />);
+    const { getByLabelText, getByRole, getByText } = await render(<CrearBanda />);
 
-    await fireEvent.changeText(getByPlaceholderText("Nombre de la banda"), "Cathaline");
+    await fireEvent.changeText(getByLabelText("Nombre de la banda"), "Cathaline");
     await fireEvent.press(getByText("Crear banda"));
 
     expect(getByRole("button", { name: "Crear banda", disabled: true })).toBeTruthy();
-    expect(getByPlaceholderText("Nombre de la banda").props.editable).toBe(false);
+    expect(getByLabelText("Nombre de la banda").props.editable).toBe(false);
 
     await fireEvent.press(getByText("Crear banda"));
     expect(crearBanda).toHaveBeenCalledTimes(1);

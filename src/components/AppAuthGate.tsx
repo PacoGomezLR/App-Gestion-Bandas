@@ -1,16 +1,25 @@
-import type { PropsWithChildren } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { type PropsWithChildren, useMemo } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 
 import { useAuthContext } from "../context/AuthContext";
 import { BandaProvider, useBandaContext } from "../context/BandaContext";
+import { useTheme } from "@/hooks/use-theme";
+import { crearEstilosAppAuthGate } from "./AppAuthGate.styles";
 import { CrearBanda } from "./CrearBanda";
+import { BotonPrincipal, Mensaje, PantallaBase } from "./PantallaBase";
 import { PantallaAcceso } from "./PantallaAcceso";
 
 function Cargando() {
+  const tema = useTheme();
+  const estilos = useMemo(() => crearEstilosAppAuthGate(tema), [tema]);
+
   return (
-    <View style={styles.contenedor}>
-      <Text>Cargando...</Text>
-    </View>
+    <PantallaBase>
+      <View style={estilos.cargando}>
+        <ActivityIndicator size="large" color={tema.primary} />
+        <Text style={estilos.textoCargando}>Cargando...</Text>
+      </View>
+    </PantallaBase>
   );
 }
 
@@ -26,15 +35,15 @@ function ContenidoBanda({ children }: PropsWithChildren) {
     // Si la carga falla no se ofrece crear banda: podría duplicar una existente
     if (errorCarga !== "") {
       return (
-        <View style={styles.contenedor}>
-          <Text>{errorCarga}</Text>
-          <Button
-            title="Reintentar"
+        <PantallaBase>
+          <Mensaje tipo="error" texto={errorCarga} />
+          <BotonPrincipal
+            titulo="Reintentar"
             onPress={() => {
               void recargarBandas();
             }}
           />
-        </View>
+        </PantallaBase>
       );
     }
 
@@ -62,13 +71,3 @@ export function AppAuthGate({ children }: PropsWithChildren) {
     </BandaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  contenedor: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-    backgroundColor: "#ffffff",
-  },
-});

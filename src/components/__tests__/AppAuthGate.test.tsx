@@ -6,6 +6,9 @@ import { useBandaContext } from "../../context/BandaContext";
 import type { Banda } from "../../types/banda";
 import { AppAuthGate } from "../AppAuthGate";
 
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 // Solo se simulan los hooks: los contextos reales cargarían el cliente Supabase
 jest.mock("../../context/AuthContext", () => ({
   useAuthContext: jest.fn(),
@@ -124,6 +127,7 @@ describe("AppAuthGate", () => {
 
     const { getByText, queryByText } = await renderizarGate();
 
+    expect(getByText("MI Banda")).toBeTruthy();
     expect(getByText("Cargando...")).toBeTruthy();
     expect(queryByText("Pantalla de acceso")).toBeNull();
     expect(queryByText("Proveedor de banda montado")).toBeNull();
@@ -147,6 +151,7 @@ describe("AppAuthGate", () => {
     const { getByText, queryByText } = await renderizarGate();
 
     expect(getByText("Proveedor de banda montado")).toBeTruthy();
+    expect(getByText("MI Banda")).toBeTruthy();
     expect(getByText("Cargando...")).toBeTruthy();
     expect(queryByText("Formulario de crear banda")).toBeNull();
     expect(montajeApp).not.toHaveBeenCalled();
@@ -167,12 +172,13 @@ describe("AppAuthGate", () => {
     simularAuth(false, sesion);
     simularBanda(false, null, "No se han podido cargar las bandas", recargarBandas);
 
-    const { getByText, queryByText } = await renderizarGate();
+    const { getByRole, getByText, queryByText } = await renderizarGate();
 
+    expect(getByText("MI Banda")).toBeTruthy();
     expect(getByText("No se han podido cargar las bandas")).toBeTruthy();
     expect(queryByText("Formulario de crear banda")).toBeNull();
 
-    await fireEvent.press(getByText("Reintentar"));
+    await fireEvent.press(getByRole("button", { name: "Reintentar" }));
 
     expect(recargarBandas).toHaveBeenCalledTimes(1);
     expect(montajeApp).not.toHaveBeenCalled();
