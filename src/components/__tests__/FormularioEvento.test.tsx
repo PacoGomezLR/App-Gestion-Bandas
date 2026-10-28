@@ -341,7 +341,6 @@ describe("FormularioEvento", () => {
     );
 
     expect(getByPlaceholderText("Título del evento").props.editable).toBe(false);
-    expect(getByPlaceholderText("Hora (HH:MM)").props.editable).toBe(false);
     expect(getByPlaceholderText("Lugar").props.editable).toBe(false);
     expect(getByPlaceholderText("Notas").props.editable).toBe(false);
 
@@ -361,6 +360,9 @@ describe("FormularioEvento", () => {
       expect(getByRole("button", { name: boton, disabled: true })).toBeTruthy();
       await fireEvent.press(getByText(boton));
     }
+
+    // El selector de hora tampoco se puede abrir
+    expect(getByRole("button", { name: "Elegir hora", disabled: true })).toBeTruthy();
 
     // El calendario no se deshabilita, pero la fecha elegida se ignora
     await fireEvent.press(getByText("Elegir día de prueba"));
@@ -428,18 +430,18 @@ describe("FormularioEvento", () => {
     expect(onAlternarMiembro).toHaveBeenCalledTimes(2);
   });
 
-  test("permite introducir hora, lugar y notas", async () => {
+  test("muestra la hora con el selector y permite introducir lugar y notas", async () => {
     const onCambiarHora = jest.fn();
     const onCambiarLugar = jest.fn();
     const onCambiarNotas = jest.fn();
 
-    const { getByPlaceholderText } = await render(
+    const { getByPlaceholderText, getByText, queryByPlaceholderText } = await render(
       <FormularioEvento
         titulo="Concierto"
         tipo="concierto_abierto"
         estado="pendiente"
         fecha="2026-12-20"
-        hora=""
+        hora="20:30"
         lugar=""
         notas=""
         fechasConEventos={[]}
@@ -464,11 +466,15 @@ describe("FormularioEvento", () => {
       />
     );
 
-    await fireEvent.changeText(getByPlaceholderText("Hora (HH:MM)"), "20:30");
+    // La hora ya no se escribe: la elige SelectorHora (cubierto en sus tests)
+    expect(queryByPlaceholderText("Hora (HH:MM)")).toBeNull();
+    expect(getByText("20:30")).toBeTruthy();
+    await fireEvent.press(getByText("Quitar hora"));
+
     await fireEvent.changeText(getByPlaceholderText("Lugar"), "Sala Principal");
     await fireEvent.changeText(getByPlaceholderText("Notas"), "Prueba a las 18:00");
 
-    expect(onCambiarHora).toHaveBeenCalledWith("20:30");
+    expect(onCambiarHora).toHaveBeenCalledWith("");
     expect(onCambiarLugar).toHaveBeenCalledWith("Sala Principal");
     expect(onCambiarNotas).toHaveBeenCalledWith("Prueba a las 18:00");
     expect(getByPlaceholderText("Notas").props.multiline).toBe(true);

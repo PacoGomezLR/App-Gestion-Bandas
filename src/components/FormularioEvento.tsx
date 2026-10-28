@@ -5,6 +5,7 @@ import type { Tecnico } from "../types/tecnico";
 import { ESTADOS_EVENTO, etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { etiquetaTipoEvento, TIPOS_EVENTO } from "../utils/tiposEvento";
 import { CalendarioEventos } from "./CalendarioEventos";
+import { SelectorHora } from "./SelectorHora";
 
 interface FormularioEventoProps {
   titulo: string;
@@ -84,11 +85,10 @@ export function FormularioEvento({
       />
 
       {/* Hora, lugar y notas son opcionales */}
-      <TextInput
-        placeholder="Hora (HH:MM)"
-        value={hora}
-        onChangeText={onCambiarHora}
-        editable={!procesando}
+      <SelectorHora
+        hora={hora}
+        onCambiarHora={onCambiarHora}
+        disabled={procesando}
       />
 
       <TextInput
