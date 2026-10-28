@@ -13,6 +13,9 @@ const filaConcierto: FilaEvento = {
   titulo: "Concierto en Córdoba",
   tipo: "concierto",
   fecha: "2026-09-30",
+  hora: "",
+  lugar: "",
+  notas: "",
   estado: "confirmado",
 };
 
@@ -21,6 +24,9 @@ const filaEnsayo: FilaEvento = {
   titulo: "Ensayo general",
   tipo: "ensayo",
   fecha: "2026-10-02",
+  hora: "",
+  lugar: "",
+  notas: "",
   estado: "pendiente",
 };
 
@@ -88,6 +94,29 @@ describe("eventosRepository: conversión de filas", () => {
       // Un evento sin miembros es válido y recibe []
       { ...filaEnsayo, tecnicoIds: [], miembroIds: [] },
     ]);
+  });
+
+  test("conserva exactamente hora, lugar y notas", () => {
+    const filaConDetalles: FilaEvento = {
+      ...filaConcierto,
+      hora: "20:30",
+      lugar: "Sala Principal",
+      notas: "Llevar amplificador de repuesto",
+    };
+
+    const [evento] = construirEventos([filaConDetalles], [], []);
+
+    expect(evento).toMatchObject({
+      hora: "20:30",
+      lugar: "Sala Principal",
+      notas: "Llevar amplificador de repuesto",
+    });
+    // Los campos vacíos siguen vacíos
+    expect(convertirFilaAEvento(filaEnsayo, [], [])).toMatchObject({
+      hora: "",
+      lugar: "",
+      notas: "",
+    });
   });
 
   test("rechaza filas con un tipo o un estado desconocido", () => {

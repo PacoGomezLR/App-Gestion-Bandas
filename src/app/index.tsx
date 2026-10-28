@@ -16,6 +16,9 @@ export default function Index() {
     tipo,
     estado,
     fecha,
+    hora,
+    lugar,
+    notas,
     tecnicoIds,
     miembroIds,
     error,
@@ -24,6 +27,9 @@ export default function Index() {
     setTipo,
     setEstado,
     setFecha,
+    setHora,
+    setLugar,
+    setNotas,
     alternarTecnico,
     alternarMiembro,
     guardarEvento,
@@ -81,6 +87,9 @@ export default function Index() {
         tipo={tipo}
         estado={estado}
         fecha={fecha}
+        hora={hora}
+        lugar={lugar}
+        notas={notas}
         fechasConEventos={eventos.map((evento) => evento.fecha)}
         tecnicos={tecnicos}
         tecnicoIds={tecnicoIds}
@@ -93,6 +102,9 @@ export default function Index() {
         onCambiarTipo={setTipo}
         onCambiarEstado={setEstado}
         onSeleccionarFecha={setFecha}
+        onCambiarHora={setHora}
+        onCambiarLugar={setLugar}
+        onCambiarNotas={setNotas}
         onAlternarTecnico={alternarTecnico}
         onAlternarMiembro={alternarMiembro}
         onGuardar={guardarEvento}

@@ -4,7 +4,7 @@ import { eventosIniciales } from "../data/eventosIniciales";
 import { tecnicosIniciales } from "../data/tecnicosIniciales";
 import { getDatabase } from "./database";
 
-const VERSION_ESQUEMA = 4;
+const VERSION_ESQUEMA = 5;
 
 let inicializacionPromise: Promise<void> | null = null;
 
@@ -113,6 +113,15 @@ async function crearTablaEventoMiembros(db: SQLiteDatabase): Promise<void> {
   `);
 }
 
+// Migración 5: añade hora, lugar y notas a eventos; los existentes reciben ""
+async function anadirDetallesEventos(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    ALTER TABLE eventos ADD COLUMN hora TEXT NOT NULL DEFAULT '';
+    ALTER TABLE eventos ADD COLUMN lugar TEXT NOT NULL DEFAULT '';
+    ALTER TABLE eventos ADD COLUMN notas TEXT NOT NULL DEFAULT '';
+  `);
+}
+
 export async function migrarBaseDeDatos(): Promise<void> {
   const db = await getDatabase();
 
@@ -160,6 +169,13 @@ export async function migrarBaseDeDatos(): Promise<void> {
     await db.withTransactionAsync(async () => {
       await crearTablaEventoMiembros(db);
       await db.execAsync("PRAGMA user_version = 4;");
+    });
+  }
+
+  if (versionActual < 5) {
+    await db.withTransactionAsync(async () => {
+      await anadirDetallesEventos(db);
+      await db.execAsync("PRAGMA user_version = 5;");
     });
   }
 }

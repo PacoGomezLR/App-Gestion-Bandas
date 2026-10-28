@@ -9,6 +9,9 @@ interface FormularioEventoProps {
   tipo: TipoEvento;
   estado: EstadoEvento;
   fecha: string;
+  hora: string;
+  lugar: string;
+  notas: string;
   fechasConEventos: string[];
   tecnicos: Tecnico[];
   tecnicoIds: string[];
@@ -21,6 +24,9 @@ interface FormularioEventoProps {
   onCambiarTipo: (tipo: TipoEvento) => void;
   onCambiarEstado: (estado: EstadoEvento) => void;
   onSeleccionarFecha: (fecha: string) => void;
+  onCambiarHora: (hora: string) => void;
+  onCambiarLugar: (lugar: string) => void;
+  onCambiarNotas: (notas: string) => void;
   onAlternarTecnico: (tecnicoId: string) => void;
   onAlternarMiembro: (miembroId: string) => void;
   onGuardar: () => void;
@@ -32,6 +38,9 @@ export function FormularioEvento({
   tipo,
   estado,
   fecha,
+  hora,
+  lugar,
+  notas,
   fechasConEventos,
   tecnicos,
   tecnicoIds,
@@ -44,6 +53,9 @@ export function FormularioEvento({
   onCambiarTipo,
   onCambiarEstado,
   onSeleccionarFecha,
+  onCambiarHora,
+  onCambiarLugar,
+  onCambiarNotas,
   onAlternarTecnico,
   onAlternarMiembro,
   onGuardar,
@@ -67,6 +79,29 @@ export function FormularioEvento({
             onSeleccionarFecha(fechaSeleccionada);
           }
         }}
+      />
+
+      {/* Hora, lugar y notas son opcionales */}
+      <TextInput
+        placeholder="Hora (HH:MM)"
+        value={hora}
+        onChangeText={onCambiarHora}
+        editable={!procesando}
+      />
+
+      <TextInput
+        placeholder="Lugar"
+        value={lugar}
+        onChangeText={onCambiarLugar}
+        editable={!procesando}
+      />
+
+      <TextInput
+        placeholder="Notas"
+        value={notas}
+        onChangeText={onCambiarNotas}
+        editable={!procesando}
+        multiline
       />
 
       <Text>Tipo de evento: {tipo}</Text>

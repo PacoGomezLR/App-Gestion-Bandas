@@ -14,6 +14,9 @@ export type TipoEvento =
   titulo: string;
   tipo: TipoEvento;
   fecha: string;
+  hora: string;
+  lugar: string;
+  notas: string;
   estado: EstadoEvento;
   tecnicoIds: string[];
   miembroIds: string[];

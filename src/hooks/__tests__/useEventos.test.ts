@@ -267,6 +267,9 @@ describe("useEventos", () => {
         titulo: "Concierto guardado",
         tipo: "concierto",
         fecha: "2026-12-01",
+        hora: "",
+        lugar: "",
+        notas: "",
         estado: "confirmado",
         tecnicoIds: ["1"],
         miembroIds: [],
@@ -344,6 +347,9 @@ describe("useEventos", () => {
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("2");
       result.current.alternarMiembro("1");
+      result.current.setHora("20:30");
+      result.current.setLugar("Sala Principal");
+      result.current.setNotas("Llevar amplificador de repuesto");
     });
 
     let guardado: boolean | undefined;
@@ -355,12 +361,194 @@ describe("useEventos", () => {
     expect(guardado).toBe(true);
     expect(persistirEvento).toHaveBeenCalledTimes(1);
     expect(persistirEvento.mock.calls[0][0]).toBe(result.current.eventos[3]);
-    expect(persistirEvento.mock.calls[0][0].miembroIds).toEqual(["1"]);
+    expect(persistirEvento.mock.calls[0][0]).toMatchObject({
+      miembroIds: ["1"],
+      hora: "20:30",
+      lugar: "Sala Principal",
+      notas: "Llevar amplificador de repuesto",
+    });
     expect(result.current.eventos[3]).toMatchObject({
       titulo: "Concierto en Sevilla",
       fecha: "2026-11-15",
       tecnicoIds: ["2"],
       miembroIds: ["1"],
+    });
+  });
+
+  test("guarda hora, lugar y notas y después los limpia", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    await act(() => {
+      result.current.setTitulo("Concierto en la sala");
+      result.current.setFecha("2026-12-12");
+      result.current.setHora("20:30");
+      result.current.setLugar("Sala Principal");
+      result.current.setNotas("Llevar amplificador de repuesto");
+    });
+
+    await act(async () => {
+      await result.current.guardarEvento();
+    });
+
+    expect(result.current.eventos[3]).toMatchObject({
+      hora: "20:30",
+      lugar: "Sala Principal",
+      notas: "Llevar amplificador de repuesto",
+    });
+    expect(result.current.hora).toBe("");
+    expect(result.current.lugar).toBe("");
+    expect(result.current.notas).toBe("");
+  });
+
+  test("permite guardar sin hora, lugar ni notas", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    await act(() => {
+      result.current.setTitulo("Ensayo rápido");
+      result.current.setFecha("2026-12-13");
+    });
+
+    let guardado: boolean | undefined;
+
+    await act(async () => {
+      guardado = await result.current.guardarEvento();
+    });
+
+    expect(guardado).toBe(true);
+    expect(result.current.error).toBe("");
+    expect(result.current.eventos[3]).toMatchObject({
+      titulo: "Ensayo rápido",
+      hora: "",
+      lugar: "",
+      notas: "",
+    });
+  });
+
+  test("rechaza una hora con formato incorrecto sin persistir", async () => {
+    const persistirEvento = jest.fn(async (_evento: Evento) => true);
+    const { result } = await renderHook(() =>
+      useEventos({ persistirEvento })
+    );
+
+    for (const horaInvalida of ["25:30", "9:30", "12:90", "abc"]) {
+      await act(() => {
+        result.current.setTitulo("Concierto");
+        result.current.setFecha("2026-12-14");
+        result.current.setHora(horaInvalida);
+      });
+
+      let guardado: boolean | undefined;
+
+      await act(async () => {
+        guardado = await result.current.guardarEvento();
+      });
+
+      expect(guardado).toBe(false);
+      expect(result.current.error).toBe("La hora debe tener formato HH:MM");
+    }
+
+    expect(persistirEvento).not.toHaveBeenCalled();
+    expect(result.current.eventos).toHaveLength(3);
+  });
+
+  test("acepta horas válidas", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    for (const horaValida of ["09:05", "00:00", "23:59"]) {
+      await act(() => {
+        result.current.setTitulo(`Evento a las ${horaValida}`);
+        result.current.setFecha("2026-12-15");
+        result.current.setHora(horaValida);
+      });
+
+      let guardado: boolean | undefined;
+
+      await act(async () => {
+        guardado = await result.current.guardarEvento();
+      });
+
+      expect(guardado).toBe(true);
+    }
+
+    expect(result.current.eventos.map((evento) => evento.hora)).toEqual([
+      "",
+      "",
+      "",
+      "09:05",
+      "00:00",
+      "23:59",
+    ]);
+  });
+
+  test("edita hora, lugar y notas conservando el id", async () => {
+    const eventoConDetalles: Evento = {
+      id: "60",
+      titulo: "Concierto en el teatro",
+      tipo: "concierto",
+      fecha: "2027-05-20",
+      hora: "21:00",
+      lugar: "Teatro",
+      notas: "Prueba de sonido a las 18:00",
+      estado: "confirmado",
+      tecnicoIds: [],
+      miembroIds: [],
+    };
+
+    const { result } = await renderHook(() =>
+      useEventos({ datosIniciales: [eventoConDetalles] })
+    );
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    expect(result.current.hora).toBe("21:00");
+    expect(result.current.lugar).toBe("Teatro");
+    expect(result.current.notas).toBe("Prueba de sonido a las 18:00");
+
+    await act(() => {
+      result.current.setHora("22:00");
+      result.current.setLugar("Sala Nueva");
+      result.current.setNotas("Entrada por puerta trasera");
+    });
+
+    await act(async () => {
+      await result.current.guardarEvento();
+    });
+
+    expect(result.current.eventos).toHaveLength(1);
+    expect(result.current.eventos[0]).toMatchObject({
+      id: "60",
+      hora: "22:00",
+      lugar: "Sala Nueva",
+      notas: "Entrada por puerta trasera",
+    });
+  });
+
+  test("cancelar la edición limpia hora, lugar y notas", async () => {
+    const { result } = await renderHook(() => useEventos());
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    await act(() => {
+      result.current.setHora("19:00");
+      result.current.setLugar("Bar del centro");
+      result.current.setNotas("Sin cambios guardados");
+    });
+
+    await act(() => {
+      result.current.cancelarEdicion();
+    });
+
+    expect(result.current.hora).toBe("");
+    expect(result.current.lugar).toBe("");
+    expect(result.current.notas).toBe("");
+    expect(result.current.eventos[0]).toMatchObject({
+      hora: "",
+      lugar: "",
+      notas: "",
     });
   });
 
@@ -435,6 +623,9 @@ describe("useEventos", () => {
       titulo: "Concierto de primavera",
       tipo: "concierto",
       fecha: "2027-04-10",
+      hora: "",
+      lugar: "",
+      notas: "",
       estado: "pendiente",
       tecnicoIds: [],
       miembroIds: ["1", "2"],

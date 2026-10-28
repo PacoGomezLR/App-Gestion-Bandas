@@ -6,6 +6,9 @@ export interface FilaEvento {
   titulo: string;
   tipo: string;
   fecha: string;
+  hora: string;
+  lugar: string;
+  notas: string;
   estado: string;
 }
 
@@ -86,6 +89,9 @@ export function convertirFilaAEvento(
     titulo: fila.titulo,
     tipo: fila.tipo,
     fecha: fila.fecha,
+    hora: fila.hora,
+    lugar: fila.lugar,
+    notas: fila.notas,
     estado: fila.estado,
     tecnicoIds,
     miembroIds,
@@ -113,7 +119,7 @@ export async function listarEventos(): Promise<Evento[]> {
   const db = await getDatabase();
 
   const filas = await db.getAllAsync<FilaEvento>(
-    "SELECT id, titulo, tipo, fecha, estado FROM eventos ORDER BY fecha, titulo;"
+    "SELECT id, titulo, tipo, fecha, hora, lugar, notas, estado FROM eventos ORDER BY fecha, titulo;"
   );
 
   // rowid conserva el orden en que se guardaron las asignaciones
@@ -134,18 +140,24 @@ export async function guardarEvento(evento: Evento): Promise<void> {
   await db.withTransactionAsync(async () => {
     // ON CONFLICT ... DO UPDATE en lugar de INSERT OR REPLACE: REPLACE borraría la fila y dispararía el CASCADE
     await db.runAsync(
-      `INSERT INTO eventos (id, titulo, tipo, fecha, estado)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO eventos (id, titulo, tipo, fecha, hora, lugar, notas, estado)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id)
        DO UPDATE SET
          titulo = excluded.titulo,
          tipo = excluded.tipo,
          fecha = excluded.fecha,
+         hora = excluded.hora,
+         lugar = excluded.lugar,
+         notas = excluded.notas,
          estado = excluded.estado;`,
       evento.id,
       evento.titulo,
       evento.tipo,
       evento.fecha,
+      evento.hora,
+      evento.lugar,
+      evento.notas,
       evento.estado
     );
 

@@ -33,6 +33,9 @@ describe("FormularioEvento", () => {
         tipo="concierto"
         estado="confirmado"
         fecha="2026-12-20"
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
@@ -45,6 +48,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
@@ -74,6 +80,9 @@ describe("FormularioEvento", () => {
         tipo="concierto"
         estado="pendiente"
         fecha="2026-12-20"
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
@@ -86,6 +95,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={onCambiarTipo}
         onCambiarEstado={onCambiarEstado}
         onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onAlternarMiembro={jest.fn()}
         onGuardar={onGuardar}
@@ -115,6 +127,9 @@ describe("FormularioEvento", () => {
         tipo="concierto"
         estado="pendiente"
         fecha=""
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
@@ -127,6 +142,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
@@ -146,6 +164,9 @@ describe("FormularioEvento", () => {
         tipo="ensayo"
         estado="pendiente"
         fecha="2026-10-02"
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
@@ -158,6 +179,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
@@ -178,6 +202,9 @@ describe("FormularioEvento", () => {
         tipo="ensayo"
         estado="pendiente"
         fecha="2026-10-02"
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
@@ -190,6 +217,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
@@ -223,6 +253,9 @@ describe("FormularioEvento", () => {
         tipo="ensayo"
         estado="pendiente"
         fecha="2026-10-02"
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={tecnicos}
         tecnicoIds={["1"]}
@@ -235,6 +268,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={onAlternarTecnico}
         onAlternarMiembro={jest.fn()}
         onGuardar={jest.fn()}
@@ -272,6 +308,9 @@ describe("FormularioEvento", () => {
         tipo="ensayo"
         estado="pendiente"
         fecha="2026-10-02"
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
@@ -284,6 +323,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={onCambiarTipo}
         onCambiarEstado={onCambiarEstado}
         onSeleccionarFecha={onSeleccionarFecha}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={onAlternarTecnico}
         onAlternarMiembro={onAlternarMiembro}
         onGuardar={onGuardar}
@@ -292,6 +334,9 @@ describe("FormularioEvento", () => {
     );
 
     expect(getByPlaceholderText("Título del evento").props.editable).toBe(false);
+    expect(getByPlaceholderText("Hora (HH:MM)").props.editable).toBe(false);
+    expect(getByPlaceholderText("Lugar").props.editable).toBe(false);
+    expect(getByPlaceholderText("Notas").props.editable).toBe(false);
 
     for (const boton of [
       "Concierto",
@@ -335,6 +380,9 @@ describe("FormularioEvento", () => {
         tipo="ensayo"
         estado="pendiente"
         fecha="2026-10-02"
+        hora=""
+        lugar=""
+        notas=""
         fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
@@ -347,6 +395,9 @@ describe("FormularioEvento", () => {
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
         onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onAlternarMiembro={onAlternarMiembro}
         onGuardar={jest.fn()}
@@ -368,5 +419,51 @@ describe("FormularioEvento", () => {
 
     expect(onAlternarMiembro).toHaveBeenCalledWith("1");
     expect(onAlternarMiembro).toHaveBeenCalledTimes(2);
+  });
+
+  test("permite introducir hora, lugar y notas", async () => {
+    const onCambiarHora = jest.fn();
+    const onCambiarLugar = jest.fn();
+    const onCambiarNotas = jest.fn();
+
+    const { getByPlaceholderText } = await render(
+      <FormularioEvento
+        titulo="Concierto"
+        tipo="concierto"
+        estado="pendiente"
+        fecha="2026-12-20"
+        hora=""
+        lugar=""
+        notas=""
+        fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
+        miembros={[]}
+        miembroIds={[]}
+        error=""
+        editando={false}
+        procesando={false}
+        onCambiarTitulo={jest.fn()}
+        onCambiarTipo={jest.fn()}
+        onCambiarEstado={jest.fn()}
+        onSeleccionarFecha={jest.fn()}
+        onCambiarHora={onCambiarHora}
+        onCambiarLugar={onCambiarLugar}
+        onCambiarNotas={onCambiarNotas}
+        onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={jest.fn()}
+        onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
+      />
+    );
+
+    await fireEvent.changeText(getByPlaceholderText("Hora (HH:MM)"), "20:30");
+    await fireEvent.changeText(getByPlaceholderText("Lugar"), "Sala Principal");
+    await fireEvent.changeText(getByPlaceholderText("Notas"), "Prueba a las 18:00");
+
+    expect(onCambiarHora).toHaveBeenCalledWith("20:30");
+    expect(onCambiarLugar).toHaveBeenCalledWith("Sala Principal");
+    expect(onCambiarNotas).toHaveBeenCalledWith("Prueba a las 18:00");
+    expect(getByPlaceholderText("Notas").props.multiline).toBe(true);
   });
 });

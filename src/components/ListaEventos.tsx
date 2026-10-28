@@ -34,6 +34,10 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, onElimin
             <Text>{evento.titulo}</Text>
             <Text>{evento.tipo}</Text>
             <Text>{formatearFecha(evento.fecha)}</Text>
+            {/* Campos opcionales: solo se muestran si tienen valor */}
+            {evento.hora !== "" && <Text>Hora: {evento.hora}</Text>}
+            {evento.lugar !== "" && <Text>Lugar: {evento.lugar}</Text>}
+            {evento.notas !== "" && <Text>Tiene notas</Text>}
             <Text>{evento.estado}</Text>
             <Text>
               Técnicos: {nombresTecnicos.length > 0

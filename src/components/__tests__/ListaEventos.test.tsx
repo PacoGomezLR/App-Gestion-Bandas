@@ -32,6 +32,9 @@ const eventos: Evento[] = [
     titulo: "Concierto en Sevilla",
     tipo: "concierto",
     fecha: "2026-11-15",
+    hora: "",
+    lugar: "",
+    notas: "",
     estado: "confirmado",
     tecnicoIds: ["1", "2"],
     miembroIds: ["1", "2"],
@@ -41,6 +44,9 @@ const eventos: Evento[] = [
     titulo: "Ensayo general",
     tipo: "ensayo",
     fecha: "2026-11-20",
+    hora: "",
+    lugar: "",
+    notas: "",
     estado: "pendiente",
     tecnicoIds: [],
     miembroIds: [],
@@ -204,6 +210,50 @@ describe("ListaEventos", () => {
     );
 
     expect(getByText("Músicos: Rafa")).toBeTruthy();
+  });
+
+  test("muestra hora, lugar y solo un aviso de notas", async () => {
+    const eventoConDetalles: Evento = {
+      ...eventos[0],
+      hora: "20:30",
+      lugar: "Sala Principal",
+      notas: "Texto largo con todas las indicaciones para el concierto",
+    };
+
+    const { getByText, queryByText } = await render(
+      <ListaEventos
+        eventos={[eventoConDetalles]}
+        tecnicos={tecnicos}
+        miembros={miembros}
+        procesando={false}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Hora: 20:30")).toBeTruthy();
+    expect(getByText("Lugar: Sala Principal")).toBeTruthy();
+    expect(getByText("Tiene notas")).toBeTruthy();
+    // Las notas completas no se muestran en el listado
+    expect(queryByText(/Texto largo/)).toBeNull();
+  });
+
+  test("no muestra líneas de hora, lugar ni notas si están vacíos", async () => {
+    const { getByText, queryByText } = await render(
+      <ListaEventos
+        eventos={[eventos[1]]}
+        tecnicos={tecnicos}
+        miembros={miembros}
+        procesando={false}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Ensayo general")).toBeTruthy();
+    expect(queryByText(/^Hora:/)).toBeNull();
+    expect(queryByText(/^Lugar:/)).toBeNull();
+    expect(queryByText("Tiene notas")).toBeNull();
   });
 
   test("no muestra la línea de músicos si todos los ids son inexistentes", async () => {

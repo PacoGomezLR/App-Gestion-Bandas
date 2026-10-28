@@ -2,6 +2,9 @@ import { useCallback, useRef, useState } from "react";
 import { eventosIniciales } from "../data/eventosIniciales";
 import type { EstadoEvento, Evento, TipoEvento } from "../types/evento";
 
+// HH:MM de 00:00 a 23:59
+const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 interface UseEventosOptions {
   datosIniciales?: Evento[];
   persistirEvento?: (evento: Evento) => Promise<boolean>;
@@ -20,6 +23,9 @@ export function useEventos(options: UseEventosOptions = {}) {
   const [tipo, setTipo] = useState<TipoEvento>("concierto");
   const [estado, setEstado] = useState<EstadoEvento>("pendiente");
   const [fecha, setFecha] = useState("");
+  const [hora, setHora] = useState("");
+  const [lugar, setLugar] = useState("");
+  const [notas, setNotas] = useState("");
   const [tecnicoIds, setTecnicoIds] = useState<string[]>([]);
   const [miembroIds, setMiembroIds] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -51,6 +57,9 @@ export function useEventos(options: UseEventosOptions = {}) {
   function limpiarFormulario() {
     setTitulo("");
     setFecha("");
+    setHora("");
+    setLugar("");
+    setNotas("");
     setTipo("concierto");
     setEstado("pendiente");
     setTecnicoIds([]);
@@ -81,6 +90,12 @@ export function useEventos(options: UseEventosOptions = {}) {
       return false;
     }
 
+    // La hora es opcional, pero si se escribe debe ser válida
+    if (hora.trim() !== "" && !FORMATO_HORA.test(hora.trim())) {
+      setError("La hora debe tener formato HH:MM");
+      return false;
+    }
+
     if (!iniciarOperacion()) {
       return false;
     }
@@ -93,6 +108,9 @@ export function useEventos(options: UseEventosOptions = {}) {
         titulo: titulo.trim(),
         tipo: tipo,
         fecha: fecha,
+        hora: hora.trim(),
+        lugar: lugar.trim(),
+        notas: notas.trim(),
         estado: estado,
         tecnicoIds: [...tecnicoIds],
         miembroIds: [...miembroIds],
@@ -173,6 +191,9 @@ export function useEventos(options: UseEventosOptions = {}) {
     setTitulo(evento.titulo);
     setTipo(evento.tipo);
     setFecha(evento.fecha);
+    setHora(evento.hora);
+    setLugar(evento.lugar);
+    setNotas(evento.notas);
     setEstado(evento.estado);
     setTecnicoIds([...evento.tecnicoIds]);
     setMiembroIds([...evento.miembroIds]);
@@ -184,6 +205,9 @@ export function useEventos(options: UseEventosOptions = {}) {
     tipo,
     estado,
     fecha,
+    hora,
+    lugar,
+    notas,
     tecnicoIds,
     miembroIds,
     error,
@@ -193,6 +217,9 @@ export function useEventos(options: UseEventosOptions = {}) {
     setTipo,
     setEstado,
     setFecha,
+    setHora,
+    setLugar,
+    setNotas,
     alternarTecnico,
     alternarMiembro,
     reemplazarEventos,
