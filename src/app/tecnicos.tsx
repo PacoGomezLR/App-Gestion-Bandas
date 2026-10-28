@@ -15,6 +15,7 @@ export default function TecnicosScreen() {
     prepararEdicion,
     cancelarEdicion,
     eliminarTecnico,
+    errorEliminacion,
   } = useTecnicosContext();
 
   return (
@@ -33,6 +34,10 @@ export default function TecnicosScreen() {
         onGuardar={guardarTecnico}
         onCancelar={cancelarEdicion}
       />
+
+      {errorEliminacion !== "" && (
+        <Text>{errorEliminacion}</Text>
+      )}
 
       <ListaTecnicos
         tecnicos={tecnicos}

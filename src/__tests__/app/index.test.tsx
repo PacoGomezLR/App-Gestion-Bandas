@@ -111,6 +111,7 @@ function crearValorUseTecnicosContext(): ReturnType<typeof useTecnicosContext> {
     prepararEdicion: jest.fn(),
     cancelarEdicion: jest.fn(),
     eliminarTecnico: jest.fn(),
+    errorEliminacion: "",
   };
 }
 

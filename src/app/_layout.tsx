@@ -13,12 +13,12 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <TecnicosProvider>
-        <EventosProvider>
+      <EventosProvider>
+        <TecnicosProvider>
           <AnimatedSplashOverlay />
           <AppTabs />
-        </EventosProvider>
-      </TecnicosProvider>
+        </TecnicosProvider>
+      </EventosProvider>
     </ThemeProvider>
   );
 }
