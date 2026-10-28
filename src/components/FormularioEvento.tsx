@@ -2,6 +2,7 @@ import { Button, Text, TextInput, View } from "react-native";
 import type { EstadoEvento, TipoEvento } from "../types/evento";
 import type { Miembro } from "../types/miembro";
 import type { Tecnico } from "../types/tecnico";
+import { etiquetaTipoEvento, TIPOS_EVENTO } from "../utils/tiposEvento";
 import { CalendarioEventos } from "./CalendarioEventos";
 
 interface FormularioEventoProps {
@@ -104,32 +105,17 @@ export function FormularioEvento({
         multiline
       />
 
-      <Text>Tipo de evento: {tipo}</Text>
+      <Text>Tipo de evento: {etiquetaTipoEvento(tipo)}</Text>
 
       <View>
-        <Button
-          title="Concierto"
-          onPress={() => onCambiarTipo("concierto")}
-          disabled={procesando}
-        />
-
-        <Button
-          title="Ensayo"
-          onPress={() => onCambiarTipo("ensayo")}
-          disabled={procesando}
-        />
-
-        <Button
-          title="Reunión"
-          onPress={() => onCambiarTipo("reunion")}
-          disabled={procesando}
-        />
-
-        <Button
-          title="Otro"
-          onPress={() => onCambiarTipo("otro")}
-          disabled={procesando}
-        />
+        {TIPOS_EVENTO.map((tipoEvento) => (
+          <Button
+            key={tipoEvento}
+            title={etiquetaTipoEvento(tipoEvento)}
+            onPress={() => onCambiarTipo(tipoEvento)}
+            disabled={procesando}
+          />
+        ))}
       </View>
 
       <Text>Técnicos asignados</Text>

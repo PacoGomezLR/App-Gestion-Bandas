@@ -20,7 +20,7 @@ export function useEventos(options: UseEventosOptions = {}) {
 
   const [eventos, setEventos] = useState<Evento[]>(datosIniciales);
   const [titulo, setTitulo] = useState("");
-  const [tipo, setTipo] = useState<TipoEvento>("concierto");
+  const [tipo, setTipo] = useState<TipoEvento>("concierto_abierto");
   const [estado, setEstado] = useState<EstadoEvento>("pendiente");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
@@ -60,7 +60,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setHora("");
     setLugar("");
     setNotas("");
-    setTipo("concierto");
+    setTipo("concierto_abierto");
     setEstado("pendiente");
     setTecnicoIds([]);
     setMiembroIds([]);

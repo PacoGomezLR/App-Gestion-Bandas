@@ -61,7 +61,7 @@ function crearEvento(id: string, miembroIds: string[]): Evento {
   return {
     id,
     titulo: `Evento ${id}`,
-    tipo: "concierto",
+    tipo: "concierto_abierto",
     fecha: "2026-12-01",
     hora: "",
     lugar: "",

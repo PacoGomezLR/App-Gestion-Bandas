@@ -1,7 +1,8 @@
 export type TipoEvento =
-  | "concierto"
+  | "boda"
+  | "fiesta_privada"
+  | "concierto_abierto"
   | "ensayo"
-  | "reunion"
   | "otro";
 
   export type EstadoEvento =

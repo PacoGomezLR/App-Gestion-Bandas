@@ -30,7 +30,7 @@ describe("FormularioEvento", () => {
     const { getByDisplayValue, getByText, queryByText } = await render(
       <FormularioEvento
         titulo="Concierto en Málaga"
-        tipo="concierto"
+        tipo="concierto_abierto"
         estado="confirmado"
         fecha="2026-12-20"
         hora=""
@@ -59,7 +59,7 @@ describe("FormularioEvento", () => {
     );
 
     expect(getByDisplayValue("Concierto en Málaga")).toBeTruthy();
-    expect(getByText("Tipo de evento: concierto")).toBeTruthy();
+    expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
     expect(getByText("Estado: confirmado")).toBeTruthy();
     expect(getByText("Fecha del calendario: 2026-12-20")).toBeTruthy();
 
@@ -77,7 +77,7 @@ describe("FormularioEvento", () => {
     const { getByDisplayValue, getByText } = await render(
       <FormularioEvento
         titulo="Concierto inicial"
-        tipo="concierto"
+        tipo="concierto_abierto"
         estado="pendiente"
         fecha="2026-12-20"
         hora=""
@@ -124,7 +124,7 @@ describe("FormularioEvento", () => {
     const { getByText } = await render(
       <FormularioEvento
         titulo=""
-        tipo="concierto"
+        tipo="concierto_abierto"
         estado="pendiente"
         fecha=""
         hora=""
@@ -339,9 +339,10 @@ describe("FormularioEvento", () => {
     expect(getByPlaceholderText("Notas").props.editable).toBe(false);
 
     for (const boton of [
-      "Concierto",
+      "Boda",
+      "Fiesta privada",
+      "Concierto abierto",
       "Ensayo",
-      "Reunión",
       "Otro",
       "Carlos",
       "Paco",
@@ -429,7 +430,7 @@ describe("FormularioEvento", () => {
     const { getByPlaceholderText } = await render(
       <FormularioEvento
         titulo="Concierto"
-        tipo="concierto"
+        tipo="concierto_abierto"
         estado="pendiente"
         fecha="2026-12-20"
         hora=""
@@ -465,5 +466,61 @@ describe("FormularioEvento", () => {
     expect(onCambiarLugar).toHaveBeenCalledWith("Sala Principal");
     expect(onCambiarNotas).toHaveBeenCalledWith("Prueba a las 18:00");
     expect(getByPlaceholderText("Notas").props.multiline).toBe(true);
+  });
+
+  test("muestra los tipos de evento y envía su valor interno", async () => {
+    const onCambiarTipo = jest.fn();
+
+    const { getByText, queryByText } = await render(
+      <FormularioEvento
+        titulo=""
+        tipo="fiesta_privada"
+        estado="pendiente"
+        fecha=""
+        hora=""
+        lugar=""
+        notas=""
+        fechasConEventos={[]}
+        tecnicos={[]}
+        tecnicoIds={[]}
+        miembros={[]}
+        miembroIds={[]}
+        error=""
+        editando={false}
+        procesando={false}
+        onCambiarTitulo={jest.fn()}
+        onCambiarTipo={onCambiarTipo}
+        onCambiarEstado={jest.fn()}
+        onSeleccionarFecha={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarNotas={jest.fn()}
+        onAlternarTecnico={jest.fn()}
+        onAlternarMiembro={jest.fn()}
+        onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
+      />
+    );
+
+    // El tipo actual se muestra con su etiqueta, no con el valor interno
+    expect(getByText("Tipo de evento: Fiesta privada")).toBeTruthy();
+
+    const opciones = [
+      ["Boda", "boda"],
+      ["Fiesta privada", "fiesta_privada"],
+      ["Concierto abierto", "concierto_abierto"],
+      ["Ensayo", "ensayo"],
+      ["Otro", "otro"],
+    ] as const;
+
+    for (const [etiqueta, valor] of opciones) {
+      await fireEvent.press(getByText(etiqueta));
+      expect(onCambiarTipo).toHaveBeenLastCalledWith(valor);
+    }
+
+    expect(onCambiarTipo).toHaveBeenCalledTimes(5);
+    // Las opciones antiguas ya no existen
+    expect(queryByText("Concierto")).toBeNull();
+    expect(queryByText("Reunión")).toBeNull();
   });
 });

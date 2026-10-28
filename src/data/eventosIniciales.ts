@@ -4,7 +4,7 @@ export const eventosIniciales: Evento[] = [
   {
     id: "1",
     titulo: "Concierto en Córdoba",
-    tipo: "concierto",
+    tipo: "concierto_abierto",
     fecha: "2026-09-30",
     hora: "",
     lugar: "",
@@ -28,7 +28,7 @@ export const eventosIniciales: Evento[] = [
   {
     id: "3",
     titulo: "Reunión de la banda",
-    tipo: "reunion",
+    tipo: "otro",
     fecha: "2026-10-05",
     hora: "",
     lugar: "",

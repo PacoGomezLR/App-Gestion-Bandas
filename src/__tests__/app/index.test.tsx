@@ -54,7 +54,7 @@ const eventos: Evento[] = [
   {
     id: "1",
     titulo: "Concierto en Córdoba",
-    tipo: "concierto",
+    tipo: "concierto_abierto",
     fecha: "2026-09-30",
     hora: "",
     lugar: "",
@@ -78,7 +78,7 @@ const eventos: Evento[] = [
   {
     id: "3",
     titulo: "Reunión de la banda",
-    tipo: "reunion",
+    tipo: "otro",
     fecha: "2026-10-05",
     hora: "",
     lugar: "",
@@ -96,7 +96,7 @@ function crearValorUseEventosContext(
   return {
     eventos,
     titulo: "",
-    tipo: "concierto",
+    tipo: "concierto_abierto",
     estado: "pendiente",
     fecha,
     hora: "",

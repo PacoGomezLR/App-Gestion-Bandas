@@ -24,9 +24,10 @@ export interface FilaEventoMiembro {
 
 // Record obliga a listar todos los valores de cada unión: si se añade uno al tipo, TypeScript avisa aquí
 const TIPOS_EVENTO: Record<TipoEvento, true> = {
-  concierto: true,
+  boda: true,
+  fiesta_privada: true,
+  concierto_abierto: true,
   ensayo: true,
-  reunion: true,
   otro: true,
 };
 

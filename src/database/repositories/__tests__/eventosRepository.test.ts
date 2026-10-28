@@ -11,7 +11,7 @@ import {
 const filaConcierto: FilaEvento = {
   id: "1",
   titulo: "Concierto en Córdoba",
-  tipo: "concierto",
+  tipo: "concierto_abierto",
   fecha: "2026-09-30",
   hora: "",
   lugar: "",
@@ -32,8 +32,19 @@ const filaEnsayo: FilaEvento = {
 
 describe("eventosRepository: conversión de filas", () => {
   test("reconoce solo los tipos y estados válidos", () => {
-    expect(esTipoEvento("concierto")).toBe(true);
-    expect(esTipoEvento("reunion")).toBe(true);
+    for (const tipoValido of [
+      "boda",
+      "fiesta_privada",
+      "concierto_abierto",
+      "ensayo",
+      "otro",
+    ]) {
+      expect(esTipoEvento(tipoValido)).toBe(true);
+    }
+
+    // Los tipos antiguos ya no son válidos: la migración 6 los convierte
+    expect(esTipoEvento("concierto")).toBe(false);
+    expect(esTipoEvento("reunion")).toBe(false);
     expect(esTipoEvento("fiesta")).toBe(false);
     expect(esTipoEvento("toString")).toBe(false);
 

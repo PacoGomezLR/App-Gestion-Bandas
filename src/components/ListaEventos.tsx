@@ -3,6 +3,7 @@ import type { Evento } from "../types/evento";
 import type { Miembro } from "../types/miembro";
 import type { Tecnico } from "../types/tecnico";
 import { formatearFecha } from "../utils/fechas";
+import { etiquetaTipoEvento } from "../utils/tiposEvento";
 
 interface ListaEventosProps {
   eventos: Evento[];
@@ -32,7 +33,7 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, onElimin
         return (
           <View key={evento.id}>
             <Text>{evento.titulo}</Text>
-            <Text>{evento.tipo}</Text>
+            <Text>{etiquetaTipoEvento(evento.tipo)}</Text>
             <Text>{formatearFecha(evento.fecha)}</Text>
             {/* Campos opcionales: solo se muestran si tienen valor */}
             {evento.hora !== "" && <Text>Hora: {evento.hora}</Text>}

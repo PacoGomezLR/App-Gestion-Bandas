@@ -23,7 +23,7 @@ describe("useEventos", () => {
 
     expect(result.current.eventos[3]).toMatchObject({
       titulo: "Concierto en Sevilla",
-      tipo: "concierto",
+      tipo: "concierto_abierto",
       fecha: "2026-11-15",
       estado: "pendiente",
       tecnicoIds: ["1", "2"],
@@ -132,7 +132,7 @@ describe("useEventos", () => {
     expect(result.current.eventoEditandoId).toBeNull();
     expect(result.current.titulo).toBe("");
     expect(result.current.fecha).toBe("");
-    expect(result.current.tipo).toBe("concierto");
+    expect(result.current.tipo).toBe("concierto_abierto");
     expect(result.current.estado).toBe("pendiente");
     expect(result.current.error).toBe("");
   });
@@ -184,7 +184,7 @@ describe("useEventos", () => {
     expect(result.current.eventoEditandoId).toBeNull();
     expect(result.current.titulo).toBe("");
     expect(result.current.fecha).toBe("");
-    expect(result.current.tipo).toBe("concierto");
+    expect(result.current.tipo).toBe("concierto_abierto");
     expect(result.current.estado).toBe("pendiente");
     expect(result.current.error).toBe("");
   });
@@ -265,7 +265,7 @@ describe("useEventos", () => {
       {
         id: "10",
         titulo: "Concierto guardado",
-        tipo: "concierto",
+        tipo: "concierto_abierto",
         fecha: "2026-12-01",
         hora: "",
         lugar: "",
@@ -451,6 +451,42 @@ describe("useEventos", () => {
     expect(result.current.eventos).toHaveLength(3);
   });
 
+  test("guarda eventos con cada uno de los tipos disponibles", async () => {
+    const { result } = await renderHook(() =>
+      useEventos({ datosIniciales: [] })
+    );
+
+    const tipos = [
+      "boda",
+      "fiesta_privada",
+      "concierto_abierto",
+      "ensayo",
+      "otro",
+    ] as const;
+
+    for (const tipo of tipos) {
+      await act(() => {
+        result.current.setTitulo(`Evento de tipo ${tipo}`);
+        result.current.setFecha("2026-12-20");
+        result.current.setTipo(tipo);
+      });
+
+      let guardado: boolean | undefined;
+
+      await act(async () => {
+        guardado = await result.current.guardarEvento();
+      });
+
+      expect(guardado).toBe(true);
+      // Tras guardar, el formulario vuelve al tipo por defecto
+      expect(result.current.tipo).toBe("concierto_abierto");
+    }
+
+    expect(result.current.eventos.map((evento) => evento.tipo)).toEqual([
+      ...tipos,
+    ]);
+  });
+
   test("acepta horas válidas", async () => {
     const { result } = await renderHook(() => useEventos());
 
@@ -484,7 +520,7 @@ describe("useEventos", () => {
     const eventoConDetalles: Evento = {
       id: "60",
       titulo: "Concierto en el teatro",
-      tipo: "concierto",
+      tipo: "concierto_abierto",
       fecha: "2027-05-20",
       hora: "21:00",
       lugar: "Teatro",
@@ -621,7 +657,7 @@ describe("useEventos", () => {
     const eventoConMiembros: Evento = {
       id: "50",
       titulo: "Concierto de primavera",
-      tipo: "concierto",
+      tipo: "concierto_abierto",
       fecha: "2027-04-10",
       hora: "",
       lugar: "",

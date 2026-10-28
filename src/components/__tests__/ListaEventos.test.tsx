@@ -30,7 +30,7 @@ const eventos: Evento[] = [
   {
     id: "1",
     titulo: "Concierto en Sevilla",
-    tipo: "concierto",
+    tipo: "concierto_abierto",
     fecha: "2026-11-15",
     hora: "",
     lugar: "",
@@ -236,6 +236,28 @@ describe("ListaEventos", () => {
     expect(getByText("Tiene notas")).toBeTruthy();
     // Las notas completas no se muestran en el listado
     expect(queryByText(/Texto largo/)).toBeNull();
+  });
+
+  test("muestra el tipo con su etiqueta y no con el valor interno", async () => {
+    const eventosConTipos: Evento[] = [
+      { ...eventos[0], id: "10", tipo: "fiesta_privada" },
+      { ...eventos[1], id: "11", tipo: "concierto_abierto" },
+    ];
+
+    const { getByText, queryByText } = await render(
+      <ListaEventos
+        eventos={eventosConTipos}
+        tecnicos={tecnicos}
+        miembros={miembros}
+        procesando={false}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Fiesta privada")).toBeTruthy();
+    expect(getByText("Concierto abierto")).toBeTruthy();
+    expect(queryByText(/_/)).toBeNull();
   });
 
   test("no muestra líneas de hora, lugar ni notas si están vacíos", async () => {

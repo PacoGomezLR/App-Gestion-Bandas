@@ -4,7 +4,7 @@ import { eventosIniciales } from "../data/eventosIniciales";
 import { tecnicosIniciales } from "../data/tecnicosIniciales";
 import { getDatabase } from "./database";
 
-const VERSION_ESQUEMA = 5;
+const VERSION_ESQUEMA = 6;
 
 let inicializacionPromise: Promise<void> | null = null;
 
@@ -122,6 +122,16 @@ async function anadirDetallesEventos(db: SQLiteDatabase): Promise<void> {
   `);
 }
 
+// Migración 6: convierte los tipos de evento antiguos a los nuevos, sin borrar eventos
+async function convertirTiposEventoAntiguos(db: SQLiteDatabase): Promise<void> {
+  await db.runAsync(
+    "UPDATE eventos SET tipo = 'concierto_abierto' WHERE tipo = 'concierto';"
+  );
+  await db.runAsync(
+    "UPDATE eventos SET tipo = 'otro' WHERE tipo = 'reunion';"
+  );
+}
+
 export async function migrarBaseDeDatos(): Promise<void> {
   const db = await getDatabase();
 
@@ -176,6 +186,13 @@ export async function migrarBaseDeDatos(): Promise<void> {
     await db.withTransactionAsync(async () => {
       await anadirDetallesEventos(db);
       await db.execAsync("PRAGMA user_version = 5;");
+    });
+  }
+
+  if (versionActual < 6) {
+    await db.withTransactionAsync(async () => {
+      await convertirTiposEventoAntiguos(db);
+      await db.execAsync("PRAGMA user_version = 6;");
     });
   }
 }

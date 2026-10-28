@@ -142,7 +142,7 @@ describe("EventosContext", () => {
       {
         id: "20",
         titulo: "Festival de invierno",
-        tipo: "concierto",
+        tipo: "concierto_abierto",
         fecha: "2027-01-15",
         hora: "",
         lugar: "",
@@ -194,7 +194,7 @@ describe("EventosContext", () => {
         hora: "",
         lugar: "",
         notas: "",
-        tipo: "concierto",
+        tipo: "concierto_abierto",
         estado: "pendiente",
         tecnicoIds: [],
         miembroIds: [],
