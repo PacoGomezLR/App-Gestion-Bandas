@@ -1,10 +1,13 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import Index from "../../app/index";
+import { useEventosContext } from "../../context/EventosContext";
 import { useTecnicosContext } from "../../context/TecnicosContext";
-import { useEventos } from "../../hooks/useEventos";
 import type { Evento } from "../../types/evento";
 
-jest.mock("../../hooks/useEventos");
+jest.mock("../../context/EventosContext", () => ({
+  ...jest.requireActual("../../context/EventosContext"),
+  useEventosContext: jest.fn(),
+}));
 
 jest.mock("../../context/TecnicosContext", () => ({
   ...jest.requireActual("../../context/TecnicosContext"),
@@ -37,7 +40,7 @@ jest.mock("../../components/FormularioEvento", () => {
   };
 });
 
-const mockUseEventos = jest.mocked(useEventos);
+const mockUseEventosContext = jest.mocked(useEventosContext);
 const mockUseTecnicosContext = jest.mocked(useTecnicosContext);
 
 const eventos: Evento[] = [
@@ -67,10 +70,10 @@ const eventos: Evento[] = [
   },
 ];
 
-function crearValorUseEventos(
+function crearValorUseEventosContext(
   fecha: string,
   setFecha: jest.Mock
-): ReturnType<typeof useEventos> {
+): ReturnType<typeof useEventosContext> {
   return {
     eventos,
     titulo: "",
@@ -118,8 +121,8 @@ describe("Index", () => {
 
   test("con fecha seleccionada muestra solo sus eventos y permite ver todos", async () => {
     const setFecha = jest.fn();
-    mockUseEventos.mockReturnValue(
-      crearValorUseEventos("2026-10-02", setFecha)
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("2026-10-02", setFecha)
     );
 
     const { getByText, queryByText } = await render(<Index />);
@@ -135,8 +138,8 @@ describe("Index", () => {
   });
 
   test("sin fecha seleccionada muestra todos los eventos y no muestra Ver todos", async () => {
-    mockUseEventos.mockReturnValue(
-      crearValorUseEventos("", jest.fn())
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("", jest.fn())
     );
 
     const { getByText, queryByText } = await render(<Index />);

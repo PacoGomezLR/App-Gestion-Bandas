@@ -5,8 +5,8 @@ import {
 } from "react-native";
 import { FormularioEvento } from "../components/FormularioEvento";
 import { ListaEventos } from "../components/ListaEventos";
+import { useEventosContext } from "../context/EventosContext";
 import { useTecnicosContext } from "../context/TecnicosContext";
-import { useEventos } from "../hooks/useEventos";
 
 export default function Index() {
   const {
@@ -27,7 +27,7 @@ export default function Index() {
     eliminarEvento,
     prepararEdicion,
     cancelarEdicion,
-  } = useEventos();
+  } = useEventosContext();
 
   const { tecnicos } = useTecnicosContext();
 
