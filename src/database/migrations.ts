@@ -4,7 +4,7 @@ import { eventosIniciales } from "../data/eventosIniciales";
 import { tecnicosIniciales } from "../data/tecnicosIniciales";
 import { getDatabase } from "./database";
 
-const VERSION_ESQUEMA = 2;
+const VERSION_ESQUEMA = 3;
 
 let inicializacionPromise: Promise<void> | null = null;
 
@@ -86,6 +86,16 @@ async function insertarDatosDemostracion(db: SQLiteDatabase): Promise<void> {
   }
 }
 
+// Migración 3: crea la tabla de miembros, vacía
+async function crearTablaMiembros(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS miembros (
+      id TEXT PRIMARY KEY NOT NULL,
+      nombre TEXT NOT NULL
+    );
+  `);
+}
+
 export async function migrarBaseDeDatos(): Promise<void> {
   const db = await getDatabase();
 
@@ -119,6 +129,13 @@ export async function migrarBaseDeDatos(): Promise<void> {
     await db.withTransactionAsync(async () => {
       await insertarDatosDemostracion(db);
       await db.execAsync("PRAGMA user_version = 2;");
+    });
+  }
+
+  if (versionActual < 3) {
+    await db.withTransactionAsync(async () => {
+      await crearTablaMiembros(db);
+      await db.execAsync("PRAGMA user_version = 3;");
     });
   }
 }
