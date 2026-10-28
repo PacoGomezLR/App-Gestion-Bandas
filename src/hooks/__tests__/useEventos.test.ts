@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react-native";
+import type { Evento } from "../../types/evento";
 import { useEventos } from "../useEventos";
 
 describe("useEventos", () => {
@@ -14,8 +15,8 @@ describe("useEventos", () => {
       result.current.alternarTecnico("2");
     });
 
-    await act(() => {
-      result.current.guardarEvento();
+    await act(async () => {
+      await result.current.guardarEvento();
     });
 
     expect(result.current.eventos).toHaveLength(4);
@@ -38,8 +39,8 @@ describe("useEventos", () => {
       result.current.setTitulo("Concierto sin fecha");
     });
 
-    await act(() => {
-      result.current.guardarEvento();
+    await act(async () => {
+      await result.current.guardarEvento();
     });
 
     expect(result.current.eventos).toHaveLength(3);
@@ -64,8 +65,8 @@ describe("useEventos", () => {
       result.current.setEstado("confirmado");
     });
 
-    await act(() => {
-      result.current.guardarEvento();
+    await act(async () => {
+      await result.current.guardarEvento();
     });
 
     expect(result.current.eventos).toHaveLength(3);
@@ -89,8 +90,8 @@ describe("useEventos", () => {
     const eventoAEliminar = result.current.eventos[1];
     const tercerEventoOriginal = result.current.eventos[2];
 
-    await act(() => {
-      result.current.eliminarEvento(eventoAEliminar.id);
+    await act(async () => {
+      await result.current.eliminarEvento(eventoAEliminar.id);
     });
 
     expect(result.current.eventos).toHaveLength(2);
@@ -120,8 +121,8 @@ describe("useEventos", () => {
     expect(result.current.fecha).toBe(eventoEditado.fecha);
     expect(result.current.estado).toBe(eventoEditado.estado);
 
-    await act(() => {
-      result.current.eliminarEvento("1");
+    await act(async () => {
+      await result.current.eliminarEvento("1");
     });
 
     expect(result.current.eventos).toHaveLength(2);
@@ -145,8 +146,8 @@ describe("useEventos", () => {
       result.current.prepararEdicion(eventoEditado);
     });
 
-    await act(() => {
-      result.current.eliminarEvento("2");
+    await act(async () => {
+      await result.current.eliminarEvento("2");
     });
 
     expect(result.current.eventos).toHaveLength(2);
@@ -224,8 +225,8 @@ describe("useEventos", () => {
       result.current.alternarTecnico("1");
     });
 
-    await act(() => {
-      result.current.guardarEvento();
+    await act(async () => {
+      await result.current.guardarEvento();
     });
 
     expect(result.current.eventos[1].tecnicoIds).toEqual(["1"]);
@@ -241,8 +242,8 @@ describe("useEventos", () => {
       result.current.alternarTecnico("2");
     });
 
-    await act(() => {
-      result.current.guardarEvento();
+    await act(async () => {
+      await result.current.guardarEvento();
     });
 
     expect(result.current.eventos).toHaveLength(3);
@@ -251,5 +252,111 @@ describe("useEventos", () => {
       tecnicoIds: ["2"],
     });
     expect(result.current.tecnicoIds).toEqual([]);
+  });
+
+  test("carga una lista externa de eventos", async () => {
+    const { result } = await renderHook(() =>
+      useEventos({ datosIniciales: [] })
+    );
+
+    expect(result.current.eventos).toEqual([]);
+
+    const eventosExternos: Evento[] = [
+      {
+        id: "10",
+        titulo: "Concierto guardado",
+        tipo: "concierto",
+        fecha: "2026-12-01",
+        estado: "confirmado",
+        tecnicoIds: ["1"],
+      },
+    ];
+
+    await act(() => {
+      result.current.setTitulo("Borrador en el formulario");
+    });
+
+    await act(() => {
+      result.current.reemplazarEventos(eventosExternos);
+    });
+
+    expect(result.current.eventos).toEqual(eventosExternos);
+    // Guarda una copia, no el mismo array recibido
+    expect(result.current.eventos).not.toBe(eventosExternos);
+    // No toca el formulario
+    expect(result.current.titulo).toBe("Borrador en el formulario");
+  });
+
+  test("no guarda localmente si falla la persistencia", async () => {
+    const { result } = await renderHook(() =>
+      useEventos({ persistirEvento: async () => false })
+    );
+
+    const eventosOriginales = [...result.current.eventos];
+
+    await act(() => {
+      result.current.setTitulo("Concierto sin guardar");
+      result.current.setFecha("2026-11-15");
+      result.current.alternarTecnico("1");
+    });
+
+    let guardado: boolean | undefined;
+
+    await act(async () => {
+      guardado = await result.current.guardarEvento();
+    });
+
+    expect(guardado).toBe(false);
+    expect(result.current.eventos).toEqual(eventosOriginales);
+    expect(result.current.titulo).toBe("Concierto sin guardar");
+    expect(result.current.fecha).toBe("2026-11-15");
+    expect(result.current.tecnicoIds).toEqual(["1"]);
+  });
+
+  test("no elimina localmente si falla la persistencia", async () => {
+    const { result } = await renderHook(() =>
+      useEventos({ eliminarEventoPersistido: async () => false })
+    );
+
+    let eliminado: boolean | undefined;
+
+    await act(async () => {
+      eliminado = await result.current.eliminarEvento("1");
+    });
+
+    expect(eliminado).toBe(false);
+    expect(result.current.eventos).toHaveLength(3);
+    expect(
+      result.current.eventos.some((evento) => evento.id === "1")
+    ).toBe(true);
+  });
+
+  test("persiste exactamente el evento que se guarda", async () => {
+    const persistirEvento = jest.fn(async (_evento: Evento) => true);
+
+    const { result } = await renderHook(() =>
+      useEventos({ persistirEvento })
+    );
+
+    await act(() => {
+      result.current.setTitulo("Concierto en Sevilla");
+      result.current.setFecha("2026-11-15");
+      result.current.alternarTecnico("2");
+    });
+
+    let guardado: boolean | undefined;
+
+    await act(async () => {
+      guardado = await result.current.guardarEvento();
+    });
+
+    expect(guardado).toBe(true);
+    expect(persistirEvento).toHaveBeenCalledTimes(1);
+    expect(persistirEvento.mock.calls[0][0]).toBe(result.current.eventos[3]);
+    expect(result.current.eventos[3]).toMatchObject({
+      titulo: "Concierto en Sevilla",
+      fecha: "2026-11-15",
+      tecnicoIds: ["2"],
+    });
   });
 });

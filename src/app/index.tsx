@@ -27,14 +27,24 @@ export default function Index() {
     eliminarEvento,
     prepararEdicion,
     cancelarEdicion,
+    cargando: cargandoEventos,
+    errorPersistencia: errorPersistenciaEventos,
   } = useEventosContext();
 
-  const { tecnicos } = useTecnicosContext();
+  const {
+    tecnicos,
+    cargando: cargandoTecnicos,
+    errorPersistencia: errorPersistenciaTecnicos,
+  } = useTecnicosContext();
 
   const eventosVisibles =
     fecha === ""
       ? eventos
       : eventos.filter((evento) => evento.fecha === fecha);
+
+  if (cargandoEventos || cargandoTecnicos) {
+    return <Text>Cargando datos...</Text>;
+  }
 
   return (
     <ScrollView
@@ -43,6 +53,14 @@ export default function Index() {
       }}
     >
       <Text>Calendario</Text>
+
+      {errorPersistenciaEventos !== "" && (
+        <Text>{errorPersistenciaEventos}</Text>
+      )}
+
+      {errorPersistenciaTecnicos !== "" && (
+        <Text>{errorPersistenciaTecnicos}</Text>
+      )}
 
       <FormularioEvento
         titulo={titulo}

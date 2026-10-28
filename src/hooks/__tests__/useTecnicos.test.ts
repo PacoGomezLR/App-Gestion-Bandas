@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react-native";
+import type { Tecnico } from "../../types/tecnico";
 import { useTecnicos } from "../useTecnicos";
 
 describe("useTecnicos", () => {
@@ -11,8 +12,8 @@ describe("useTecnicos", () => {
       result.current.setNombre("Lucía");
     });
 
-    await act(() => {
-      result.current.guardarTecnico();
+    await act(async () => {
+      await result.current.guardarTecnico();
     });
 
     expect(result.current.tecnicos).toHaveLength(3);
@@ -24,8 +25,8 @@ describe("useTecnicos", () => {
   test("no crea un técnico sin nombre", async () => {
     const { result } = await renderHook(() => useTecnicos());
 
-    await act(() => {
-      result.current.guardarTecnico();
+    await act(async () => {
+      await result.current.guardarTecnico();
     });
 
     expect(result.current.tecnicos).toHaveLength(2);
@@ -48,8 +49,8 @@ describe("useTecnicos", () => {
       result.current.setNombre("Carlos García");
     });
 
-    await act(() => {
-      result.current.guardarTecnico();
+    await act(async () => {
+      await result.current.guardarTecnico();
     });
 
     expect(result.current.tecnicos).toHaveLength(2);
@@ -68,8 +69,8 @@ describe("useTecnicos", () => {
 
     const segundoTecnicoOriginal = result.current.tecnicos[1];
 
-    await act(() => {
-      result.current.eliminarTecnico("1");
+    await act(async () => {
+      await result.current.eliminarTecnico("1");
     });
 
     expect(result.current.tecnicos).toHaveLength(1);
@@ -89,8 +90,8 @@ describe("useTecnicos", () => {
     expect(result.current.tecnicoEditandoId).toBe("1");
     expect(result.current.nombre).toBe("Carlos");
 
-    await act(() => {
-      result.current.eliminarTecnico("1");
+    await act(async () => {
+      await result.current.eliminarTecnico("1");
     });
 
     expect(result.current.tecnicos).toEqual([{ id: "2", nombre: "Miguel" }]);
@@ -106,8 +107,8 @@ describe("useTecnicos", () => {
       result.current.prepararEdicion(result.current.tecnicos[0]);
     });
 
-    await act(() => {
-      result.current.eliminarTecnico("2");
+    await act(async () => {
+      await result.current.eliminarTecnico("2");
     });
 
     expect(result.current.tecnicos).toEqual([{ id: "1", nombre: "Carlos" }]);
@@ -140,5 +141,96 @@ describe("useTecnicos", () => {
     expect(result.current.tecnicoEditandoId).toBeNull();
     expect(result.current.nombre).toBe("");
     expect(result.current.error).toBe("");
+  });
+
+  test("carga una lista externa de técnicos", async () => {
+    const { result } = await renderHook(() =>
+      useTecnicos({ datosIniciales: [] })
+    );
+
+    expect(result.current.tecnicos).toEqual([]);
+
+    const tecnicosExternos: Tecnico[] = [{ id: "7", nombre: "Lucía" }];
+
+    await act(() => {
+      result.current.setNombre("Borrador en el formulario");
+    });
+
+    await act(() => {
+      result.current.reemplazarTecnicos(tecnicosExternos);
+    });
+
+    expect(result.current.tecnicos).toEqual(tecnicosExternos);
+    expect(result.current.tecnicos).not.toBe(tecnicosExternos);
+    expect(result.current.nombre).toBe("Borrador en el formulario");
+  });
+
+  test("no guarda localmente si falla la persistencia", async () => {
+    const { result } = await renderHook(() =>
+      useTecnicos({ persistirTecnico: async () => false })
+    );
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.tecnicos[0]);
+    });
+
+    await act(() => {
+      result.current.setNombre("Carlos García");
+    });
+
+    let guardado: boolean | undefined;
+
+    await act(async () => {
+      guardado = await result.current.guardarTecnico();
+    });
+
+    expect(guardado).toBe(false);
+    expect(result.current.tecnicos).toEqual([
+      { id: "1", nombre: "Carlos" },
+      { id: "2", nombre: "Miguel" },
+    ]);
+    expect(result.current.nombre).toBe("Carlos García");
+    expect(result.current.tecnicoEditandoId).toBe("1");
+  });
+
+  test("no elimina localmente si falla la persistencia", async () => {
+    const { result } = await renderHook(() =>
+      useTecnicos({ eliminarTecnicoPersistido: async () => false })
+    );
+
+    let eliminado: boolean | undefined;
+
+    await act(async () => {
+      eliminado = await result.current.eliminarTecnico("1");
+    });
+
+    expect(eliminado).toBe(false);
+    expect(result.current.tecnicos).toHaveLength(2);
+    expect(
+      result.current.tecnicos.some((tecnico) => tecnico.id === "1")
+    ).toBe(true);
+  });
+
+  test("persiste exactamente el técnico que se guarda", async () => {
+    const persistirTecnico = jest.fn(async (_tecnico: Tecnico) => true);
+
+    const { result } = await renderHook(() =>
+      useTecnicos({ persistirTecnico })
+    );
+
+    await act(() => {
+      result.current.setNombre("  Lucía  ");
+    });
+
+    let guardado: boolean | undefined;
+
+    await act(async () => {
+      guardado = await result.current.guardarTecnico();
+    });
+
+    expect(guardado).toBe(true);
+    expect(persistirTecnico).toHaveBeenCalledTimes(1);
+    expect(persistirTecnico.mock.calls[0][0]).toBe(result.current.tecnicos[2]);
+    expect(result.current.tecnicos[2].nombre).toBe("Lucía");
   });
 });

@@ -16,7 +16,13 @@ export default function TecnicosScreen() {
     cancelarEdicion,
     eliminarTecnico,
     errorEliminacion,
+    cargando,
+    errorPersistencia,
   } = useTecnicosContext();
+
+  if (cargando) {
+    return <Text>Cargando datos...</Text>;
+  }
 
   return (
     <ScrollView
@@ -34,6 +40,10 @@ export default function TecnicosScreen() {
         onGuardar={guardarTecnico}
         onCancelar={cancelarEdicion}
       />
+
+      {errorPersistencia !== "" && (
+        <Text>{errorPersistencia}</Text>
+      )}
 
       {errorEliminacion !== "" && (
         <Text>{errorEliminacion}</Text>

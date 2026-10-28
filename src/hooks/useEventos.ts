@@ -1,9 +1,21 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { eventosIniciales } from "../data/eventosIniciales";
 import type { EstadoEvento, Evento, TipoEvento } from "../types/evento";
 
-export function useEventos() {
-  const [eventos, setEventos] = useState<Evento[]>(eventosIniciales);
+interface UseEventosOptions {
+  datosIniciales?: Evento[];
+  persistirEvento?: (evento: Evento) => Promise<boolean>;
+  eliminarEventoPersistido?: (id: string) => Promise<boolean>;
+}
+
+export function useEventos(options: UseEventosOptions = {}) {
+  const {
+    datosIniciales = eventosIniciales,
+    persistirEvento,
+    eliminarEventoPersistido,
+  } = options;
+
+  const [eventos, setEventos] = useState<Evento[]>(datosIniciales);
   const [titulo, setTitulo] = useState("");
   const [tipo, setTipo] = useState<TipoEvento>("concierto");
   const [estado, setEstado] = useState<EstadoEvento>("pendiente");
@@ -11,6 +23,10 @@ export function useEventos() {
   const [tecnicoIds, setTecnicoIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [eventoEditandoId, setEventoEditandoId] = useState<string | null>(null);
+
+  const reemplazarEventos = useCallback((nuevosEventos: Evento[]) => {
+    setEventos([...nuevosEventos]);
+  }, []);
 
   function limpiarFormulario() {
     setTitulo("");
@@ -29,35 +45,16 @@ export function useEventos() {
     );
   }
 
-  function guardarEvento() {
+  async function guardarEvento(): Promise<boolean> {
     if (titulo.trim() === "" || fecha.trim() === "") {
       setError("El título y la fecha son obligatorios");
-      return;
+      return false;
     }
 
-    if (eventoEditandoId !== null) {
-      const eventosActualizados = eventos.map((evento) =>
-        evento.id === eventoEditandoId
-          ? {
-              ...evento,
-              titulo: titulo.trim(),
-              tipo: tipo,
-              fecha: fecha,
-              estado: estado,
-              tecnicoIds: [...tecnicoIds],
-            }
-          : evento
-      );
+    const editando = eventoEditandoId !== null;
 
-      setEventos(eventosActualizados);
-      setEventoEditandoId(null);
-      limpiarFormulario();
-
-      return;
-    }
-
-    const nuevoEvento: Evento = {
-      id: Date.now().toString(),
+    const eventoGuardado: Evento = {
+      id: eventoEditandoId ?? Date.now().toString(),
       titulo: titulo.trim(),
       tipo: tipo,
       fecha: fecha,
@@ -65,21 +62,50 @@ export function useEventos() {
       tecnicoIds: [...tecnicoIds],
     };
 
-    setEventos([...eventos, nuevoEvento]);
+    // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
+    const persistido = persistirEvento
+      ? await persistirEvento(eventoGuardado)
+      : true;
+
+    if (!persistido) {
+      return false;
+    }
+
+    if (editando) {
+      setEventos((eventosActuales) =>
+        eventosActuales.map((evento) =>
+          evento.id === eventoGuardado.id ? eventoGuardado : evento
+        )
+      );
+      setEventoEditandoId(null);
+    } else {
+      setEventos((eventosActuales) => [...eventosActuales, eventoGuardado]);
+    }
+
     limpiarFormulario();
+
+    return true;
   }
 
-  function eliminarEvento(id: string) {
-    const eventosActualizados = eventos.filter(
-      (evento) => evento.id !== id
-    );
+  async function eliminarEvento(id: string): Promise<boolean> {
+    const eliminado = eliminarEventoPersistido
+      ? await eliminarEventoPersistido(id)
+      : true;
 
-    setEventos(eventosActualizados);
+    if (!eliminado) {
+      return false;
+    }
+
+    setEventos((eventosActuales) =>
+      eventosActuales.filter((evento) => evento.id !== id)
+    );
 
     if (eventoEditandoId === id) {
       setEventoEditandoId(null);
       limpiarFormulario();
     }
+
+    return true;
   }
 
   function cancelarEdicion() {
@@ -110,6 +136,7 @@ export function useEventos() {
     setEstado,
     setFecha,
     alternarTecnico,
+    reemplazarEventos,
     guardarEvento,
     eliminarEvento,
     prepararEdicion,

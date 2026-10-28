@@ -1,48 +1,70 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { tecnicosIniciales } from "../data/tecnicosIniciales";
 import type { Tecnico } from "../types/tecnico";
 
-export function useTecnicos() {
+interface UseTecnicosOptions {
+  datosIniciales?: Tecnico[];
+  persistirTecnico?: (tecnico: Tecnico) => Promise<boolean>;
+  eliminarTecnicoPersistido?: (id: string) => Promise<boolean>;
+}
+
+export function useTecnicos(options: UseTecnicosOptions = {}) {
+  const {
+    datosIniciales = tecnicosIniciales,
+    persistirTecnico,
+    eliminarTecnicoPersistido,
+  } = options;
+
   const [tecnicos, setTecnicos] =
-    useState<Tecnico[]>(tecnicosIniciales);
+    useState<Tecnico[]>(datosIniciales);
 
   const [nombre, setNombre] = useState("");
   const [error, setError] = useState("");
   const [tecnicoEditandoId, setTecnicoEditandoId] =
     useState<string | null>(null);
 
-  function guardarTecnico() {
+  const reemplazarTecnicos = useCallback((nuevosTecnicos: Tecnico[]) => {
+    setTecnicos([...nuevosTecnicos]);
+  }, []);
+
+  async function guardarTecnico(): Promise<boolean> {
     if (nombre.trim() === "") {
       setError("El nombre es obligatorio");
-      return;
+      return false;
     }
 
-    if (tecnicoEditandoId !== null) {
-      const tecnicosActualizados = tecnicos.map((tecnico) =>
-        tecnico.id === tecnicoEditandoId
-          ? {
-              ...tecnico,
-              nombre: nombre.trim(),
-            }
-          : tecnico
-      );
+    const editando = tecnicoEditandoId !== null;
 
-      setTecnicos(tecnicosActualizados);
-      setTecnicoEditandoId(null);
-      setNombre("");
-      setError("");
-      return;
-    }
-
-    const nuevoTecnico: Tecnico = {
-      id: Date.now().toString(),
+    const tecnicoGuardado: Tecnico = {
+      id: tecnicoEditandoId ?? Date.now().toString(),
       nombre: nombre.trim(),
     };
 
-    setTecnicos([...tecnicos, nuevoTecnico]);
+    // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
+    const persistido = persistirTecnico
+      ? await persistirTecnico(tecnicoGuardado)
+      : true;
+
+    if (!persistido) {
+      return false;
+    }
+
+    if (editando) {
+      setTecnicos((tecnicosActuales) =>
+        tecnicosActuales.map((tecnico) =>
+          tecnico.id === tecnicoGuardado.id ? tecnicoGuardado : tecnico
+        )
+      );
+      setTecnicoEditandoId(null);
+    } else {
+      setTecnicos((tecnicosActuales) => [...tecnicosActuales, tecnicoGuardado]);
+    }
+
     setNombre("");
     setError("");
+
+    return true;
   }
 
   function prepararEdicion(tecnico: Tecnico) {
@@ -57,18 +79,26 @@ export function useTecnicos() {
     setError("");
   }
 
-  function eliminarTecnico(id: string) {
-    const tecnicosActualizados = tecnicos.filter(
-      (tecnico) => tecnico.id !== id
-    );
+  async function eliminarTecnico(id: string): Promise<boolean> {
+    const eliminado = eliminarTecnicoPersistido
+      ? await eliminarTecnicoPersistido(id)
+      : true;
 
-    setTecnicos(tecnicosActualizados);
+    if (!eliminado) {
+      return false;
+    }
+
+    setTecnicos((tecnicosActuales) =>
+      tecnicosActuales.filter((tecnico) => tecnico.id !== id)
+    );
 
     if (tecnicoEditandoId === id) {
       setTecnicoEditandoId(null);
       setNombre("");
       setError("");
     }
+
+    return true;
   }
 
   return {
@@ -77,6 +107,7 @@ export function useTecnicos() {
     error,
     tecnicoEditandoId,
     setNombre,
+    reemplazarTecnicos,
     guardarTecnico,
     prepararEdicion,
     cancelarEdicion,

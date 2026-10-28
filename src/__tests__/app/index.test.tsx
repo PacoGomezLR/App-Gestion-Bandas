@@ -88,10 +88,13 @@ function crearValorUseEventosContext(
     setEstado: jest.fn(),
     setFecha,
     alternarTecnico: jest.fn(),
+    reemplazarEventos: jest.fn(),
     guardarEvento: jest.fn(),
     eliminarEvento: jest.fn(),
     prepararEdicion: jest.fn(),
     cancelarEdicion: jest.fn(),
+    cargando: false,
+    errorPersistencia: "",
   };
 }
 
@@ -107,11 +110,14 @@ function crearValorUseTecnicosContext(): ReturnType<typeof useTecnicosContext> {
     error: "",
     tecnicoEditandoId: null,
     setNombre: jest.fn(),
+    reemplazarTecnicos: jest.fn(),
     guardarTecnico: jest.fn(),
     prepararEdicion: jest.fn(),
     cancelarEdicion: jest.fn(),
     eliminarTecnico: jest.fn(),
     errorEliminacion: "",
+    cargando: false,
+    errorPersistencia: "",
   };
 }
 
@@ -149,5 +155,18 @@ describe("Index", () => {
     expect(getByText("Ensayo general")).toBeTruthy();
     expect(getByText("Reunión de la banda")).toBeTruthy();
     expect(queryByText("Ver todos")).toBeNull();
+  });
+
+  test("muestra solo Cargando datos... mientras se cargan los datos", async () => {
+    mockUseEventosContext.mockReturnValue({
+      ...crearValorUseEventosContext("", jest.fn()),
+      cargando: true,
+    });
+
+    const { getByText, queryByText } = await render(<Index />);
+
+    expect(getByText("Cargando datos...")).toBeTruthy();
+    expect(queryByText("Formulario simulado")).toBeNull();
+    expect(queryByText("Ensayo general")).toBeNull();
   });
 });

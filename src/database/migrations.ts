@@ -1,11 +1,95 @@
+import type { SQLiteDatabase } from "expo-sqlite";
+
+import { eventosIniciales } from "../data/eventosIniciales";
+import { tecnicosIniciales } from "../data/tecnicosIniciales";
 import { getDatabase } from "./database";
 
-const VERSION_ESQUEMA = 1;
+const VERSION_ESQUEMA = 2;
+
+let inicializacionPromise: Promise<void> | null = null;
+
+// Migración 1: crea las tablas
+async function crearEsquemaInicial(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS tecnicos (
+      id TEXT PRIMARY KEY NOT NULL,
+      nombre TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS eventos (
+      id TEXT PRIMARY KEY NOT NULL,
+      titulo TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      fecha TEXT NOT NULL,
+      estado TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS evento_tecnicos (
+      evento_id TEXT NOT NULL,
+      tecnico_id TEXT NOT NULL,
+      PRIMARY KEY (evento_id, tecnico_id),
+      FOREIGN KEY (evento_id)
+        REFERENCES eventos(id)
+        ON DELETE CASCADE,
+      FOREIGN KEY (tecnico_id)
+        REFERENCES tecnicos(id)
+        ON DELETE RESTRICT
+    );
+  `);
+}
+
+async function contarFilas(
+  db: SQLiteDatabase,
+  tabla: "eventos" | "tecnicos"
+): Promise<number> {
+  const resultado = await db.getFirstAsync<{ total: number }>(
+    `SELECT COUNT(*) AS total FROM ${tabla};`
+  );
+
+  return resultado?.total ?? 0;
+}
+
+// Migración 2: inserta los datos de demostración solo si la base está vacía
+async function insertarDatosDemostracion(db: SQLiteDatabase): Promise<void> {
+  const totalEventos = await contarFilas(db, "eventos");
+  const totalTecnicos = await contarFilas(db, "tecnicos");
+
+  if (totalEventos > 0 || totalTecnicos > 0) {
+    return;
+  }
+
+  for (const tecnico of tecnicosIniciales) {
+    await db.runAsync(
+      "INSERT INTO tecnicos (id, nombre) VALUES (?, ?);",
+      tecnico.id,
+      tecnico.nombre
+    );
+  }
+
+  for (const evento of eventosIniciales) {
+    await db.runAsync(
+      "INSERT INTO eventos (id, titulo, tipo, fecha, estado) VALUES (?, ?, ?, ?, ?);",
+      evento.id,
+      evento.titulo,
+      evento.tipo,
+      evento.fecha,
+      evento.estado
+    );
+
+    for (const tecnicoId of evento.tecnicoIds) {
+      await db.runAsync(
+        "INSERT INTO evento_tecnicos (evento_id, tecnico_id) VALUES (?, ?);",
+        evento.id,
+        tecnicoId
+      );
+    }
+  }
+}
 
 export async function migrarBaseDeDatos(): Promise<void> {
   const db = await getDatabase();
 
-  // Ajustes de la conexión: deben ejecutarse fuera de la transacción de migración
+  // Ajustes de la conexión: deben ejecutarse fuera de las transacciones de migración
   await db.execAsync("PRAGMA journal_mode = WAL;");
   await db.execAsync("PRAGMA foreign_keys = ON;");
 
@@ -17,39 +101,36 @@ export async function migrarBaseDeDatos(): Promise<void> {
     throw new Error("No se pudo leer la versión del esquema de la base de datos");
   }
 
-  if (resultado.user_version >= VERSION_ESQUEMA) {
+  const versionActual = resultado.user_version;
+
+  if (versionActual >= VERSION_ESQUEMA) {
     return;
   }
 
-  // El esquema y su versión se guardan juntos: si algo falla, se revierte todo
-  await db.withTransactionAsync(async () => {
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS tecnicos (
-        id TEXT PRIMARY KEY NOT NULL,
-        nombre TEXT NOT NULL
-      );
+  // Cada migración y su versión se guardan juntas: si algo falla, se revierte esa migración entera
+  if (versionActual < 1) {
+    await db.withTransactionAsync(async () => {
+      await crearEsquemaInicial(db);
+      await db.execAsync("PRAGMA user_version = 1;");
+    });
+  }
 
-      CREATE TABLE IF NOT EXISTS eventos (
-        id TEXT PRIMARY KEY NOT NULL,
-        titulo TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        fecha TEXT NOT NULL,
-        estado TEXT NOT NULL
-      );
+  if (versionActual < 2) {
+    await db.withTransactionAsync(async () => {
+      await insertarDatosDemostracion(db);
+      await db.execAsync("PRAGMA user_version = 2;");
+    });
+  }
+}
 
-      CREATE TABLE IF NOT EXISTS evento_tecnicos (
-        evento_id TEXT NOT NULL,
-        tecnico_id TEXT NOT NULL,
-        PRIMARY KEY (evento_id, tecnico_id),
-        FOREIGN KEY (evento_id)
-          REFERENCES eventos(id)
-          ON DELETE CASCADE,
-        FOREIGN KEY (tecnico_id)
-          REFERENCES tecnicos(id)
-          ON DELETE RESTRICT
-      );
+export function inicializarBaseDeDatos(): Promise<void> {
+  if (inicializacionPromise === null) {
+    inicializacionPromise = migrarBaseDeDatos().catch((error: unknown) => {
+      // Si falla, se permite reintentar en la siguiente llamada
+      inicializacionPromise = null;
+      throw error;
+    });
+  }
 
-      PRAGMA user_version = ${VERSION_ESQUEMA};
-    `);
-  });
+  return inicializacionPromise;
 }
