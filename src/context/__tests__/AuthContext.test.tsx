@@ -12,7 +12,19 @@ type CallbackAuth = (evento: AuthChangeEvent, sesion: Session | null) => void;
 interface Credenciales {
   email: string;
   password: string;
+  options?: { emailRedirectTo?: string };
 }
+
+interface TokensSesion {
+  access_token: string;
+  refresh_token: string;
+}
+
+interface OpcionesSalida {
+  scope?: "global" | "local" | "others";
+}
+
+type ListenerUrl = (evento: { url: string }) => void;
 
 interface RespuestaPerfil {
   data: unknown;
@@ -51,15 +63,39 @@ const mockSignUp = jest.fn(
     error: null,
   })
 );
-const mockSignOut = jest.fn(async (): Promise<{ error: AuthError | null }> => ({
-  error: null,
-}));
+const mockSignOut = jest.fn(
+  async (_opciones?: OpcionesSalida): Promise<{ error: AuthError | null }> => ({
+    error: null,
+  })
+);
 const mockSingle = jest.fn(
   async (): Promise<RespuestaPerfil> => ({ data: null, error: { message: "Sin perfil" } })
 );
 const mockEq = jest.fn((_columna: string, _valor: string) => ({ single: mockSingle }));
 const mockSelect = jest.fn((_columnas: string) => ({ eq: mockEq }));
 const mockFrom = jest.fn((_tabla: string) => ({ select: mockSelect }));
+
+const mockSetSession = jest.fn(async (_tokens: TokensSesion) => ({
+  error: null as AuthError | null,
+}));
+const mockExchange = jest.fn(async (_code: string) => ({ error: null as AuthError | null }));
+
+// Linking simulado: URL de callback determinista, sin IP ni puerto
+const URL_CALLBACK = "mibanda://auth/callback";
+let mockListenerUrl: ListenerUrl | null = null;
+const mockRemoveListener = jest.fn();
+const mockCreateURL = jest.fn((_ruta: string) => URL_CALLBACK);
+const mockGetInitialURL = jest.fn(async (): Promise<string | null> => null);
+const mockAddEventListener = jest.fn((_tipo: "url", listener: ListenerUrl) => {
+  mockListenerUrl = listener;
+  return { remove: mockRemoveListener };
+});
+
+jest.mock("expo-linking", () => ({
+  createURL: (ruta: string) => mockCreateURL(ruta),
+  getInitialURL: () => mockGetInitialURL(),
+  addEventListener: (tipo: "url", listener: ListenerUrl) => mockAddEventListener(tipo, listener),
+}));
 
 jest.mock("../../lib/supabase", () => ({
   supabase: {
@@ -68,7 +104,9 @@ jest.mock("../../lib/supabase", () => ({
       onAuthStateChange: (callback: CallbackAuth) => mockOnAuthStateChange(callback),
       signInWithPassword: (credenciales: Credenciales) => mockSignIn(credenciales),
       signUp: (credenciales: Credenciales) => mockSignUp(credenciales),
-      signOut: () => mockSignOut(),
+      signOut: (opciones?: OpcionesSalida) => mockSignOut(opciones),
+      setSession: (tokens: TokensSesion) => mockSetSession(tokens),
+      exchangeCodeForSession: (code: string) => mockExchange(code),
     },
     from: (tabla: string) => mockFrom(tabla),
   },
@@ -115,6 +153,8 @@ async function emitirCambioAuth(evento: AuthChangeEvent, sesion: Session | null)
 beforeEach(() => {
   jest.clearAllMocks();
   mockCallbackAuth = null;
+  mockListenerUrl = null;
+  mockGetInitialURL.mockResolvedValue(null);
   mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
   mockSingle.mockResolvedValue({ data: null, error: { message: "Sin perfil" } });
 });
@@ -236,7 +276,7 @@ describe("AuthContext", () => {
     expect(result.current.perfil).toBeNull();
   });
 
-  test("cerrar sesión llama a signOut y limpia sesión, usuario y perfil", async () => {
+  test("cerrar sesión llama a signOut solo en este dispositivo y limpia sesión, usuario y perfil", async () => {
     mockGetSession.mockResolvedValue({
       data: { session: crearSesion("u1", "usuario@email.com") },
       error: null,
@@ -252,6 +292,8 @@ describe("AuthContext", () => {
     await emitirCambioAuth("SIGNED_OUT", null);
 
     expect(mockSignOut).toHaveBeenCalledTimes(1);
+    // Solo la sesión de este dispositivo: las de otros dispositivos siguen activas
+    expect(mockSignOut).toHaveBeenCalledWith({ scope: "local" });
     expect(result.current.session).toBeNull();
     expect(result.current.usuario).toBeNull();
     expect(result.current.perfil).toBeNull();
@@ -282,7 +324,9 @@ describe("AuthContext", () => {
     expect(mockSignUp).toHaveBeenCalledWith({
       email: "paco@email.com",
       password: "password",
+      options: { emailRedirectTo: URL_CALLBACK },
     });
+    expect(mockCreateURL).toHaveBeenCalledWith("auth/callback");
   });
 
   test("crear cuenta con sesión devuelve sesion_iniciada y no toca bandas", async () => {
@@ -356,5 +400,97 @@ describe("AuthContext", () => {
     await unmount();
 
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  test("con la app cerrada procesa la URL inicial y la sesión entra por el listener", async () => {
+    const sesion = crearSesion("paco", "paco@email.com");
+    devolverPerfil("paco", "paco@email.com");
+    mockGetInitialURL.mockResolvedValue(
+      `${URL_CALLBACK}#access_token=access-falso&refresh_token=refresh-falso`
+    );
+
+    const { result } = await renderizarAuth();
+
+    await waitFor(() => expect(mockSetSession).toHaveBeenCalledTimes(1));
+    expect(mockSetSession).toHaveBeenCalledWith({
+      access_token: "access-falso",
+      refresh_token: "refresh-falso",
+    });
+    // setSession no fija la sesión directamente: llega por onAuthStateChange
+    expect(result.current.session).toBeNull();
+
+    await emitirCambioAuth("SIGNED_IN", sesion);
+    await waitFor(() => expect(result.current.perfil?.id).toBe("paco"));
+    expect(result.current.error).toBe("");
+  });
+
+  test("con la app abierta procesa la URL recibida", async () => {
+    await renderizarAuth();
+
+    await act(() => {
+      mockListenerUrl?.({ url: `${URL_CALLBACK}?code=code-falso` });
+    });
+
+    await waitFor(() => expect(mockExchange).toHaveBeenCalledTimes(1));
+    expect(mockExchange).toHaveBeenCalledWith("code-falso");
+    expect(mockSetSession).not.toHaveBeenCalled();
+  });
+
+  test("no procesa dos veces la misma URL", async () => {
+    const url = `${URL_CALLBACK}#access_token=access-falso&refresh_token=refresh-falso`;
+    mockGetInitialURL.mockResolvedValue(url);
+
+    await renderizarAuth();
+    await waitFor(() => expect(mockSetSession).toHaveBeenCalledTimes(1));
+
+    await act(() => {
+      mockListenerUrl?.({ url });
+    });
+
+    expect(mockSetSession).toHaveBeenCalledTimes(1);
+  });
+
+  test("un enlace fallido muestra un error genérico sin cerrar sesión", async () => {
+    mockGetInitialURL.mockResolvedValue(
+      `${URL_CALLBACK}#error=access_denied&error_code=otp_expired&error_description=Detalle+interno`
+    );
+
+    const { result } = await renderizarAuth();
+
+    await waitFor(() =>
+      expect(result.current.error).toBe("No se ha podido confirmar la cuenta")
+    );
+    expect(mockSetSession).not.toHaveBeenCalled();
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  test("una URL irrelevante no altera el estado", async () => {
+    mockGetInitialURL.mockResolvedValue("mibanda://tecnicos");
+
+    const { result } = await renderizarAuth();
+
+    await act(() => {
+      mockListenerUrl?.({ url: "mibanda://eventos?id=1" });
+    });
+
+    expect(result.current.error).toBe("");
+    expect(result.current.session).toBeNull();
+    expect(mockSetSession).not.toHaveBeenCalled();
+    expect(mockExchange).not.toHaveBeenCalled();
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
+  test("registra un único listener de enlaces y lo limpia al desmontar", async () => {
+    const { rerender, unmount } = await renderizarAuth();
+
+    await rerender({});
+
+    expect(mockAddEventListener).toHaveBeenCalledTimes(1);
+    expect(mockGetInitialURL).toHaveBeenCalledTimes(1);
+    expect(mockRemoveListener).not.toHaveBeenCalled();
+
+    await unmount();
+
+    expect(mockRemoveListener).toHaveBeenCalledTimes(1);
   });
 });

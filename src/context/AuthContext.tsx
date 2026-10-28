@@ -1,13 +1,16 @@
 import type { Session, User } from "@supabase/supabase-js";
+import * as Linking from "expo-linking";
 import {
   createContext,
   type PropsWithChildren,
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
+import { procesarEnlaceAuth, RUTA_CALLBACK_AUTH } from "../lib/auth-deep-link";
 import { supabase } from "../lib/supabase";
 import type { PerfilUsuario } from "../types/usuario";
 
@@ -49,6 +52,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   // Id del usuario cuyo perfil ya se ha intentado cargar (con éxito o no)
   const [perfilResueltoId, setPerfilResueltoId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // Un mismo enlace puede llegar como URL inicial y como evento: solo se procesa una vez
+  const enlacesProcesados = useRef(new Set<string>());
 
   const usuario = session?.user ?? null;
   const usuarioId = usuario?.id ?? null;
@@ -84,6 +89,41 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       activo = false;
       data.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Enlace de confirmación del correo: con la app cerrada (URL inicial) o ya abierta (evento)
+  useEffect(() => {
+    let activo = true;
+
+    async function procesarEnlace(url: string | null) {
+      if (url === null || enlacesProcesados.current.has(url)) {
+        return;
+      }
+
+      enlacesProcesados.current.add(url);
+
+      // Sin navegación manual: la sesión llega por onAuthStateChange y AppAuthGate decide
+      const resultado = await procesarEnlaceAuth(url, supabase.auth);
+
+      if (activo && resultado === "error") {
+        setError("No se ha podido confirmar la cuenta");
+      }
+    }
+
+    Linking.getInitialURL()
+      .then(procesarEnlace)
+      .catch(() => {
+        // Sin URL inicial legible no hay nada que confirmar
+      });
+
+    const suscripcion = Linking.addEventListener("url", ({ url }) => {
+      void procesarEnlace(url);
+    });
+
+    return () => {
+      activo = false;
+      suscripcion.remove();
     };
   }, []);
 
@@ -171,6 +211,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const { data, error: errorRegistro } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
+          options: {
+            // mibanda://auth/callback en una build; exp://.../--/auth/callback en Expo Go
+            emailRedirectTo: Linking.createURL(RUTA_CALLBACK_AUTH),
+          },
         });
 
         if (errorRegistro) {
@@ -201,7 +245,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setError("");
 
     try {
-      const { error: errorSalida } = await supabase.auth.signOut();
+      const { error: errorSalida } = await supabase.auth.signOut({ scope: "local" });
 
       if (errorSalida) {
         setError("No se ha podido cerrar sesión");

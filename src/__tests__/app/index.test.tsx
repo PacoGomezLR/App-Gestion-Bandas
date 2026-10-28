@@ -46,6 +46,15 @@ jest.mock("../../components/FormularioEvento", () => {
   };
 });
 
+// El botón real usa AuthContext (cliente Supabase); su comportamiento se prueba aparte
+jest.mock("../../components/BotonCerrarSesion", () => {
+  const { Text } = require("react-native");
+
+  return {
+    BotonCerrarSesion: () => <Text>Cerrar sesión</Text>,
+  };
+});
+
 const mockUseEventosContext = jest.mocked(useEventosContext);
 const mockUseTecnicosContext = jest.mocked(useTecnicosContext);
 const mockUseMiembrosContext = jest.mocked(useMiembrosContext);
@@ -196,6 +205,16 @@ describe("Index", () => {
     await fireEvent.press(getByText("Ver todos"));
 
     expect(setFecha).toHaveBeenCalledWith("");
+  });
+
+  test("el Calendario ofrece Cerrar sesión", async () => {
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("", jest.fn())
+    );
+
+    const { getByText } = await render(<Index />);
+
+    expect(getByText("Cerrar sesión")).toBeTruthy();
   });
 
   test("sin fecha seleccionada muestra todos los eventos y no muestra Ver todos", async () => {

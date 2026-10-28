@@ -3,6 +3,7 @@ import {
   ScrollView,
   Text,
 } from "react-native";
+import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
 import { FormularioEvento } from "../components/FormularioEvento";
 import { ListaEventos } from "../components/ListaEventos";
 import { useEventosContext } from "../context/EventosContext";
@@ -68,6 +69,8 @@ export default function Index() {
         paddingBottom: 120,
       }}
     >
+      <BotonCerrarSesion />
+
       <Text>Calendario</Text>
 
       {errorPersistenciaEventos !== "" && (
