@@ -4,33 +4,21 @@ import { Button, Text, TextInput, View } from "react-native";
 
 import { eventosIniciales } from "../../data/eventosIniciales";
 import { inicializarBaseDeDatos } from "../../database/migrations";
-import {
-  eliminarEvento as eliminarEventoEnBase,
-  guardarEvento as guardarEventoEnBase,
-  listarEventos,
-} from "../../database/repositories/eventosRepository";
-import {
-  eliminarMiembro as eliminarMiembroEnBase,
-  guardarMiembro as guardarMiembroEnBase,
-  listarMiembros,
-} from "../../database/repositories/miembrosRepository";
+import { listarMiembros as listarMiembrosSqlite } from "../../database/repositories/miembrosRepository";
+import { ErrorRepositorio } from "../../services/supabase/errores";
+import type { DatosEvento } from "../../services/supabase/mapeoEventos";
 import type { Evento } from "../../types/evento";
 import type { Miembro } from "../../types/miembro";
+import { useBandaContext } from "../BandaContext";
 import { EventosProvider, useEventosContext } from "../EventosContext";
 import {
   MiembrosProvider,
   useMiembrosContext,
 } from "../MiembrosContext";
 
+// Supabase se simula solo para comprobar que ya no se usa como fuente ni como respaldo
 jest.mock("../../database/migrations", () => ({
   inicializarBaseDeDatos: jest.fn(),
-}));
-
-// EventosProvider forma parte del árbol, así que su repositorio también se sustituye
-jest.mock("../../database/repositories/eventosRepository", () => ({
-  listarEventos: jest.fn(),
-  guardarEvento: jest.fn(),
-  eliminarEvento: jest.fn(),
 }));
 
 jest.mock("../../database/repositories/miembrosRepository", () => ({
@@ -39,13 +27,64 @@ jest.mock("../../database/repositories/miembrosRepository", () => ({
   eliminarMiembro: jest.fn(),
 }));
 
+const mockListarEventos = jest.fn<Promise<Evento[]>, []>();
+const mockCrearEvento = jest.fn<Promise<Evento>, [DatosEvento]>();
+const mockActualizarEvento = jest.fn<Promise<Evento>, [Evento]>();
+const mockEliminarEventoEnBase = jest.fn<Promise<void>, [string]>();
+const mockRepositorioPedido = jest.fn<void, [string]>();
+const mockListarMiembros = jest.fn<Promise<Miembro[]>, []>();
+const mockCrearMiembro = jest.fn<Promise<Miembro>, [string]>();
+const mockActualizarMiembro = jest.fn<Promise<Miembro>, [Miembro]>();
+const mockEliminarMiembroEnBase = jest.fn<Promise<void>, [string]>();
+
+// EventosProvider forma parte del árbol, así que su repositorio también se sustituye
+jest.mock("../../services/supabase/eventos", () => ({
+  crearRepositorioEventosSupabase: () => ({
+    listar: () => mockListarEventos(),
+    crear: (...args: Parameters<typeof mockCrearEvento>) => mockCrearEvento(...args),
+    actualizar: (...args: Parameters<typeof mockActualizarEvento>) =>
+      mockActualizarEvento(...args),
+    eliminar: (id: string) => mockEliminarEventoEnBase(id),
+  }),
+}));
+
+jest.mock("../../services/supabase/personas", () => ({
+  crearRepositorioMiembrosSupabase: (bandaId: string) => {
+    mockRepositorioPedido(bandaId);
+
+    return {
+      listar: () => mockListarMiembros(),
+      crear: (nombre: string) => mockCrearMiembro(nombre),
+      actualizar: (...args: Parameters<typeof mockActualizarMiembro>) =>
+        mockActualizarMiembro(...args),
+      eliminar: (id: string) => mockEliminarMiembroEnBase(id),
+    };
+  },
+}));
+
+// Solo se simula el hook: el BandaContext real cargaría el cliente Supabase
+jest.mock("../BandaContext", () => ({
+  useBandaContext: jest.fn(),
+}));
+
 const mockInicializarBaseDeDatos = jest.mocked(inicializarBaseDeDatos);
-const mockListarEventos = jest.mocked(listarEventos);
-const mockGuardarEventoEnBase = jest.mocked(guardarEventoEnBase);
-const mockEliminarEventoEnBase = jest.mocked(eliminarEventoEnBase);
-const mockListarMiembros = jest.mocked(listarMiembros);
-const mockGuardarMiembroEnBase = jest.mocked(guardarMiembroEnBase);
-const mockEliminarMiembroEnBase = jest.mocked(eliminarMiembroEnBase);
+const mockListarMiembrosSqlite = jest.mocked(listarMiembrosSqlite);
+const mockUseBandaContext = jest.mocked(useBandaContext);
+
+function simularBanda(bandaId: string, esAdmin = true) {
+  mockUseBandaContext.mockReturnValue({
+    bandas: [],
+    bandaActual: { id: bandaId, nombre: `Banda ${bandaId}`, creadaPor: "u1", creadaEn: "2026-01-01" },
+    pertenenciaActual: null,
+    cargando: false,
+    errorCarga: "",
+    error: "",
+    esAdmin,
+    crearBanda: jest.fn(),
+    seleccionarBanda: jest.fn(),
+    recargarBandas: jest.fn(),
+  });
+}
 
 const miembrosGuardados: Miembro[] = [
   { id: "1", nombre: "Ana" },
@@ -199,12 +238,14 @@ function ConsumidorSinProvider() {
 describe("MiembrosContext", () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    mockInicializarBaseDeDatos.mockResolvedValue(undefined);
+    simularBanda("b1");
     mockListarEventos.mockResolvedValue(eventosIniciales);
-    mockGuardarEventoEnBase.mockResolvedValue(undefined);
+    mockCrearEvento.mockImplementation(async (datos) => ({ ...datos, id: "uuid-evento" }));
+    mockActualizarEvento.mockImplementation(async (evento) => evento);
     mockEliminarEventoEnBase.mockResolvedValue(undefined);
     mockListarMiembros.mockResolvedValue(miembrosGuardados);
-    mockGuardarMiembroEnBase.mockResolvedValue(undefined);
+    mockCrearMiembro.mockImplementation(async (nombre) => ({ id: `uuid-${nombre}`, nombre }));
+    mockActualizarMiembro.mockImplementation(async (miembro) => miembro);
     mockEliminarMiembroEnBase.mockResolvedValue(undefined);
   });
 
@@ -226,23 +267,24 @@ describe("MiembrosContext", () => {
     expect(getByText("Total en B: 3")).toBeTruthy();
   });
 
-  test("carga los miembros desde SQLite", async () => {
+  test("carga desde Supabase los músicos de la banda activa", async () => {
     const { getByText } = await renderizarConProvider(<ConsumidorB />);
 
     expect(getByText("Total en B: 2")).toBeTruthy();
     expect(getByText("B ve a Ana")).toBeTruthy();
     expect(getByText("B ve a Bruno")).toBeTruthy();
-    expect(mockInicializarBaseDeDatos.mock.invocationCallOrder[0]).toBeLessThan(
-      mockListarMiembros.mock.invocationCallOrder[0]
-    );
+    // Repositorio de la banda activa; SQLite ya no se consulta
+    expect(mockRepositorioPedido).toHaveBeenCalledWith("b1");
+    expect(mockInicializarBaseDeDatos).not.toHaveBeenCalled();
+    expect(mockListarMiembrosSqlite).not.toHaveBeenCalled();
   });
 
-  test("guarda en SQLite antes de añadir el miembro al estado", async () => {
+  test("guarda en Supabase antes de añadir el miembro al estado", async () => {
     let terminarGuardado: () => void = () => {};
-    mockGuardarMiembroEnBase.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          terminarGuardado = resolve;
+    mockCrearMiembro.mockImplementation(
+      (nombre) =>
+        new Promise<Miembro>((resolve) => {
+          terminarGuardado = () => resolve({ id: "uuid-carla", nombre });
         })
     );
 
@@ -257,11 +299,9 @@ describe("MiembrosContext", () => {
     await fireEvent.changeText(getByPlaceholderText("Nombre en A"), "Carla");
     await fireEvent.press(getByText("Guardar en A"));
 
-    // SQLite ya ha recibido el miembro, pero todavía no ha confirmado
-    expect(mockGuardarMiembroEnBase).toHaveBeenCalledWith({
-      id: expect.any(String),
-      nombre: "Carla",
-    });
+    // Supabase ya ha recibido el miembro, pero todavía no ha confirmado
+    // Sin id: lo genera Supabase
+    expect(mockCrearMiembro).toHaveBeenCalledWith("Carla");
     expect(queryByText("B ve a Carla")).toBeNull();
 
     await act(async () => {
@@ -271,8 +311,8 @@ describe("MiembrosContext", () => {
     expect(await findByText("B ve a Carla")).toBeTruthy();
   });
 
-  test("no añade el miembro si SQLite falla al guardar", async () => {
-    mockGuardarMiembroEnBase.mockRejectedValueOnce(new Error("disco lleno"));
+  test("no añade el miembro si Supabase falla al guardar", async () => {
+    mockCrearMiembro.mockRejectedValueOnce(new Error("disco lleno"));
 
     const { getByPlaceholderText, getByDisplayValue, getByText, queryByText, findByText } =
       await renderizarConProvider(
@@ -291,8 +331,8 @@ describe("MiembrosContext", () => {
     expect(getByDisplayValue("Carla")).toBeTruthy();
   });
 
-  test("no elimina el miembro si SQLite falla", async () => {
-    // Ana no está asignada a ningún evento: pasa la regla de negocio y llega a SQLite
+  test("no elimina el miembro si Supabase falla", async () => {
+    // Ana no está asignada a ningún evento: pasa la regla de negocio y llega a Supabase
     mockEliminarMiembroEnBase.mockRejectedValueOnce(new Error("bloqueada"));
 
     const { getByText, findByText } = await renderizarConProvider(
@@ -347,7 +387,7 @@ describe("MiembrosContext", () => {
     expect(getByText("Músico: Paco")).toBeTruthy();
     expect(getByText("Total músicos: 2")).toBeTruthy();
     expect(getByText("Asignación 10: 1")).toBeTruthy();
-    // La regla se aplica antes de llegar a SQLite
+    // La regla se aplica antes de llegar a Supabase
     expect(mockEliminarMiembroEnBase).not.toHaveBeenCalled();
   });
 
@@ -428,6 +468,84 @@ describe("MiembrosContext", () => {
     await act(async () => {
       terminarCargaEventos(eventosIniciales);
     });
+  });
+
+  test("si la clave foránea rechaza el borrado muestra un mensaje sin detalles técnicos", async () => {
+    // Paco no figura asignado en los eventos cargados, pero otro dispositivo lo asignó entretanto
+    mockListarMiembros.mockResolvedValue(musicos);
+    mockListarEventos.mockResolvedValue([]);
+    mockEliminarMiembroEnBase.mockRejectedValueOnce(new ErrorRepositorio("en_uso"));
+
+    const { getByText, queryByText, findByText } = await renderizarConProvider(
+      <ConsumidorMusicos />
+    );
+
+    await fireEvent.press(getByText("Eliminar Paco"));
+
+    expect(await findByText("Resultado: false")).toBeTruthy();
+    expect(
+      getByText("No se puede eliminar este músico porque está asignado a algún evento")
+    ).toBeTruthy();
+    expect(getByText("Músico: Paco")).toBeTruthy();
+    expect(queryByText(/23503|foreign key|violates/i)).toBeNull();
+  });
+
+  test("sin ser admin no llama al repositorio para crear ni eliminar", async () => {
+    simularBanda("b1", false);
+
+    const { getByPlaceholderText, getByText, findByText } =
+      await renderizarConProvider(
+        <>
+          <ConsumidorA />
+          <ConsumidorB />
+        </>
+      );
+
+    await fireEvent.changeText(getByPlaceholderText("Nombre en A"), "Carla");
+    await fireEvent.press(getByText("Guardar en A"));
+
+    expect(await findByText("No se ha podido guardar el músico")).toBeTruthy();
+
+    await fireEvent.press(getByText("Eliminar miembro 1"));
+
+    expect(await findByText("No se ha podido eliminar el músico")).toBeTruthy();
+    expect(mockCrearMiembro).not.toHaveBeenCalled();
+    expect(mockActualizarMiembro).not.toHaveBeenCalled();
+    expect(mockEliminarMiembroEnBase).not.toHaveBeenCalled();
+    expect(getByText("Total en B: 2")).toBeTruthy();
+  });
+
+  test("al cambiar de banda descarta los músicos anteriores y carga los nuevos", async () => {
+    mockListarMiembros
+      .mockResolvedValueOnce(miembrosGuardados)
+      .mockResolvedValueOnce([{ id: "x1", nombre: "Xavi" }]);
+
+    const arbol = (
+      <EventosProvider>
+        <MiembrosProvider>
+          <ConsumidorB />
+          <EstadoCarga />
+        </MiembrosProvider>
+      </EventosProvider>
+    );
+
+    const { rerender, queryByText, findByText } = await render(arbol);
+
+    expect(await findByText("B ve a Ana")).toBeTruthy();
+
+    simularBanda("b2");
+    await rerender(
+      <EventosProvider>
+        <MiembrosProvider>
+          <ConsumidorB />
+          <EstadoCarga />
+        </MiembrosProvider>
+      </EventosProvider>
+    );
+
+    expect(await findByText("B ve a Xavi")).toBeTruthy();
+    expect(queryByText("B ve a Ana")).toBeNull();
+    expect(mockRepositorioPedido).toHaveBeenCalledWith("b2");
   });
 
   test("falla si se usa fuera del provider", async () => {

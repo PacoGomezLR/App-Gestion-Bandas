@@ -10,6 +10,8 @@ export function crearEstilosBotonCerrarSesion(colores: ColoresTema) {
     contenedor: {
       alignItems: "flex-end",
       gap: Spacing.one,
+      // Se suma al margen de la barra de estado que añade SafeAreaView
+      paddingTop: Spacing.two,
     },
     boton: {
       minHeight: 44,

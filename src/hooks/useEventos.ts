@@ -7,7 +7,8 @@ const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 interface UseEventosOptions {
   datosIniciales?: Evento[];
-  persistirEvento?: (evento: Evento) => Promise<boolean>;
+  // Devuelve el evento tal como quedó guardado (con el id definitivo) o null si falla
+  persistirEvento?: (evento: Evento, esNuevo: boolean) => Promise<Evento | null>;
   eliminarEventoPersistido?: (id: string) => Promise<boolean>;
 }
 
@@ -118,22 +119,22 @@ export function useEventos(options: UseEventosOptions = {}) {
 
       // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
       const persistido = persistirEvento
-        ? await persistirEvento(eventoGuardado)
-        : true;
+        ? await persistirEvento(eventoGuardado, !editando)
+        : eventoGuardado;
 
-      if (!persistido) {
+      if (persistido === null) {
         return false;
       }
 
       if (editando) {
         setEventos((eventosActuales) =>
           eventosActuales.map((evento) =>
-            evento.id === eventoGuardado.id ? eventoGuardado : evento
+            evento.id === persistido.id ? persistido : evento
           )
         );
         setEventoEditandoId(null);
       } else {
-        setEventos((eventosActuales) => [...eventosActuales, eventoGuardado]);
+        setEventos((eventosActuales) => [...eventosActuales, persistido]);
       }
 
       limpiarFormulario();

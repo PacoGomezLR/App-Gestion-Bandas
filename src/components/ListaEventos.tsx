@@ -12,6 +12,8 @@ interface ListaEventosProps {
   tecnicos: Tecnico[];
   miembros: Miembro[];
   procesando: boolean;
+  // Solo el admin de la banda edita o elimina; el resto solo consulta
+  puedeEditar: boolean;
   onEliminar: (id: string) => void;
   onEditar: (evento: Evento) => void;
 }
@@ -24,7 +26,7 @@ function obtenerTituloVistaPrevia(evento: Evento): string {
   return lugar ? `${tipo} ${lugar}` : tipo;
 }
 
-export function ListaEventos({ eventos, tecnicos, miembros, procesando, onEliminar, onEditar }: ListaEventosProps) {
+export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEditar, onEliminar, onEditar }: ListaEventosProps) {
   // Solo un evento desplegado a la vez; no se persiste
   const [eventoAbiertoId, setEventoAbiertoId] = useState<string | null>(null);
 
@@ -89,17 +91,21 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, onElimin
                 )}
                 {evento.notas !== "" && <Text>Nota: {evento.notas}</Text>}
 
-                <Button
-                  title="Editar"
-                  onPress={() => onEditar(evento)}
-                  disabled={procesando}
-                />
+                {puedeEditar && (
+                  <>
+                    <Button
+                      title="Editar"
+                      onPress={() => onEditar(evento)}
+                      disabled={procesando}
+                    />
 
-                <Button
-                  title="Eliminar"
-                  onPress={() => onEliminar(evento.id)}
-                  disabled={procesando}
-                />
+                    <Button
+                      title="Eliminar"
+                      onPress={() => onEliminar(evento.id)}
+                      disabled={procesando}
+                    />
+                  </>
+                )}
               </View>
             )}
           </View>

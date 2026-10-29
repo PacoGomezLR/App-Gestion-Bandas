@@ -19,6 +19,7 @@ describe("ListaTecnicos", () => {
       <ListaTecnicos
         tecnicos={tecnicos}
         procesando={false}
+        puedeEditar
         onEditar={jest.fn()}
         onEliminar={jest.fn()}
       />
@@ -35,6 +36,7 @@ describe("ListaTecnicos", () => {
       <ListaTecnicos
         tecnicos={tecnicos}
         procesando={false}
+        puedeEditar
         onEditar={onEditar}
         onEliminar={jest.fn()}
       />
@@ -53,6 +55,7 @@ describe("ListaTecnicos", () => {
       <ListaTecnicos
         tecnicos={tecnicos}
         procesando={false}
+        puedeEditar
         onEditar={jest.fn()}
         onEliminar={onEliminar}
       />
@@ -72,6 +75,7 @@ describe("ListaTecnicos", () => {
       <ListaTecnicos
         tecnicos={tecnicos}
         procesando={true}
+        puedeEditar
         onEditar={onEditar}
         onEliminar={onEliminar}
       />
@@ -85,5 +89,23 @@ describe("ListaTecnicos", () => {
 
     expect(onEditar).not.toHaveBeenCalled();
     expect(onEliminar).not.toHaveBeenCalled();
+  });
+
+  test("sin permiso de edición muestra los nombres sin Editar ni Eliminar", async () => {
+    const { getByText, queryByText } = await render(
+      <ListaTecnicos
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar={false}
+        onEditar={jest.fn()}
+        onEliminar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Carlos")).toBeTruthy();
+    expect(getByText("Miguel")).toBeTruthy();
+    expect(queryByText("Editar")).toBeNull();
+    expect(queryByText("Eliminar")).toBeNull();
+    expect(queryByText(/admin|usuario|solo lectura/i)).toBeNull();
   });
 });

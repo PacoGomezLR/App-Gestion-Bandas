@@ -80,7 +80,7 @@ const fiesta: Evento = {
   miembroIds: [],
 };
 
-async function renderizar(lista: Evento[], procesando = false) {
+async function renderizar(lista: Evento[], procesando = false, puedeEditar = true) {
   const onEliminar = jest.fn();
   const onEditar = jest.fn();
 
@@ -90,6 +90,7 @@ async function renderizar(lista: Evento[], procesando = false) {
       tecnicos={tecnicos}
       miembros={miembros}
       procesando={procesando}
+      puedeEditar={puedeEditar}
       onEliminar={onEliminar}
       onEditar={onEditar}
     />
@@ -370,5 +371,19 @@ describe("ListaEventos", () => {
 
     expect(onEditar).not.toHaveBeenCalled();
     expect(onEliminar).not.toHaveBeenCalled();
+  });
+
+  test("sin permiso de edición abre el detalle completo pero sin Editar ni Eliminar", async () => {
+    const { getByText, queryByText } = await renderizar(eventos, false, false);
+
+    await abrir("Concierto abierto");
+
+    expect(getByText("Título: Concierto en Sevilla")).toBeTruthy();
+    expect(getByText("Técnico: Carlos, Miguel")).toBeTruthy();
+    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
+    expect(queryByText("Editar")).toBeNull();
+    expect(queryByText("Eliminar")).toBeNull();
+    // No se enseña el rol
+    expect(queryByText(/admin|usuario|solo lectura/i)).toBeNull();
   });
 });

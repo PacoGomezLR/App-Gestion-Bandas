@@ -2,6 +2,7 @@ import { ScrollView, Text } from "react-native";
 
 import { FormularioMiembro } from "../components/FormularioMiembro";
 import { ListaMiembros } from "../components/ListaMiembros";
+import { useBandaContext } from "../context/BandaContext";
 import { useEventosContext } from "../context/EventosContext";
 import { useMiembrosContext } from "../context/MiembrosContext";
 
@@ -26,6 +27,9 @@ export default function MiembrosScreen() {
     cargando: cargandoEventos,
   } = useEventosContext();
 
+  // Sin rol visible: a quien no es admin simplemente no se le ofrecen las acciones
+  const { esAdmin } = useBandaContext();
+
   if (cargando || cargandoEventos) {
     return <Text>Cargando datos...</Text>;
   }
@@ -38,15 +42,17 @@ export default function MiembrosScreen() {
     >
       <Text>Músicos</Text>
 
-      <FormularioMiembro
-        nombre={nombre}
-        error={error}
-        editando={miembroEditandoId !== null}
-        procesando={procesando}
-        onCambiarNombre={setNombre}
-        onGuardar={guardarMiembro}
-        onCancelar={cancelarEdicion}
-      />
+      {esAdmin && (
+        <FormularioMiembro
+          nombre={nombre}
+          error={error}
+          editando={miembroEditandoId !== null}
+          procesando={procesando}
+          onCambiarNombre={setNombre}
+          onGuardar={guardarMiembro}
+          onCancelar={cancelarEdicion}
+        />
+      )}
 
       {errorPersistencia !== "" && (
         <Text>{errorPersistencia}</Text>
@@ -59,6 +65,7 @@ export default function MiembrosScreen() {
       <ListaMiembros
         miembros={miembros}
         procesando={procesando}
+        puedeEditar={esAdmin}
         onEditar={prepararEdicion}
         onEliminar={eliminarMiembro}
       />

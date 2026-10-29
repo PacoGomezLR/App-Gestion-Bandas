@@ -4,7 +4,8 @@ import type { Miembro } from "../types/miembro";
 
 interface UseMiembrosOptions {
   datosIniciales?: Miembro[];
-  persistirMiembro?: (miembro: Miembro) => Promise<boolean>;
+  // Devuelve el registro tal como quedó guardado (con el id definitivo) o null si falla
+  persistirMiembro?: (miembro: Miembro, esNuevo: boolean) => Promise<Miembro | null>;
   eliminarMiembroPersistido?: (id: string) => Promise<boolean>;
 }
 
@@ -70,21 +71,21 @@ export function useMiembros(options: UseMiembrosOptions = {}) {
 
       // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
       const persistido = persistirMiembro
-        ? await persistirMiembro(miembroGuardado)
-        : true;
+        ? await persistirMiembro(miembroGuardado, !editando)
+        : miembroGuardado;
 
-      if (!persistido) {
+      if (persistido === null) {
         return false;
       }
 
       if (editando) {
         setMiembros((miembrosActuales) =>
           miembrosActuales.map((miembro) =>
-            miembro.id === miembroGuardado.id ? miembroGuardado : miembro
+            miembro.id === persistido.id ? persistido : miembro
           )
         );
       } else {
-        setMiembros((miembrosActuales) => [...miembrosActuales, miembroGuardado]);
+        setMiembros((miembrosActuales) => [...miembrosActuales, persistido]);
       }
 
       limpiarFormulario();

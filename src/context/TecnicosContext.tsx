@@ -4,17 +4,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
-import { inicializarBaseDeDatos } from "../database/migrations";
-import {
-  eliminarTecnico as eliminarTecnicoEnBase,
-  guardarTecnico as guardarTecnicoEnBase,
-  listarTecnicos,
-} from "../database/repositories/tecnicosRepository";
 import { useTecnicos } from "../hooks/useTecnicos";
+import { esErrorEnUso } from "../services/supabase/errores";
+import { crearRepositorioTecnicosSupabase } from "../services/supabase/personas";
 import type { Tecnico } from "../types/tecnico";
+import { useBandaContext } from "./BandaContext";
 import { useEventosContext } from "./EventosContext";
 
 type UseTecnicosValue = ReturnType<typeof useTecnicos>;
@@ -30,63 +28,109 @@ type TecnicosContextValue =
 const TecnicosContext =
   createContext<TecnicosContextValue | null>(null);
 
+// Supabase es la fuente de verdad: los técnicos son siempre los de la banda actual
 export function TecnicosProvider({
   children,
 }: PropsWithChildren) {
+  const { bandaActual, esAdmin } = useBandaContext();
+  const bandaId = bandaActual?.id ?? null;
   const [cargando, setCargando] = useState(true);
   const [errorPersistencia, setErrorPersistencia] = useState("");
+  const [errorEliminacion, setErrorEliminacion] =
+    useState("");
 
-  const persistirTecnico = useCallback(async (tecnico: Tecnico) => {
-    try {
-      await guardarTecnicoEnBase(tecnico);
-      setErrorPersistencia("");
-      return true;
-    } catch {
-      setErrorPersistencia("No se ha podido guardar el técnico");
-      return false;
-    }
-  }, []);
+  const repositorio = useMemo(
+    () => (bandaId === null ? null : crearRepositorioTecnicosSupabase(bandaId)),
+    [bandaId]
+  );
 
-  const eliminarTecnicoPersistido = useCallback(async (id: string) => {
-    try {
-      await eliminarTecnicoEnBase(id);
-      setErrorPersistencia("");
-      return true;
-    } catch {
-      setErrorPersistencia("No se ha podido eliminar el técnico");
-      return false;
-    }
-  }, []);
+  // Segunda barrera tras ocultar los controles: sin ser admin no se llama al repositorio
+  const persistirTecnico = useCallback(
+    async (tecnico: Tecnico, esNuevo: boolean) => {
+      if (repositorio === null || !esAdmin) {
+        setErrorPersistencia("No se ha podido guardar el técnico");
+        return null;
+      }
+
+      try {
+        const guardado = esNuevo
+          ? await repositorio.crear(tecnico.nombre)
+          : await repositorio.actualizar(tecnico);
+        setErrorPersistencia("");
+        return guardado;
+      } catch {
+        setErrorPersistencia("No se ha podido guardar el técnico");
+        return null;
+      }
+    },
+    [repositorio, esAdmin]
+  );
+
+  const eliminarTecnicoPersistido = useCallback(
+    async (id: string) => {
+      if (repositorio === null || !esAdmin) {
+        setErrorPersistencia("No se ha podido eliminar el técnico");
+        return false;
+      }
+
+      try {
+        await repositorio.eliminar(id);
+        setErrorPersistencia("");
+        return true;
+      } catch (error) {
+        // Otro dispositivo lo asignó entre la comprobación y el borrado: lo frena la clave foránea
+        if (esErrorEnUso(error)) {
+          setErrorEliminacion(
+            "No se puede eliminar este técnico porque está asignado a algún evento"
+          );
+        } else {
+          setErrorPersistencia("No se ha podido eliminar el técnico");
+        }
+
+        return false;
+      }
+    },
+    [repositorio, esAdmin]
+  );
 
   const tecnicosState = useTecnicos({
     datosIniciales: [],
     persistirTecnico,
     eliminarTecnicoPersistido,
   });
+
   const {
     eventos,
     cargando: cargandoEventos,
   } = useEventosContext();
 
-  const [errorEliminacion, setErrorEliminacion] =
-    useState("");
-
   const { reemplazarTecnicos } = tecnicosState;
 
+  // Al cambiar de banda se descartan los técnicos anteriores antes de cargar los nuevos
   useEffect(() => {
     let activo = true;
 
-    async function cargarTecnicos() {
-      try {
-        await inicializarBaseDeDatos();
-        const tecnicosGuardados = await listarTecnicos();
+    reemplazarTecnicos([]);
+    setErrorPersistencia("");
+    setErrorEliminacion("");
 
+    if (repositorio === null) {
+      setCargando(false);
+      return;
+    }
+
+    setCargando(true);
+
+    async function cargarTecnicos(repositorioBanda: NonNullable<typeof repositorio>) {
+      try {
+        const tecnicosGuardados = await repositorioBanda.listar();
+
+        // Una respuesta de una banda anterior no sobrescribe la actual
         if (!activo) {
           return;
         }
 
         reemplazarTecnicos(tecnicosGuardados);
-        setErrorPersistencia("");
       } catch {
         if (activo) {
           setErrorPersistencia("No se han podido cargar los técnicos");
@@ -98,12 +142,12 @@ export function TecnicosProvider({
       }
     }
 
-    void cargarTecnicos();
+    void cargarTecnicos(repositorio);
 
     return () => {
       activo = false;
     };
-  }, [reemplazarTecnicos]);
+  }, [repositorio, reemplazarTecnicos]);
 
   async function eliminarTecnico(id: string): Promise<boolean> {
     // Sin los eventos cargados no se puede saber si el técnico está asignado
@@ -119,7 +163,7 @@ export function TecnicosProvider({
       evento.tecnicoIds.includes(id)
     );
 
-    // La regla se comprueba antes de tocar la base; la FK RESTRICT queda como segunda barrera
+    // La regla se comprueba antes de tocar la base; la clave foránea queda como segunda barrera
     if (eventosAsignados.length > 0) {
       const cantidad = eventosAsignados.length;
 

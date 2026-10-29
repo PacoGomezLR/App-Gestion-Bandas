@@ -5,7 +5,8 @@ import type { Tecnico } from "../types/tecnico";
 
 interface UseTecnicosOptions {
   datosIniciales?: Tecnico[];
-  persistirTecnico?: (tecnico: Tecnico) => Promise<boolean>;
+  // Devuelve el registro tal como quedó guardado (con el id definitivo) o null si falla
+  persistirTecnico?: (tecnico: Tecnico, esNuevo: boolean) => Promise<Tecnico | null>;
   eliminarTecnicoPersistido?: (id: string) => Promise<boolean>;
 }
 
@@ -67,22 +68,22 @@ export function useTecnicos(options: UseTecnicosOptions = {}) {
 
       // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
       const persistido = persistirTecnico
-        ? await persistirTecnico(tecnicoGuardado)
-        : true;
+        ? await persistirTecnico(tecnicoGuardado, !editando)
+        : tecnicoGuardado;
 
-      if (!persistido) {
+      if (persistido === null) {
         return false;
       }
 
       if (editando) {
         setTecnicos((tecnicosActuales) =>
           tecnicosActuales.map((tecnico) =>
-            tecnico.id === tecnicoGuardado.id ? tecnicoGuardado : tecnico
+            tecnico.id === persistido.id ? persistido : tecnico
           )
         );
         setTecnicoEditandoId(null);
       } else {
-        setTecnicos((tecnicosActuales) => [...tecnicosActuales, tecnicoGuardado]);
+        setTecnicos((tecnicosActuales) => [...tecnicosActuales, persistido]);
       }
 
       setNombre("");

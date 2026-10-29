@@ -293,7 +293,7 @@ describe("useEventos", () => {
 
   test("no guarda localmente si falla la persistencia", async () => {
     const { result } = await renderHook(() =>
-      useEventos({ persistirEvento: async () => false })
+      useEventos({ persistirEvento: async () => null })
     );
 
     const eventosOriginales = [...result.current.eventos];
@@ -336,7 +336,7 @@ describe("useEventos", () => {
   });
 
   test("persiste exactamente el evento que se guarda", async () => {
-    const persistirEvento = jest.fn(async (_evento: Evento) => true);
+    const persistirEvento = jest.fn(async (evento: Evento) => evento);
 
     const { result } = await renderHook(() =>
       useEventos({ persistirEvento })
@@ -425,7 +425,7 @@ describe("useEventos", () => {
   });
 
   test("rechaza una hora con formato incorrecto sin persistir", async () => {
-    const persistirEvento = jest.fn(async (_evento: Evento) => true);
+    const persistirEvento = jest.fn(async (evento: Evento) => evento);
     const { result } = await renderHook(() =>
       useEventos({ persistirEvento })
     );
@@ -770,7 +770,9 @@ describe("useEventos", () => {
       resolverPersistencia = resolve;
     });
 
-    const persistirEvento = jest.fn((_evento: Evento) => persistenciaPendiente);
+    const persistirEvento = jest.fn((evento: Evento) =>
+      persistenciaPendiente.then((ok) => (ok ? evento : null))
+    );
 
     const { result } = await renderHook(() =>
       useEventos({ persistirEvento })
@@ -863,7 +865,8 @@ describe("useEventos", () => {
     });
 
     const { result } = await renderHook(() =>
-      useEventos({ persistirEvento: () => persistenciaPendiente })
+      useEventos({ persistirEvento: (evento: Evento) =>
+          persistenciaPendiente.then((ok) => (ok ? evento : null)) })
     );
 
     await act(() => {
@@ -901,10 +904,10 @@ describe("useEventos", () => {
 
   test("libera el bloqueo aunque la persistencia falle o lance un error", async () => {
     const persistirEvento = jest
-      .fn<Promise<boolean>, [Evento]>()
-      .mockResolvedValueOnce(false)
+      .fn<Promise<Evento | null>, [Evento, boolean]>()
+      .mockResolvedValueOnce(null)
       .mockRejectedValueOnce(new Error("fallo inesperado"))
-      .mockResolvedValueOnce(true);
+      .mockImplementationOnce(async (evento) => evento);
 
     const { result } = await renderHook(() =>
       useEventos({ persistirEvento })
@@ -941,5 +944,42 @@ describe("useEventos", () => {
     expect(persistirEvento).toHaveBeenCalledTimes(3);
     expect(result.current.eventos).toHaveLength(4);
     expect(result.current.procesando).toBe(false);
+  });
+
+  test("guarda en el estado el evento devuelto por la persistencia, con su id definitivo", async () => {
+    const persistirEvento = jest.fn(async (evento: Evento, esNuevo: boolean) =>
+      esNuevo ? { ...evento, id: "uuid-supabase" } : evento
+    );
+
+    const { result } = await renderHook(() =>
+      useEventos({ datosIniciales: [], persistirEvento })
+    );
+
+    await act(() => {
+      result.current.setTitulo("Concierto en Sevilla");
+      result.current.setFecha("2026-11-15");
+    });
+
+    await act(async () => {
+      await result.current.guardarEvento();
+    });
+
+    expect(persistirEvento.mock.calls[0][1]).toBe(true);
+    expect(result.current.eventos.map((evento) => evento.id)).toEqual(["uuid-supabase"]);
+
+    // Al editarlo se indica que no es nuevo y se conserva el id definitivo
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+      result.current.setTitulo("Concierto en Sevilla (cambiado)");
+    });
+
+    await act(async () => {
+      await result.current.guardarEvento();
+    });
+
+    expect(persistirEvento.mock.calls[1][1]).toBe(false);
+    expect(persistirEvento.mock.calls[1][0].id).toBe("uuid-supabase");
+    expect(result.current.eventos).toHaveLength(1);
+    expect(result.current.eventos[0].titulo).toBe("Concierto en Sevilla (cambiado)");
   });
 });

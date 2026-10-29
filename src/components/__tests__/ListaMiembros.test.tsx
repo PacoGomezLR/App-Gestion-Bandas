@@ -16,6 +16,7 @@ describe("ListaMiembros", () => {
       <ListaMiembros
         miembros={miembros}
         procesando={false}
+        puedeEditar
         onEditar={onEditar}
         onEliminar={onEliminar}
       />
@@ -39,6 +40,7 @@ describe("ListaMiembros", () => {
       <ListaMiembros
         miembros={miembros}
         procesando={true}
+        puedeEditar
         onEditar={onEditar}
         onEliminar={onEliminar}
       />
@@ -52,5 +54,23 @@ describe("ListaMiembros", () => {
 
     expect(onEditar).not.toHaveBeenCalled();
     expect(onEliminar).not.toHaveBeenCalled();
+  });
+
+  test("sin permiso de edición muestra los nombres sin Editar ni Eliminar", async () => {
+    const { getByText, queryByText } = await render(
+      <ListaMiembros
+        miembros={miembros}
+        procesando={false}
+        puedeEditar={false}
+        onEditar={jest.fn()}
+        onEliminar={jest.fn()}
+      />
+    );
+
+    expect(getByText("Ana")).toBeTruthy();
+    expect(getByText("Bruno")).toBeTruthy();
+    expect(queryByText("Editar")).toBeNull();
+    expect(queryByText("Eliminar")).toBeNull();
+    expect(queryByText(/admin|usuario|solo lectura/i)).toBeNull();
   });
 });

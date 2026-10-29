@@ -5,6 +5,8 @@ import type { Miembro } from "../types/miembro";
 interface ListaMiembrosProps {
   miembros: Miembro[];
   procesando: boolean;
+  // Solo el admin de la banda edita o elimina; el resto solo consulta
+  puedeEditar: boolean;
   onEditar: (miembro: Miembro) => void;
   onEliminar: (id: string) => void;
 }
@@ -12,6 +14,7 @@ interface ListaMiembrosProps {
 export function ListaMiembros({
   miembros,
   procesando,
+  puedeEditar,
   onEditar,
   onEliminar,
 }: ListaMiembrosProps) {
@@ -23,17 +26,21 @@ export function ListaMiembros({
             {miembro.nombre}
           </Text>
 
-          <Button
-            title="Editar"
-            onPress={() => onEditar(miembro)}
-            disabled={procesando}
-          />
+          {puedeEditar && (
+            <>
+              <Button
+                title="Editar"
+                onPress={() => onEditar(miembro)}
+                disabled={procesando}
+              />
 
-          <Button
-            title="Eliminar"
-            onPress={() => onEliminar(miembro.id)}
-            disabled={procesando}
-          />
+              <Button
+                title="Eliminar"
+                onPress={() => onEliminar(miembro.id)}
+                disabled={procesando}
+              />
+            </>
+          )}
         </View>
       ))}
     </View>

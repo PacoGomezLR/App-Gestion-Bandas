@@ -1,9 +1,13 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import Index from "../../app/index";
+import { useBandaContext } from "../../context/BandaContext";
 import { useEventosContext } from "../../context/EventosContext";
 import { useMiembrosContext } from "../../context/MiembrosContext";
 import { useTecnicosContext } from "../../context/TecnicosContext";
 import type { Evento } from "../../types/evento";
+
+// Los contextos reales importan el cliente Supabase; aquí nunca se usa
+jest.mock("../../lib/supabase", () => ({ supabase: {} }));
 
 jest.mock("../../context/EventosContext", () => ({
   ...jest.requireActual("../../context/EventosContext"),
@@ -26,13 +30,16 @@ jest.mock("../../components/ListaEventos", () => {
   return {
     ListaEventos: ({
       eventos,
+      puedeEditar,
     }: {
       eventos: Array<{ id: string; titulo: string }>;
+      puedeEditar: boolean;
     }) => (
       <View>
         {eventos.map((evento) => (
           <Text key={evento.id}>{evento.titulo}</Text>
         ))}
+        {puedeEditar && <Text>Acciones de edición</Text>}
       </View>
     ),
   };
@@ -46,6 +53,19 @@ jest.mock("../../components/FormularioEvento", () => {
   };
 });
 
+jest.mock("../../components/CalendarioEventos", () => {
+  const { Text } = require("react-native");
+
+  return {
+    CalendarioEventos: () => <Text>Calendario simulado</Text>,
+  };
+});
+
+// Solo se simula el hook: el BandaContext real cargaría el cliente Supabase
+jest.mock("../../context/BandaContext", () => ({
+  useBandaContext: jest.fn(),
+}));
+
 // El botón real usa AuthContext (cliente Supabase); su comportamiento se prueba aparte
 jest.mock("../../components/BotonCerrarSesion", () => {
   const { Text } = require("react-native");
@@ -58,6 +78,22 @@ jest.mock("../../components/BotonCerrarSesion", () => {
 const mockUseEventosContext = jest.mocked(useEventosContext);
 const mockUseTecnicosContext = jest.mocked(useTecnicosContext);
 const mockUseMiembrosContext = jest.mocked(useMiembrosContext);
+const mockUseBandaContext = jest.mocked(useBandaContext);
+
+function simularPermisos(esAdmin: boolean) {
+  mockUseBandaContext.mockReturnValue({
+    bandas: [],
+    bandaActual: { id: "b1", nombre: "Cathaline", creadaPor: "u1", creadaEn: "2026-01-01" },
+    pertenenciaActual: null,
+    cargando: false,
+    errorCarga: "",
+    error: "",
+    esAdmin,
+    crearBanda: jest.fn(),
+    seleccionarBanda: jest.fn(),
+    recargarBandas: jest.fn(),
+  });
+}
 
 const eventos: Evento[] = [
   {
@@ -187,6 +223,35 @@ describe("Index", () => {
   beforeEach(() => {
     mockUseTecnicosContext.mockReturnValue(crearValorUseTecnicosContext());
     mockUseMiembrosContext.mockReturnValue(crearValorUseMiembrosContext());
+    simularPermisos(true);
+  });
+
+  test("el admin ve el formulario y las acciones de edición", async () => {
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("", jest.fn())
+    );
+
+    const { getByText } = await render(<Index />);
+
+    expect(getByText("Formulario simulado")).toBeTruthy();
+    expect(getByText("Acciones de edición")).toBeTruthy();
+  });
+
+  test("sin ser admin ve el calendario y los eventos, pero ni formulario ni acciones", async () => {
+    simularPermisos(false);
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("", jest.fn())
+    );
+
+    const { getByText, queryByText } = await render(<Index />);
+
+    expect(getByText("Calendario simulado")).toBeTruthy();
+    expect(getByText("Concierto en Córdoba")).toBeTruthy();
+    expect(getByText("Ensayo general")).toBeTruthy();
+    expect(queryByText("Formulario simulado")).toBeNull();
+    expect(queryByText("Acciones de edición")).toBeNull();
+    // No se enseña el rol
+    expect(queryByText(/admin|usuario|solo lectura/i)).toBeNull();
   });
 
   test("con fecha seleccionada muestra solo sus eventos y permite ver todos", async () => {

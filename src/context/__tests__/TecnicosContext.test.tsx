@@ -5,31 +5,21 @@ import { Button, Text, TextInput, View } from "react-native";
 import { eventosIniciales } from "../../data/eventosIniciales";
 import { tecnicosIniciales } from "../../data/tecnicosIniciales";
 import { inicializarBaseDeDatos } from "../../database/migrations";
-import {
-  eliminarEvento as eliminarEventoEnBase,
-  guardarEvento as guardarEventoEnBase,
-  listarEventos,
-} from "../../database/repositories/eventosRepository";
-import {
-  eliminarTecnico as eliminarTecnicoEnBase,
-  guardarTecnico as guardarTecnicoEnBase,
-  listarTecnicos,
-} from "../../database/repositories/tecnicosRepository";
+import { listarTecnicos as listarTecnicosSqlite } from "../../database/repositories/tecnicosRepository";
+import { ErrorRepositorio } from "../../services/supabase/errores";
+import type { DatosEvento } from "../../services/supabase/mapeoEventos";
+import type { Evento } from "../../types/evento";
+import type { Tecnico } from "../../types/tecnico";
+import { useBandaContext } from "../BandaContext";
 import { EventosProvider, useEventosContext } from "../EventosContext";
 import {
   TecnicosProvider,
   useTecnicosContext,
 } from "../TecnicosContext";
 
+// Supabase se simula solo para comprobar que ya no se usa como fuente ni como respaldo
 jest.mock("../../database/migrations", () => ({
   inicializarBaseDeDatos: jest.fn(),
-}));
-
-// EventosProvider forma parte del árbol, así que su repositorio también se sustituye
-jest.mock("../../database/repositories/eventosRepository", () => ({
-  listarEventos: jest.fn(),
-  guardarEvento: jest.fn(),
-  eliminarEvento: jest.fn(),
 }));
 
 jest.mock("../../database/repositories/tecnicosRepository", () => ({
@@ -38,13 +28,64 @@ jest.mock("../../database/repositories/tecnicosRepository", () => ({
   eliminarTecnico: jest.fn(),
 }));
 
+const mockListarEventos = jest.fn<Promise<Evento[]>, []>();
+const mockCrearEvento = jest.fn<Promise<Evento>, [DatosEvento]>();
+const mockActualizarEvento = jest.fn<Promise<Evento>, [Evento]>();
+const mockEliminarEventoEnBase = jest.fn<Promise<void>, [string]>();
+const mockRepositorioPedido = jest.fn<void, [string]>();
+const mockListarTecnicos = jest.fn<Promise<Tecnico[]>, []>();
+const mockCrearTecnico = jest.fn<Promise<Tecnico>, [string]>();
+const mockActualizarTecnico = jest.fn<Promise<Tecnico>, [Tecnico]>();
+const mockEliminarTecnicoEnBase = jest.fn<Promise<void>, [string]>();
+
+// EventosProvider forma parte del árbol, así que su repositorio también se sustituye
+jest.mock("../../services/supabase/eventos", () => ({
+  crearRepositorioEventosSupabase: () => ({
+    listar: () => mockListarEventos(),
+    crear: (...args: Parameters<typeof mockCrearEvento>) => mockCrearEvento(...args),
+    actualizar: (...args: Parameters<typeof mockActualizarEvento>) =>
+      mockActualizarEvento(...args),
+    eliminar: (id: string) => mockEliminarEventoEnBase(id),
+  }),
+}));
+
+jest.mock("../../services/supabase/personas", () => ({
+  crearRepositorioTecnicosSupabase: (bandaId: string) => {
+    mockRepositorioPedido(bandaId);
+
+    return {
+      listar: () => mockListarTecnicos(),
+      crear: (nombre: string) => mockCrearTecnico(nombre),
+      actualizar: (...args: Parameters<typeof mockActualizarTecnico>) =>
+        mockActualizarTecnico(...args),
+      eliminar: (id: string) => mockEliminarTecnicoEnBase(id),
+    };
+  },
+}));
+
+// Solo se simula el hook: el BandaContext real cargaría el cliente Supabase
+jest.mock("../BandaContext", () => ({
+  useBandaContext: jest.fn(),
+}));
+
 const mockInicializarBaseDeDatos = jest.mocked(inicializarBaseDeDatos);
-const mockListarEventos = jest.mocked(listarEventos);
-const mockGuardarEventoEnBase = jest.mocked(guardarEventoEnBase);
-const mockEliminarEventoEnBase = jest.mocked(eliminarEventoEnBase);
-const mockListarTecnicos = jest.mocked(listarTecnicos);
-const mockGuardarTecnicoEnBase = jest.mocked(guardarTecnicoEnBase);
-const mockEliminarTecnicoEnBase = jest.mocked(eliminarTecnicoEnBase);
+const mockListarTecnicosSqlite = jest.mocked(listarTecnicosSqlite);
+const mockUseBandaContext = jest.mocked(useBandaContext);
+
+function simularBanda(bandaId: string, esAdmin = true) {
+  mockUseBandaContext.mockReturnValue({
+    bandas: [],
+    bandaActual: { id: bandaId, nombre: `Banda ${bandaId}`, creadaPor: "u1", creadaEn: "2026-01-01" },
+    pertenenciaActual: null,
+    cargando: false,
+    errorCarga: "",
+    error: "",
+    esAdmin,
+    crearBanda: jest.fn(),
+    seleccionarBanda: jest.fn(),
+    recargarBandas: jest.fn(),
+  });
+}
 
 function EstadoCarga() {
   const { cargando: cargandoEventos } = useEventosContext();
@@ -178,12 +219,14 @@ async function asignarCarlosAlEvento(eventoId: string) {
 describe("TecnicosContext", () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    mockInicializarBaseDeDatos.mockResolvedValue(undefined);
+    simularBanda("b1");
     mockListarEventos.mockResolvedValue(eventosIniciales);
-    mockGuardarEventoEnBase.mockResolvedValue(undefined);
+    mockCrearEvento.mockImplementation(async (datos) => ({ ...datos, id: "uuid-evento" }));
+    mockActualizarEvento.mockImplementation(async (evento) => evento);
     mockEliminarEventoEnBase.mockResolvedValue(undefined);
     mockListarTecnicos.mockResolvedValue(tecnicosIniciales);
-    mockGuardarTecnicoEnBase.mockResolvedValue(undefined);
+    mockCrearTecnico.mockImplementation(async (nombre) => ({ id: `uuid-${nombre}`, nombre }));
+    mockActualizarTecnico.mockImplementation(async (tecnico) => tecnico);
     mockEliminarTecnicoEnBase.mockResolvedValue(undefined);
   });
 
@@ -205,7 +248,7 @@ describe("TecnicosContext", () => {
     expect(getByText("B ve a Lucía")).toBeTruthy();
   });
 
-  test("carga técnicos desde SQLite", async () => {
+  test("carga técnicos desde Supabase", async () => {
     mockListarTecnicos.mockResolvedValue([{ id: "7", nombre: "Lucía" }]);
 
     const { getByText, queryByText } = await renderizarConProviders(
@@ -215,9 +258,13 @@ describe("TecnicosContext", () => {
     expect(getByText("Total técnicos: 1")).toBeTruthy();
     expect(getByText("Técnico: Lucía")).toBeTruthy();
     expect(queryByText("Técnico: Carlos")).toBeNull();
+    // Repositorio de la banda activa; SQLite ya no se consulta
+    expect(mockRepositorioPedido).toHaveBeenCalledWith("b1");
+    expect(mockInicializarBaseDeDatos).not.toHaveBeenCalled();
+    expect(mockListarTecnicosSqlite).not.toHaveBeenCalled();
   });
 
-  test("guarda un técnico en SQLite", async () => {
+  test("guarda un técnico en Supabase", async () => {
     const { getByPlaceholderText, getByText, findByText } =
       await renderizarConProviders(
         <>
@@ -230,15 +277,13 @@ describe("TecnicosContext", () => {
     await fireEvent.press(getByText("Crear desde A"));
 
     expect(await findByText("B ve a Lucía")).toBeTruthy();
-    expect(mockGuardarTecnicoEnBase).toHaveBeenCalledTimes(1);
-    expect(mockGuardarTecnicoEnBase).toHaveBeenCalledWith({
-      id: expect.any(String),
-      nombre: "Lucía",
-    });
+    expect(mockCrearTecnico).toHaveBeenCalledTimes(1);
+    // Sin id: lo genera Supabase
+    expect(mockCrearTecnico).toHaveBeenCalledWith("Lucía");
   });
 
-  test("no añade el técnico si SQLite falla", async () => {
-    mockGuardarTecnicoEnBase.mockRejectedValueOnce(new Error("disco lleno"));
+  test("no añade el técnico si Supabase falla", async () => {
+    mockCrearTecnico.mockRejectedValueOnce(new Error("disco lleno"));
 
     const { getByPlaceholderText, getByDisplayValue, getByText, queryByText, findByText } =
       await renderizarConProviders(
@@ -275,7 +320,7 @@ describe("TecnicosContext", () => {
     expect(getByText("Sin error de eliminación")).toBeTruthy();
   });
 
-  test("no elimina el técnico si SQLite falla", async () => {
+  test("no elimina el técnico si Supabase falla", async () => {
     mockEliminarTecnicoEnBase.mockRejectedValueOnce(new Error("bloqueada"));
 
     const { getByText, findByText } = await renderizarConProviders(
@@ -307,7 +352,7 @@ describe("TecnicosContext", () => {
       getByText("No se puede eliminar a Carlos porque está asignado a 1 evento")
     ).toBeTruthy();
     expect(getByText("Evento 1: 1")).toBeTruthy();
-    // La regla se aplica antes de llegar a SQLite
+    // La regla se aplica antes de llegar a Supabase
     expect(mockEliminarTecnicoEnBase).not.toHaveBeenCalled();
   });
 
@@ -365,6 +410,74 @@ describe("TecnicosContext", () => {
     await act(async () => {
       terminarCargaEventos(eventosIniciales);
     });
+  });
+
+  test("si la clave foránea rechaza el borrado muestra un mensaje sin detalles técnicos", async () => {
+    mockEliminarTecnicoEnBase.mockRejectedValueOnce(new ErrorRepositorio("en_uso"));
+
+    const { getByText, queryByText, findByText } = await renderizarConProviders(
+      <ConsumidorTecnicos />
+    );
+
+    await fireEvent.press(getByText("Eliminar Carlos"));
+
+    expect(
+      await findByText("No se puede eliminar este técnico porque está asignado a algún evento")
+    ).toBeTruthy();
+    expect(getByText("Técnico: Carlos")).toBeTruthy();
+    expect(queryByText(/23503|foreign key|violates/i)).toBeNull();
+  });
+
+  test("sin ser admin no llama al repositorio para crear ni eliminar", async () => {
+    simularBanda("b1", false);
+
+    const { getByPlaceholderText, getByText, findAllByText } =
+      await renderizarConProviders(
+        <>
+          <ConsumidorA />
+          <ConsumidorB />
+          <ConsumidorTecnicos />
+        </>
+      );
+
+    await fireEvent.changeText(getByPlaceholderText("Nombre en A"), "Lucía");
+    await fireEvent.press(getByText("Crear desde A"));
+
+    expect((await findAllByText("No se ha podido guardar el técnico")).length).toBeGreaterThan(0);
+
+    await fireEvent.press(getByText("Eliminar Carlos"));
+
+    expect((await findAllByText("No se ha podido eliminar el técnico")).length).toBeGreaterThan(0);
+    expect(mockCrearTecnico).not.toHaveBeenCalled();
+    expect(mockActualizarTecnico).not.toHaveBeenCalled();
+    expect(mockEliminarTecnicoEnBase).not.toHaveBeenCalled();
+    expect(getByText("Total en B: 2")).toBeTruthy();
+  });
+
+  test("al cambiar de banda descarta los técnicos anteriores y carga los nuevos", async () => {
+    mockListarTecnicos
+      .mockResolvedValueOnce(tecnicosIniciales)
+      .mockResolvedValueOnce([{ id: "x1", nombre: "Xavi" }]);
+
+    const crearArbol = () => (
+      <EventosProvider>
+        <TecnicosProvider>
+          <ConsumidorB />
+          <EstadoCarga />
+        </TecnicosProvider>
+      </EventosProvider>
+    );
+
+    const { rerender, queryByText, findByText } = await render(crearArbol());
+
+    expect(await findByText("B ve a Carlos")).toBeTruthy();
+
+    simularBanda("b2");
+    await rerender(crearArbol());
+
+    expect(await findByText("B ve a Xavi")).toBeTruthy();
+    expect(queryByText("B ve a Carlos")).toBeNull();
+    expect(mockRepositorioPedido).toHaveBeenCalledWith("b2");
   });
 
   test("falla si se usa fuera del provider", async () => {

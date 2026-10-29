@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuthContext } from "../context/AuthContext";
 import { useTheme } from "@/hooks/use-theme";
@@ -30,7 +31,8 @@ export function BotonCerrarSesion() {
   }
 
   return (
-    <View style={estilos.contenedor}>
+    // La pantalla no tiene cabecera: solo el borde superior respeta la barra de estado
+    <SafeAreaView edges={["top"]} style={estilos.contenedor}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: cerrandoSesion }}
@@ -54,6 +56,6 @@ export function BotonCerrarSesion() {
           {error}
         </Text>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

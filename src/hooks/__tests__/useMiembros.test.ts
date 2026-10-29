@@ -48,7 +48,7 @@ describe("useMiembros", () => {
   });
 
   test("valida que el nombre es obligatorio", async () => {
-    const persistirMiembro = jest.fn(async (_miembro: Miembro) => true);
+    const persistirMiembro = jest.fn(async (miembro: Miembro) => miembro);
     const { result } = await renderHook(() =>
       useMiembros({ persistirMiembro })
     );
@@ -158,7 +158,7 @@ describe("useMiembros", () => {
   });
 
   test("persiste exactamente el miembro que se guarda", async () => {
-    const persistirMiembro = jest.fn(async (_miembro: Miembro) => true);
+    const persistirMiembro = jest.fn(async (miembro: Miembro) => miembro);
     const { result } = await renderHook(() =>
       useMiembros({ persistirMiembro })
     );
@@ -180,7 +180,7 @@ describe("useMiembros", () => {
     const { result } = await renderHook(() =>
       useMiembros({
         datosIniciales: miembrosDePrueba,
-        persistirMiembro: async () => false,
+        persistirMiembro: async () => null,
       })
     );
 
@@ -226,7 +226,9 @@ describe("useMiembros", () => {
 
   test("impide guardar dos veces mientras una escritura está pendiente", async () => {
     const { promesa, resolver } = crearPromesaControlada();
-    const persistirMiembro = jest.fn((_miembro: Miembro) => promesa);
+    const persistirMiembro = jest.fn((miembro: Miembro) =>
+      promesa.then((ok) => (ok ? miembro : null))
+    );
 
     const { result } = await renderHook(() =>
       useMiembros({ persistirMiembro })
@@ -299,9 +301,9 @@ describe("useMiembros", () => {
 
   test("libera el bloqueo aunque la persistencia lance un error", async () => {
     const persistirMiembro = jest
-      .fn<Promise<boolean>, [Miembro]>()
+      .fn<Promise<Miembro | null>, [Miembro, boolean]>()
       .mockRejectedValueOnce(new Error("fallo inesperado"))
-      .mockResolvedValueOnce(true);
+      .mockImplementationOnce(async (miembro) => miembro);
 
     const { result } = await renderHook(() =>
       useMiembros({ persistirMiembro })
@@ -335,7 +337,8 @@ describe("useMiembros", () => {
     const { result } = await renderHook(() =>
       useMiembros({
         datosIniciales: miembrosDePrueba,
-        persistirMiembro: () => promesa,
+        persistirMiembro: (miembro: Miembro) =>
+          promesa.then((ok) => (ok ? miembro : null)),
       })
     );
 
@@ -364,5 +367,26 @@ describe("useMiembros", () => {
 
     expect(result.current.miembroEditandoId).toBeNull();
     expect(result.current.procesando).toBe(false);
+  });
+
+  test("guarda en el estado el registro devuelto por la persistencia, con su id definitivo", async () => {
+    const persistirMiembro = jest.fn(async (miembro: Miembro, esNuevo: boolean) =>
+      esNuevo ? { ...miembro, id: "uuid-supabase" } : miembro
+    );
+
+    const { result } = await renderHook(() =>
+      useMiembros({ datosIniciales: [], persistirMiembro })
+    );
+
+    await act(() => {
+      result.current.setNombre("Carla");
+    });
+
+    await act(async () => {
+      await result.current.guardarMiembro();
+    });
+
+    expect(persistirMiembro.mock.calls[0][1]).toBe(true);
+    expect(result.current.miembros).toEqual([{ id: "uuid-supabase", nombre: "Carla" }]);
   });
 });

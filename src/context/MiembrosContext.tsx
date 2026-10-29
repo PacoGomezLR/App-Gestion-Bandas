@@ -4,17 +4,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
-import { inicializarBaseDeDatos } from "../database/migrations";
-import {
-  eliminarMiembro as eliminarMiembroEnBase,
-  guardarMiembro as guardarMiembroEnBase,
-  listarMiembros,
-} from "../database/repositories/miembrosRepository";
 import { useMiembros } from "../hooks/useMiembros";
+import { esErrorEnUso } from "../services/supabase/errores";
+import { crearRepositorioMiembrosSupabase } from "../services/supabase/personas";
 import type { Miembro } from "../types/miembro";
+import { useBandaContext } from "./BandaContext";
 import { useEventosContext } from "./EventosContext";
 
 type UseMiembrosValue = ReturnType<typeof useMiembros>;
@@ -30,33 +28,70 @@ type MiembrosContextValue =
 const MiembrosContext =
   createContext<MiembrosContextValue | null>(null);
 
+// Supabase es la fuente de verdad: los músicos son siempre los de la banda actual
 export function MiembrosProvider({
   children,
 }: PropsWithChildren) {
+  const { bandaActual, esAdmin } = useBandaContext();
+  const bandaId = bandaActual?.id ?? null;
   const [cargando, setCargando] = useState(true);
   const [errorPersistencia, setErrorPersistencia] = useState("");
+  const [errorEliminacion, setErrorEliminacion] =
+    useState("");
 
-  const persistirMiembro = useCallback(async (miembro: Miembro) => {
-    try {
-      await guardarMiembroEnBase(miembro);
-      setErrorPersistencia("");
-      return true;
-    } catch {
-      setErrorPersistencia("No se ha podido guardar el músico");
-      return false;
-    }
-  }, []);
+  const repositorio = useMemo(
+    () => (bandaId === null ? null : crearRepositorioMiembrosSupabase(bandaId)),
+    [bandaId]
+  );
 
-  const eliminarMiembroPersistido = useCallback(async (id: string) => {
-    try {
-      await eliminarMiembroEnBase(id);
-      setErrorPersistencia("");
-      return true;
-    } catch {
-      setErrorPersistencia("No se ha podido eliminar el músico");
-      return false;
-    }
-  }, []);
+  // Segunda barrera tras ocultar los controles: sin ser admin no se llama al repositorio
+  const persistirMiembro = useCallback(
+    async (miembro: Miembro, esNuevo: boolean) => {
+      if (repositorio === null || !esAdmin) {
+        setErrorPersistencia("No se ha podido guardar el músico");
+        return null;
+      }
+
+      try {
+        const guardado = esNuevo
+          ? await repositorio.crear(miembro.nombre)
+          : await repositorio.actualizar(miembro);
+        setErrorPersistencia("");
+        return guardado;
+      } catch {
+        setErrorPersistencia("No se ha podido guardar el músico");
+        return null;
+      }
+    },
+    [repositorio, esAdmin]
+  );
+
+  const eliminarMiembroPersistido = useCallback(
+    async (id: string) => {
+      if (repositorio === null || !esAdmin) {
+        setErrorPersistencia("No se ha podido eliminar el músico");
+        return false;
+      }
+
+      try {
+        await repositorio.eliminar(id);
+        setErrorPersistencia("");
+        return true;
+      } catch (error) {
+        // Otro dispositivo lo asignó entre la comprobación y el borrado: lo frena la clave foránea
+        if (esErrorEnUso(error)) {
+          setErrorEliminacion(
+            "No se puede eliminar este músico porque está asignado a algún evento"
+          );
+        } else {
+          setErrorPersistencia("No se ha podido eliminar el músico");
+        }
+
+        return false;
+      }
+    },
+    [repositorio, esAdmin]
+  );
 
   const miembrosState = useMiembros({
     datosIniciales: [],
@@ -69,25 +104,33 @@ export function MiembrosProvider({
     cargando: cargandoEventos,
   } = useEventosContext();
 
-  const [errorEliminacion, setErrorEliminacion] =
-    useState("");
-
   const { reemplazarMiembros } = miembrosState;
 
+  // Al cambiar de banda se descartan los músicos anteriores antes de cargar los nuevos
   useEffect(() => {
     let activo = true;
 
-    async function cargarMiembros() {
-      try {
-        await inicializarBaseDeDatos();
-        const miembrosGuardados = await listarMiembros();
+    reemplazarMiembros([]);
+    setErrorPersistencia("");
+    setErrorEliminacion("");
 
+    if (repositorio === null) {
+      setCargando(false);
+      return;
+    }
+
+    setCargando(true);
+
+    async function cargarMiembros(repositorioBanda: NonNullable<typeof repositorio>) {
+      try {
+        const miembrosGuardados = await repositorioBanda.listar();
+
+        // Una respuesta de una banda anterior no sobrescribe la actual
         if (!activo) {
           return;
         }
 
         reemplazarMiembros(miembrosGuardados);
-        setErrorPersistencia("");
       } catch {
         if (activo) {
           setErrorPersistencia("No se han podido cargar los músicos");
@@ -99,12 +142,12 @@ export function MiembrosProvider({
       }
     }
 
-    void cargarMiembros();
+    void cargarMiembros(repositorio);
 
     return () => {
       activo = false;
     };
-  }, [reemplazarMiembros]);
+  }, [repositorio, reemplazarMiembros]);
 
   async function eliminarMiembro(id: string): Promise<boolean> {
     // Sin los eventos cargados no se puede saber si el músico está asignado
@@ -120,7 +163,7 @@ export function MiembrosProvider({
       evento.miembroIds.includes(id)
     );
 
-    // La regla se comprueba antes de tocar la base; la FK RESTRICT queda como segunda barrera
+    // La regla se comprueba antes de tocar la base; la clave foránea queda como segunda barrera
     if (eventosAsignados.length > 0) {
       const cantidad = eventosAsignados.length;
 

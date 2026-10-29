@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useMemo } from "react";
+import { Fragment, type PropsWithChildren, useMemo } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 import { useAuthContext } from "../context/AuthContext";
@@ -50,7 +50,9 @@ function ContenidoBanda({ children }: PropsWithChildren) {
     return <CrearBanda />;
   }
 
-  return <>{children}</>;
+  // key por banda: al cambiar de banda se desmontan los datos y formularios de la
+  // anterior, y una respuesta tardía de esa banda ya no puede llegar a la nueva
+  return <Fragment key={bandaActual.id}>{children}</Fragment>;
 }
 
 // Sin sesión no se montan los hijos: los datos locales no se cargan antes de autenticar

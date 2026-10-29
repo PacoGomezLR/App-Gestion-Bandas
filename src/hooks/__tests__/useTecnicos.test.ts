@@ -167,7 +167,7 @@ describe("useTecnicos", () => {
 
   test("no guarda localmente si falla la persistencia", async () => {
     const { result } = await renderHook(() =>
-      useTecnicos({ persistirTecnico: async () => false })
+      useTecnicos({ persistirTecnico: async () => null })
     );
 
     await act(() => {
@@ -212,7 +212,7 @@ describe("useTecnicos", () => {
   });
 
   test("persiste exactamente el técnico que se guarda", async () => {
-    const persistirTecnico = jest.fn(async (_tecnico: Tecnico) => true);
+    const persistirTecnico = jest.fn(async (tecnico: Tecnico) => tecnico);
 
     const { result } = await renderHook(() =>
       useTecnicos({ persistirTecnico })
@@ -241,8 +241,8 @@ describe("useTecnicos", () => {
       resolverPersistencia = resolve;
     });
 
-    const persistirTecnico = jest.fn(
-      (_tecnico: Tecnico) => persistenciaPendiente
+    const persistirTecnico = jest.fn((tecnico: Tecnico) =>
+      persistenciaPendiente.then((ok) => (ok ? tecnico : null))
     );
 
     const { result } = await renderHook(() =>
@@ -332,7 +332,8 @@ describe("useTecnicos", () => {
     });
 
     const { result } = await renderHook(() =>
-      useTecnicos({ persistirTecnico: () => persistenciaPendiente })
+      useTecnicos({ persistirTecnico: (tecnico: Tecnico) =>
+          persistenciaPendiente.then((ok) => (ok ? tecnico : null)) })
     );
 
     await act(() => {
@@ -364,10 +365,10 @@ describe("useTecnicos", () => {
 
   test("libera el bloqueo aunque la persistencia falle o lance un error", async () => {
     const persistirTecnico = jest
-      .fn<Promise<boolean>, [Tecnico]>()
-      .mockResolvedValueOnce(false)
+      .fn<Promise<Tecnico | null>, [Tecnico, boolean]>()
+      .mockResolvedValueOnce(null)
       .mockRejectedValueOnce(new Error("fallo inesperado"))
-      .mockResolvedValueOnce(true);
+      .mockImplementationOnce(async (tecnico) => tecnico);
 
     const { result } = await renderHook(() =>
       useTecnicos({ persistirTecnico })
@@ -402,5 +403,26 @@ describe("useTecnicos", () => {
     expect(persistirTecnico).toHaveBeenCalledTimes(3);
     expect(result.current.tecnicos).toHaveLength(3);
     expect(result.current.procesando).toBe(false);
+  });
+
+  test("guarda en el estado el registro devuelto por la persistencia, con su id definitivo", async () => {
+    const persistirTecnico = jest.fn(async (tecnico: Tecnico, esNuevo: boolean) =>
+      esNuevo ? { ...tecnico, id: "uuid-supabase" } : tecnico
+    );
+
+    const { result } = await renderHook(() =>
+      useTecnicos({ datosIniciales: [], persistirTecnico })
+    );
+
+    await act(() => {
+      result.current.setNombre("Lucía");
+    });
+
+    await act(async () => {
+      await result.current.guardarTecnico();
+    });
+
+    expect(persistirTecnico.mock.calls[0][1]).toBe(true);
+    expect(result.current.tecnicos).toEqual([{ id: "uuid-supabase", nombre: "Lucía" }]);
   });
 });
