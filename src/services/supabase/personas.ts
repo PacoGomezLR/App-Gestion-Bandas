@@ -1,9 +1,8 @@
 import { supabase } from "../../lib/supabase";
-import type { Miembro } from "../../types/miembro";
 import type { Tecnico } from "../../types/tecnico";
 import { convertirErrorSupabase, ErrorRepositorio } from "./errores";
 
-// Músicos y técnicos tienen la misma forma (id, nombre) y las mismas reglas
+// Registros de banda con la forma (id, nombre); hoy solo los usan los técnicos
 interface ConNombre {
   readonly id: string;
   nombre: string;
@@ -16,7 +15,7 @@ export interface RepositorioConNombre<T extends ConNombre> {
   eliminar: (id: string) => Promise<void>;
 }
 
-type TablaConNombre = "miembros" | "tecnicos";
+type TablaConNombre = "tecnicos";
 
 function convertirFila(fila: unknown): ConNombre {
   if (typeof fila !== "object" || fila === null) {
@@ -113,12 +112,6 @@ function crearRepositorioConNombre(
       }
     },
   };
-}
-
-export function crearRepositorioMiembrosSupabase(
-  bandaId: string
-): RepositorioConNombre<Miembro> {
-  return crearRepositorioConNombre("miembros", bandaId);
 }
 
 export function crearRepositorioTecnicosSupabase(

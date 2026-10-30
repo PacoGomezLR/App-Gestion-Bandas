@@ -1,6 +1,10 @@
 import type { EstadoEvento, Evento, TipoEvento } from "../../types/evento";
 import { getDatabase } from "../database";
 
+// LEGADO SQLite (no se ejecuta en la app; Supabase es la fuente de verdad).
+// Conserva su propia forma con miembroIds, que ya no forma parte de Evento.
+export type EventoSqlite = Evento & { miembroIds: string[] };
+
 export interface FilaEvento {
   id: string;
   titulo: string;
@@ -75,7 +79,7 @@ export function convertirFilaAEvento(
   fila: FilaEvento,
   tecnicoIds: string[],
   miembroIds: string[]
-): Evento {
+): EventoSqlite {
   if (!esTipoEvento(fila.tipo)) {
     throw new Error(`Tipo de evento no válido en la base de datos: ${fila.tipo}`);
   }
@@ -102,7 +106,7 @@ export function construirEventos(
   filas: FilaEvento[],
   relacionesTecnicos: FilaEventoTecnico[],
   relacionesMiembros: FilaEventoMiembro[]
-): Evento[] {
+): EventoSqlite[] {
   const tecnicoIdsPorEvento = agruparTecnicoIdsPorEvento(relacionesTecnicos);
   const miembroIdsPorEvento = agruparMiembroIdsPorEvento(relacionesMiembros);
 
@@ -115,7 +119,7 @@ export function construirEventos(
   );
 }
 
-export async function listarEventos(): Promise<Evento[]> {
+export async function listarEventos(): Promise<EventoSqlite[]> {
   const db = await getDatabase();
 
   const filas = await db.getAllAsync<FilaEvento>(
@@ -134,7 +138,7 @@ export async function listarEventos(): Promise<Evento[]> {
   return construirEventos(filas, relacionesTecnicos, relacionesMiembros);
 }
 
-export async function guardarEvento(evento: Evento): Promise<void> {
+export async function guardarEvento(evento: EventoSqlite): Promise<void> {
   const db = await getDatabase();
 
   await db.withTransactionAsync(async () => {

@@ -28,7 +28,6 @@ export function useEventos(options: UseEventosOptions = {}) {
   const [lugar, setLugar] = useState("");
   const [notas, setNotas] = useState("");
   const [tecnicoIds, setTecnicoIds] = useState<string[]>([]);
-  const [miembroIds, setMiembroIds] = useState<string[]>([]);
   // Se recalcula en cada cambio de tipo, lugar o fecha: no hay campo de título
   const titulo = generarTituloEvento(tipo, lugar, fecha);
   const [error, setError] = useState("");
@@ -65,7 +64,6 @@ export function useEventos(options: UseEventosOptions = {}) {
     setTipo("concierto_abierto");
     setEstado("pendiente");
     setTecnicoIds([]);
-    setMiembroIds([]);
     setError("");
   }
 
@@ -74,15 +72,6 @@ export function useEventos(options: UseEventosOptions = {}) {
       idsActuales.includes(tecnicoId)
         ? idsActuales.filter((id) => id !== tecnicoId)
         : [...idsActuales, tecnicoId]
-    );
-  }
-
-  // Asignar miembros es opcional: un evento sin miembros es válido
-  function alternarMiembro(miembroId: string) {
-    setMiembroIds((idsActuales) =>
-      idsActuales.includes(miembroId)
-        ? idsActuales.filter((id) => id !== miembroId)
-        : [...idsActuales, miembroId]
     );
   }
 
@@ -117,7 +106,6 @@ export function useEventos(options: UseEventosOptions = {}) {
         notas: notas.trim(),
         estado: estado,
         tecnicoIds: [...tecnicoIds],
-        miembroIds: [...miembroIds],
       };
 
       // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
@@ -199,7 +187,6 @@ export function useEventos(options: UseEventosOptions = {}) {
     setNotas(evento.notas);
     setEstado(evento.estado);
     setTecnicoIds([...evento.tecnicoIds]);
-    setMiembroIds([...evento.miembroIds]);
   }
 
   return {
@@ -212,7 +199,6 @@ export function useEventos(options: UseEventosOptions = {}) {
     lugar,
     notas,
     tecnicoIds,
-    miembroIds,
     error,
     eventoEditandoId,
     procesando,
@@ -223,7 +209,6 @@ export function useEventos(options: UseEventosOptions = {}) {
     setLugar,
     setNotas,
     alternarTecnico,
-    alternarMiembro,
     reemplazarEventos,
     guardarEvento,
     eliminarEvento,

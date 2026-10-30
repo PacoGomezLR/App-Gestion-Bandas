@@ -217,7 +217,6 @@ describe("EventosContext", () => {
         notas: "",
         estado: "confirmado",
         tecnicoIds: ["2"],
-        miembroIds: [],
       },
     ];
     repositorio = crearRepositorioSimulado(eventosGuardados);
@@ -273,8 +272,9 @@ describe("EventosContext", () => {
       tipo: "concierto_abierto",
       estado: "pendiente",
       tecnicoIds: [],
-      miembroIds: [],
     });
+    // Crear ya no envía ningún campo de músicos
+    expect(repositorio.crear.mock.calls[0][0]).not.toHaveProperty("miembroIds");
     expect(repositorio.actualizar).not.toHaveBeenCalled();
     expect(queryByText(/Compartido 31\/12\/2026 \(/)).toBeNull();
     expect(getByText("Total en B: 3")).toBeTruthy();

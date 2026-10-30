@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Button, Pressable, Text, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import type { Evento } from "../types/evento";
-import type { Miembro } from "../types/miembro";
 import type { Tecnico } from "../types/tecnico";
 import { etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { formatearFechaConBarras } from "../utils/fechas";
@@ -12,7 +11,6 @@ import { coloresBadge, crearEstilosListaEventos } from "./ListaEventos.styles";
 interface ListaEventosProps {
   eventos: Evento[];
   tecnicos: Tecnico[];
-  miembros: Miembro[];
   procesando: boolean;
   // Solo el admin de la banda edita o elimina; el resto solo consulta
   puedeEditar: boolean;
@@ -28,7 +26,7 @@ function obtenerTituloVistaPrevia(evento: Evento): string {
   return lugar ? `${tipo} ${lugar}` : tipo;
 }
 
-export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEditar, onEliminar, onEditar }: ListaEventosProps) {
+export function ListaEventos({ eventos, tecnicos, procesando, puedeEditar, onEliminar, onEditar }: ListaEventosProps) {
   // Solo un evento desplegado a la vez; no se persiste
   const [eventoAbiertoId, setEventoAbiertoId] = useState<string | null>(null);
   const tema = useTheme();
@@ -48,12 +46,6 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEdi
         const nombresTecnicos = evento.tecnicoIds
           .map((id) =>
             tecnicos.find((tecnico) => tecnico.id === id)?.nombre
-          )
-          .filter((nombre): nombre is string => nombre !== undefined);
-
-        const nombresMiembros = evento.miembroIds
-          .map((id) =>
-            miembros.find((miembro) => miembro.id === id)?.nombre
           )
           .filter((nombre): nombre is string => nombre !== undefined);
 
@@ -102,12 +94,6 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEdi
                     ? nombresTecnicos.join(", ")
                     : "Sin asignar"}
                 </Text>
-                {/* Asignar músicos es opcional: si no hay ninguno válido, no se muestra la línea */}
-                {nombresMiembros.length > 0 && (
-                  <Text style={estilos.textoDetalle}>
-                    Músicos: {nombresMiembros.join(", ")}
-                  </Text>
-                )}
                 {evento.notas !== "" && <Text style={estilos.textoDetalle}>Nota: {evento.notas}</Text>}
 
                 {puedeEditar && (

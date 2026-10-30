@@ -2,6 +2,7 @@ import { convertirErrorSupabase, esErrorEnUso, ErrorRepositorio } from "../error
 import {
   convertirFechaDeBase,
   convertirFilaEvento,
+  convertirFilasEventos,
   convertirHoraDeBase,
 } from "../mapeoEventos";
 
@@ -49,9 +50,59 @@ describe("convertirFilaEvento", () => {
         lugar: "",
         notas: "",
         estado: "pendiente",
-        evento_miembros: [{ miembro_id: 5, orden: 1 }],
-        evento_tecnicos: [],
+        evento_miembros: [],
+        evento_tecnicos: [{ tecnico_id: 5, orden: 1 }],
       })
+    ).toThrow();
+  });
+
+  test("el evento de la app no lleva músicos", () => {
+    const evento = convertirFilaEvento({
+      id: "e1",
+      titulo: "Ensayo",
+      tipo: "ensayo",
+      fecha: "2026-03-12",
+      hora: null,
+      lugar: "",
+      notas: "",
+      estado: "pendiente",
+      evento_miembros: [{ miembro_id: "m1", orden: 1 }],
+      evento_tecnicos: [],
+    });
+
+    expect(evento).not.toHaveProperty("miembroIds");
+  });
+});
+
+describe("convertirFilasEventos (legado evento_miembros)", () => {
+  const fila = {
+    id: "e1",
+    titulo: "Ensayo",
+    tipo: "ensayo",
+    fecha: "2026-03-12",
+    hora: null,
+    lugar: "",
+    notas: "",
+    estado: "pendiente",
+    evento_tecnicos: [],
+  };
+
+  test("separa los músicos heredados de los eventos de la app", () => {
+    const { eventos, miembrosLegadoPorEvento } = convertirFilasEventos([
+      { ...fila, evento_miembros: [{ miembro_id: "m1", orden: 1 }] },
+      { ...fila, id: "e2", evento_miembros: [] },
+    ]);
+
+    expect(eventos.map((evento) => evento.id)).toEqual(["e1", "e2"]);
+    expect(eventos[0]).not.toHaveProperty("miembroIds");
+    expect(miembrosLegadoPorEvento.get("e1")).toEqual(["m1"]);
+    expect(miembrosLegadoPorEvento.has("e2")).toBe(false);
+  });
+
+  test("tolera que falte la relación y rechaza una mal formada", () => {
+    expect(convertirFilasEventos([fila]).miembrosLegadoPorEvento.size).toBe(0);
+    expect(() =>
+      convertirFilasEventos([{ ...fila, evento_miembros: [{ miembro_id: 5, orden: 1 }] }])
     ).toThrow();
   });
 });

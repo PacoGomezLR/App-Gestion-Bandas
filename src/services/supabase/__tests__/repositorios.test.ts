@@ -1,10 +1,7 @@
 import { ErrorRepositorio } from "../errores";
 import { crearRepositorioEventosSupabase } from "../eventos";
 import { COLUMNAS_EVENTO } from "../mapeoEventos";
-import {
-  crearRepositorioMiembrosSupabase,
-  crearRepositorioTecnicosSupabase,
-} from "../personas";
+import { crearRepositorioTecnicosSupabase } from "../personas";
 
 interface RespuestaSimulada {
   data: unknown;
@@ -87,7 +84,7 @@ const ERROR_RLS = {
 
 const ERROR_FK = {
   code: "23503",
-  message: 'update or delete on table "miembros" violates foreign key constraint',
+  message: 'update or delete on table "tecnicos" violates foreign key constraint',
 };
 
 const DATOS_EVENTO = {
@@ -99,7 +96,6 @@ const DATOS_EVENTO = {
   notas: "",
   estado: "pendiente" as const,
   tecnicoIds: ["t1"],
-  miembroIds: ["m2", "m1"],
 };
 
 beforeEach(() => {
@@ -160,7 +156,6 @@ describe("repositorio de eventos (Supabase)", () => {
         notas: "",
         estado: "confirmado",
         tecnicoIds: ["t1"],
-        miembroIds: ["m2", "m1"],
       },
       {
         id: "e2",
@@ -172,9 +167,12 @@ describe("repositorio de eventos (Supabase)", () => {
         notas: "Traer cables",
         estado: "pendiente",
         tecnicoIds: [],
-        miembroIds: [],
       },
     ]);
+    // Los músicos heredados no llegan nunca al dominio
+    for (const evento of eventos) {
+      expect(evento).not.toHaveProperty("miembroIds");
+    }
   });
 
   test("crear usa la RPC atómica con la banda del repositorio y devuelve el id nuevo", async () => {
@@ -192,7 +190,8 @@ describe("repositorio de eventos (Supabase)", () => {
       p_lugar: "Lucena",
       p_notas: "",
       p_estado: "pendiente",
-      p_miembro_ids: ["m2", "m1"],
+      // Solo compatibilidad con la RPC de 002: un evento nuevo no tiene músicos
+      p_miembro_ids: [],
       p_tecnico_ids: ["t1"],
     });
     // Ni evento ni asignaciones se insertan por separado desde JS
@@ -215,12 +214,88 @@ describe("repositorio de eventos (Supabase)", () => {
         p_evento_id: "e1",
         p_banda_id: "b1",
         p_hora: "",
-        p_miembro_ids: ["m2", "m1"],
+        // Sin listar antes, el repositorio no conoce músicos heredados
+        p_miembro_ids: [],
         p_tecnico_ids: ["t1"],
       })
     );
     expect(mockFrom).not.toHaveBeenCalled();
     expect(evento.id).toBe("e1");
+  });
+
+  describe("compatibilidad temporal con evento_miembros (legado, hasta la migración 003)", () => {
+    function filaEvento(id: string, miembros: { miembro_id: string; orden: number }[]) {
+      return {
+        id,
+        titulo: "Boda de María",
+        tipo: "boda",
+        fecha: "2026-03-12",
+        hora: null,
+        lugar: "Lucena",
+        notas: "",
+        estado: "pendiente",
+        evento_miembros: miembros,
+        evento_tecnicos: [{ tecnico_id: "t1", orden: 1 }],
+      };
+    }
+
+    test("al editar reenvía a la RPC los músicos que ya tenía el evento, para no borrarlos", async () => {
+      responderConsulta({
+        data: [
+          filaEvento("e1", [
+            { miembro_id: "m1", orden: 2 },
+            { miembro_id: "m2", orden: 1 },
+          ]),
+          filaEvento("e2", []),
+        ],
+        error: null,
+      });
+      mockRpc.mockResolvedValue({ data: null, error: null });
+
+      const repositorio = crearRepositorioEventosSupabase("b1");
+      await repositorio.listar();
+      await repositorio.actualizar({ ...DATOS_EVENTO, id: "e1", lugar: "Montilla" });
+      await repositorio.actualizar({ ...DATOS_EVENTO, id: "e2" });
+
+      expect(mockRpc.mock.calls[0][1]).toMatchObject({
+        p_evento_id: "e1",
+        p_lugar: "Montilla",
+        p_miembro_ids: ["m2", "m1"],
+      });
+      expect(mockRpc.mock.calls[1][1]).toMatchObject({ p_evento_id: "e2", p_miembro_ids: [] });
+      // Solo se ha leído la tabla eventos (con la relación embebida): nunca miembros
+      expect(mockFrom.mock.calls.map(([tabla]) => tabla)).toEqual(["eventos"]);
+    });
+
+    test("los músicos heredados no se comparten entre bandas y se olvidan al eliminar", async () => {
+      responderConsulta({ data: [filaEvento("e1", [{ miembro_id: "m1", orden: 1 }])], error: null });
+      responderConsulta({ data: [{ id: "e1" }], error: null });
+      mockRpc.mockResolvedValue({ data: null, error: null });
+
+      const repositorio = crearRepositorioEventosSupabase("b1");
+      await repositorio.listar();
+
+      // Otra banda tiene su propio repositorio: no ve los músicos de b1
+      await crearRepositorioEventosSupabase("b2").actualizar({ ...DATOS_EVENTO, id: "e1" });
+      expect(mockRpc.mock.calls[0][1]).toMatchObject({ p_banda_id: "b2", p_miembro_ids: [] });
+
+      await repositorio.eliminar("e1");
+      await repositorio.actualizar({ ...DATOS_EVENTO, id: "e1" });
+      expect(mockRpc.mock.calls[1][1]).toMatchObject({ p_banda_id: "b1", p_miembro_ids: [] });
+    });
+
+    test("recargar sustituye los músicos heredados por los que hay ahora", async () => {
+      responderConsulta({ data: [filaEvento("e1", [{ miembro_id: "m1", orden: 1 }])], error: null });
+      responderConsulta({ data: [filaEvento("e1", [])], error: null });
+      mockRpc.mockResolvedValue({ data: null, error: null });
+
+      const repositorio = crearRepositorioEventosSupabase("b1");
+      await repositorio.listar();
+      await repositorio.listar();
+      await repositorio.actualizar({ ...DATOS_EVENTO, id: "e1" });
+
+      expect(mockRpc.mock.calls[0][1]).toMatchObject({ p_miembro_ids: [] });
+    });
   });
 
   test("eliminar filtra por id y por banda", async () => {
@@ -284,7 +359,6 @@ describe("repositorio de eventos (Supabase)", () => {
 });
 
 describe.each([
-  ["músicos", "miembros", crearRepositorioMiembrosSupabase],
   ["técnicos", "tecnicos", crearRepositorioTecnicosSupabase],
 ] as const)("repositorio de %s (Supabase)", (_nombre, tabla, crearRepositorio) => {
   test("listar filtra por banda_id y ordena por nombre", async () => {
@@ -371,34 +445,29 @@ describe("aislamiento por banda", () => {
       responderConsulta({ data: [], error: null }),
       responderConsulta({ data: [], error: null }),
       responderConsulta({ data: [], error: null }),
-      responderConsulta({ data: [], error: null }),
     ];
 
     await crearRepositorioEventosSupabase("cathaline").listar();
-    await crearRepositorioMiembrosSupabase("cathaline").listar();
     await crearRepositorioTecnicosSupabase("cathaline").listar();
     await crearRepositorioEventosSupabase("otra-banda").listar();
 
     expect(consultas.map(filtros)).toEqual([
       [["banda_id", "cathaline"]],
       [["banda_id", "cathaline"]],
-      [["banda_id", "cathaline"]],
       [["banda_id", "otra-banda"]],
     ]);
+    // Ninguna consulta a la tabla miembros
+    expect(mockFrom).not.toHaveBeenCalledWith("miembros");
   });
 
   test("ninguna operación de tabla se ejecuta sin filtro de banda_id", async () => {
     const consultas = [
       responderConsulta({ data: [{ id: "e1" }], error: null }),
-      responderConsulta({ data: [{ id: "m1", nombre: "Ana" }], error: null }),
-      responderConsulta({ data: [{ id: "m1" }], error: null }),
       responderConsulta({ data: [{ id: "t1", nombre: "Carlos" }], error: null }),
       responderConsulta({ data: [{ id: "t1" }], error: null }),
     ];
 
     await crearRepositorioEventosSupabase("cathaline").eliminar("e1");
-    await crearRepositorioMiembrosSupabase("cathaline").actualizar({ id: "m1", nombre: "Ana" });
-    await crearRepositorioMiembrosSupabase("cathaline").eliminar("m1");
     await crearRepositorioTecnicosSupabase("cathaline").actualizar({ id: "t1", nombre: "Carlos" });
     await crearRepositorioTecnicosSupabase("cathaline").eliminar("t1");
 

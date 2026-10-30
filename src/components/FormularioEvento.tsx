@@ -6,8 +6,7 @@ import { etiquetaTipoEvento, TIPOS_EVENTO } from "../utils/tiposEvento";
 import { CalendarioEventos } from "./CalendarioEventos";
 import { SelectorHora } from "./SelectorHora";
 
-// Sin campo de título: se genera solo a partir de tipo, lugar y fecha.
-// Sin selector de músicos: al editar, useEventos conserva los miembroIds que ya tenía el evento.
+// Sin campo de título: se genera solo a partir de tipo, lugar y fecha
 interface FormularioEventoProps {
   tipo: TipoEvento;
   estado: EstadoEvento;

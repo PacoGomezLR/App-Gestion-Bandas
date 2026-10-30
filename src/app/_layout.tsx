@@ -7,7 +7,6 @@ import AppTabs from '@/components/app-tabs';
 import { AppAuthGate } from '@/components/AppAuthGate';
 import { AuthProvider } from '@/context/AuthContext';
 import { EventosProvider } from '@/context/EventosContext';
-import { MiembrosProvider } from '@/context/MiembrosContext';
 import { TecnicosProvider } from '@/context/TecnicosContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -22,9 +21,7 @@ export default function TabLayout() {
         <AppAuthGate>
           <EventosProvider>
             <TecnicosProvider>
-              <MiembrosProvider>
-                <AppTabs />
-              </MiembrosProvider>
+              <AppTabs />
             </TecnicosProvider>
           </EventosProvider>
         </AppAuthGate>

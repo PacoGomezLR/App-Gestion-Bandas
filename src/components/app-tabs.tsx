@@ -27,15 +27,6 @@ export default function AppTabs() {
           renderingMode="template"
         />
       </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="miembros">
-        <NativeTabs.Trigger.Label>Músicos</NativeTabs.Trigger.Label>
-        {/* Icono reutilizado temporalmente: no hay uno propio para Miembros */}
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

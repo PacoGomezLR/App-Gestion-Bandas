@@ -18,6 +18,11 @@ export interface RepositorioEventos {
 // La banda queda fijada al crear el repositorio: ninguna operación puede omitirla.
 // Las lecturas filtran por banda_id además de la RLS del servidor.
 export function crearRepositorioEventosSupabase(bandaId: string): RepositorioEventos {
+  // LEGADO TEMPORAL (hasta la migración 003): músicos que ya tenía cada evento
+  // en evento_miembros. actualizar_evento borra y reescribe esas filas, así que
+  // se reenvían tal cual para no perderlas al editar. Nunca salen de aquí.
+  const miembrosLegadoPorEvento = new Map<string, string[]>();
+
   return {
     async listar() {
       const { data, error } = await supabase
@@ -31,10 +36,18 @@ export function crearRepositorioEventosSupabase(bandaId: string): RepositorioEve
         throw convertirErrorSupabase(error);
       }
 
-      return convertirFilasEventos(data);
+      const convertidas = convertirFilasEventos(data);
+
+      miembrosLegadoPorEvento.clear();
+      convertidas.miembrosLegadoPorEvento.forEach((ids, eventoId) =>
+        miembrosLegadoPorEvento.set(eventoId, ids)
+      );
+
+      return convertidas.eventos;
     },
 
-    // Evento y asignaciones en una sola transacción (función crear_evento)
+    // Evento y asignaciones en una sola transacción (función crear_evento).
+    // Un evento nuevo no tiene músicos heredados: p_miembro_ids va vacío.
     async crear(datos) {
       const { data, error } = await supabase.rpc(
         "crear_evento",
@@ -57,7 +70,11 @@ export function crearRepositorioEventosSupabase(bandaId: string): RepositorioEve
 
       const { error } = await supabase.rpc("actualizar_evento", {
         p_evento_id: id,
-        ...convertirDatosEventoAParametros(bandaId, datos),
+        ...convertirDatosEventoAParametros(
+          bandaId,
+          datos,
+          miembrosLegadoPorEvento.get(id) ?? []
+        ),
       });
 
       if (error) {
@@ -84,6 +101,8 @@ export function crearRepositorioEventosSupabase(bandaId: string): RepositorioEve
       if (!Array.isArray(data) || data.length === 0) {
         throw new ErrorRepositorio("sin_permiso");
       }
+
+      miembrosLegadoPorEvento.delete(id);
     },
   };
 }

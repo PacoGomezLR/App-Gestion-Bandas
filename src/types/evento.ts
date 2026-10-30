@@ -19,5 +19,4 @@ export type TipoEvento =
   notas: string;
   estado: EstadoEvento;
   tecnicoIds: string[];
-  miembroIds: string[];
 }

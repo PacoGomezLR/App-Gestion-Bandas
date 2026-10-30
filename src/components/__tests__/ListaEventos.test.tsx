@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 import type { Evento } from "../../types/evento";
-import type { Miembro } from "../../types/miembro";
 import type { Tecnico } from "../../types/tecnico";
 import { ListaEventos } from "../ListaEventos";
 
@@ -19,17 +18,6 @@ const tecnicos: Tecnico[] = [
   },
 ];
 
-const miembros: Miembro[] = [
-  {
-    id: "1",
-    nombre: "Paco",
-  },
-  {
-    id: "2",
-    nombre: "Rafa",
-  },
-];
-
 const eventos: Evento[] = [
   {
     id: "1",
@@ -41,7 +29,6 @@ const eventos: Evento[] = [
     notas: "",
     estado: "confirmado",
     tecnicoIds: ["1", "2"],
-    miembroIds: ["1", "2"],
   },
   {
     id: "2",
@@ -53,7 +40,6 @@ const eventos: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
-    miembroIds: [],
   },
 ];
 
@@ -67,7 +53,6 @@ const boda: Evento = {
   notas: "Prueba de sonido a las 18:00",
   estado: "confirmado",
   tecnicoIds: ["1"],
-  miembroIds: ["1", "2"],
 };
 
 const fiesta: Evento = {
@@ -80,7 +65,6 @@ const fiesta: Evento = {
   notas: "",
   estado: "pendiente",
   tecnicoIds: [],
-  miembroIds: [],
 };
 
 async function renderizar(lista: Evento[], procesando = false, puedeEditar = true) {
@@ -91,7 +75,6 @@ async function renderizar(lista: Evento[], procesando = false, puedeEditar = tru
     <ListaEventos
       eventos={lista}
       tecnicos={tecnicos}
-      miembros={miembros}
       procesando={procesando}
       puedeEditar={puedeEditar}
       onEliminar={onEliminar}
@@ -199,7 +182,8 @@ describe("ListaEventos", () => {
     expect(getByText("Estado: Confirmado")).toBeTruthy();
     expect(screen.queryByText("Estado: confirmado")).toBeNull();
     expect(getByText("Técnico: Carlos")).toBeTruthy();
-    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
+    // Los músicos ya no existen en la app
+    expect(queryByText(/Músicos|Miembros/)).toBeNull();
     expect(getByText("Editar")).toBeTruthy();
     expect(getByText("Eliminar")).toBeTruthy();
   });
@@ -249,44 +233,14 @@ describe("ListaEventos", () => {
     expect(getByText("Técnico: Carlos")).toBeTruthy();
   });
 
-  test("muestra los músicos asignados", async () => {
-    const { getByText } = await renderizar(eventos);
-
-    await abrir("Concierto abierto");
-
-    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
-  });
-
-  test("no muestra ninguna línea de músicos si el evento no tiene", async () => {
+  test("el detalle no tiene ninguna línea de músicos", async () => {
     const { getByText, queryByText } = await renderizar(eventos);
-
-    await abrir("Ensayo");
-
-    // Sin músicos es un estado válido: el detalle se ve, pero sin línea de músicos
-    expect(getByText("Tipo de evento: Ensayo")).toBeTruthy();
-    expect(queryByText(/^Músicos:/)).toBeNull();
-    expect(queryByText(/Músicos|Miembros/)).toBeNull();
-  });
-
-  test("ignora ids de músicos inexistentes", async () => {
-    const { getByText } = await renderizar([
-      { ...eventos[0], miembroIds: ["99", "2"] },
-    ]);
-
-    await abrir("Concierto abierto");
-
-    expect(getByText("Músicos: Rafa")).toBeTruthy();
-  });
-
-  test("no muestra la línea de músicos si todos los ids son inexistentes", async () => {
-    const { getByText, queryByText } = await renderizar([
-      { ...eventos[0], miembroIds: ["98", "99"] },
-    ]);
 
     await abrir("Concierto abierto");
 
     expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
     expect(queryByText(/^Músicos:/)).toBeNull();
+    expect(queryByText(/Músicos|Miembros/)).toBeNull();
   });
 
   test("sin lugar la vista previa es solo el tipo y no hay líneas vacías", async () => {
@@ -422,7 +376,7 @@ describe("ListaEventos", () => {
 
     expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
     expect(getByText("Técnico: Carlos, Miguel")).toBeTruthy();
-    expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
+    expect(queryByText(/^Músicos:/)).toBeNull();
     expect(queryByText("Editar")).toBeNull();
     expect(queryByText("Eliminar")).toBeNull();
     // No se enseña el rol

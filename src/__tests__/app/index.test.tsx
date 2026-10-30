@@ -2,7 +2,6 @@ import { fireEvent, render } from "@testing-library/react-native";
 import Index from "../../app/index";
 import { useBandaContext } from "../../context/BandaContext";
 import { useEventosContext } from "../../context/EventosContext";
-import { useMiembrosContext } from "../../context/MiembrosContext";
 import { useTecnicosContext } from "../../context/TecnicosContext";
 import type { Evento } from "../../types/evento";
 
@@ -15,11 +14,6 @@ jest.mock("../../lib/supabase", () => ({ supabase: {} }));
 jest.mock("../../context/EventosContext", () => ({
   ...jest.requireActual("../../context/EventosContext"),
   useEventosContext: jest.fn(),
-}));
-
-jest.mock("../../context/MiembrosContext", () => ({
-  ...jest.requireActual("../../context/MiembrosContext"),
-  useMiembrosContext: jest.fn(),
 }));
 
 jest.mock("../../context/TecnicosContext", () => ({
@@ -80,7 +74,6 @@ jest.mock("../../components/BotonCerrarSesion", () => {
 
 const mockUseEventosContext = jest.mocked(useEventosContext);
 const mockUseTecnicosContext = jest.mocked(useTecnicosContext);
-const mockUseMiembrosContext = jest.mocked(useMiembrosContext);
 const mockUseBandaContext = jest.mocked(useBandaContext);
 
 function simularPermisos(esAdmin: boolean) {
@@ -109,7 +102,6 @@ const eventos: Evento[] = [
     notas: "",
     estado: "confirmado",
     tecnicoIds: [],
-    miembroIds: [],
   },
   {
     id: "2",
@@ -121,7 +113,6 @@ const eventos: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
-    miembroIds: [],
   },
   {
     id: "3",
@@ -133,7 +124,6 @@ const eventos: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
-    miembroIds: [],
   },
 ];
 
@@ -151,7 +141,6 @@ function crearValorUseEventosContext(
     lugar: "",
     notas: "",
     tecnicoIds: [],
-    miembroIds: [],
     error: "",
     eventoEditandoId: null,
     setTipo: jest.fn(),
@@ -161,7 +150,6 @@ function crearValorUseEventosContext(
     setLugar: jest.fn(),
     setNotas: jest.fn(),
     alternarTecnico: jest.fn(),
-    alternarMiembro: jest.fn(),
     reemplazarEventos: jest.fn(),
     guardarEvento: jest.fn(),
     eliminarEvento: jest.fn(),
@@ -197,34 +185,9 @@ function crearValorUseTecnicosContext(): ReturnType<typeof useTecnicosContext> {
   };
 }
 
-function crearValorUseMiembrosContext(): ReturnType<typeof useMiembrosContext> {
-  return {
-    miembros: [
-      {
-        id: "1",
-        nombre: "Paco",
-      },
-    ],
-    nombre: "",
-    error: "",
-    miembroEditandoId: null,
-    procesando: false,
-    setNombre: jest.fn(),
-    reemplazarMiembros: jest.fn(),
-    guardarMiembro: jest.fn(),
-    prepararEdicion: jest.fn(),
-    cancelarEdicion: jest.fn(),
-    eliminarMiembro: jest.fn(),
-    errorEliminacion: "",
-    cargando: false,
-    errorPersistencia: "",
-  };
-}
-
 describe("Index", () => {
   beforeEach(() => {
     mockUseTecnicosContext.mockReturnValue(crearValorUseTecnicosContext());
-    mockUseMiembrosContext.mockReturnValue(crearValorUseMiembrosContext());
     simularPermisos(true);
   });
 
@@ -337,12 +300,12 @@ describe("Index", () => {
     expect(queryByText("Ensayo general")).toBeNull();
   });
 
-  test("espera también a que carguen los miembros", async () => {
+  test("espera también a que carguen los técnicos", async () => {
     mockUseEventosContext.mockReturnValue(
       crearValorUseEventosContext("", jest.fn())
     );
-    mockUseMiembrosContext.mockReturnValue({
-      ...crearValorUseMiembrosContext(),
+    mockUseTecnicosContext.mockReturnValue({
+      ...crearValorUseTecnicosContext(),
       cargando: true,
     });
 

@@ -11,7 +11,6 @@ export const eventosIniciales: Evento[] = [
     notas: "",
     estado: "confirmado",
     tecnicoIds: [],
-    miembroIds: [],
   },
   {
     id: "2",
@@ -23,7 +22,6 @@ export const eventosIniciales: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
-    miembroIds: [],
   },
   {
     id: "3",
@@ -35,6 +33,5 @@ export const eventosIniciales: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
-    miembroIds: [],
   },
 ];

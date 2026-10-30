@@ -2,7 +2,6 @@ import { fireEvent, render } from "@testing-library/react-native";
 import Index from "../../app/index";
 import { useBandaContext } from "../../context/BandaContext";
 import { useEventosContext } from "../../context/EventosContext";
-import { useMiembrosContext } from "../../context/MiembrosContext";
 import { useTecnicosContext } from "../../context/TecnicosContext";
 import type { Evento } from "../../types/evento";
 
@@ -18,11 +17,6 @@ jest.mock("../../lib/supabase", () => ({ supabase: {} }));
 jest.mock("../../context/EventosContext", () => ({
   ...jest.requireActual("../../context/EventosContext"),
   useEventosContext: jest.fn(),
-}));
-
-jest.mock("../../context/MiembrosContext", () => ({
-  ...jest.requireActual("../../context/MiembrosContext"),
-  useMiembrosContext: jest.fn(),
 }));
 
 jest.mock("../../context/TecnicosContext", () => ({
@@ -61,7 +55,6 @@ jest.mock("../../components/BotonCerrarSesion", () => {
 
 const mockUseEventosContext = jest.mocked(useEventosContext);
 const mockUseTecnicosContext = jest.mocked(useTecnicosContext);
-const mockUseMiembrosContext = jest.mocked(useMiembrosContext);
 const mockUseBandaContext = jest.mocked(useBandaContext);
 
 // Tal y como llega desde Supabase: fecha interna YYYY-MM-DD
@@ -75,7 +68,6 @@ const concierto: Evento = {
   notas: "Llevar atriles",
   estado: "confirmado",
   tecnicoIds: ["t1"],
-  miembroIds: ["m1"],
 };
 
 function simularPantalla(esAdmin: boolean) {
@@ -102,7 +94,6 @@ function simularPantalla(esAdmin: boolean) {
     lugar: "",
     notas: "",
     tecnicoIds: [],
-    miembroIds: [],
     error: "",
     eventoEditandoId: null,
     setTipo: jest.fn(),
@@ -112,7 +103,6 @@ function simularPantalla(esAdmin: boolean) {
     setLugar: jest.fn(),
     setNotas: jest.fn(),
     alternarTecnico: jest.fn(),
-    alternarMiembro: jest.fn(),
     reemplazarEventos: jest.fn(),
     guardarEvento: jest.fn(),
     eliminarEvento: jest.fn(),
@@ -136,23 +126,6 @@ function simularPantalla(esAdmin: boolean) {
     eliminarTecnico: jest.fn(),
     errorEliminacion: "",
     procesando: false,
-    cargando: false,
-    errorPersistencia: "",
-  });
-
-  mockUseMiembrosContext.mockReturnValue({
-    miembros: [{ id: "m1", nombre: "Paco" }],
-    nombre: "",
-    error: "",
-    miembroEditandoId: null,
-    procesando: false,
-    setNombre: jest.fn(),
-    reemplazarMiembros: jest.fn(),
-    guardarMiembro: jest.fn(),
-    prepararEdicion: jest.fn(),
-    cancelarEdicion: jest.fn(),
-    eliminarMiembro: jest.fn(),
-    errorEliminacion: "",
     cargando: false,
     errorPersistencia: "",
   });
@@ -184,7 +157,7 @@ describe("Calendario → detalle del evento", () => {
     expect(queryByText("Eliminar") !== null).toBe(esAdmin);
   });
 
-  test("el detalle abierto sigue el orden Tipo, Fecha, Hora, Lugar, Estado, Técnico, Músicos, Nota y no muestra Título", async () => {
+  test("el detalle abierto sigue el orden Tipo, Fecha, Hora, Lugar, Estado, Técnico, Nota sin Título ni Músicos", async () => {
     simularPantalla(true);
 
     const { getByText, toJSON } = await render(<Index />);
@@ -193,6 +166,7 @@ describe("Calendario → detalle del evento", () => {
 
     const renderizado = JSON.stringify(toJSON());
     expect(renderizado).not.toContain("Título");
+    expect(renderizado).not.toMatch(/Músicos|Miembros/);
     expect(renderizado).not.toContain("Concierto abierto Montilla 29/10/2026");
 
     const posiciones = [
@@ -202,7 +176,6 @@ describe("Calendario → detalle del evento", () => {
       "Lugar: ",
       "Estado: ",
       "Técnico: ",
-      "Músicos: ",
       "Nota: ",
     ].map((marcador) => renderizado.indexOf(marcador));
 

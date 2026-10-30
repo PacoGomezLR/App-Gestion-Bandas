@@ -13,7 +13,6 @@ import {
 } from "../components/PantallaInterior";
 import { useBandaContext } from "../context/BandaContext";
 import { useEventosContext } from "../context/EventosContext";
-import { useMiembrosContext } from "../context/MiembrosContext";
 import { useTecnicosContext } from "../context/TecnicosContext";
 import { formatearFecha } from "../utils/fechas";
 
@@ -54,18 +53,12 @@ export default function Index() {
     errorPersistencia: errorPersistenciaTecnicos,
   } = useTecnicosContext();
 
-  const {
-    miembros,
-    cargando: cargandoMiembros,
-    errorPersistencia: errorPersistenciaMiembros,
-  } = useMiembrosContext();
-
   const eventosVisibles =
     fecha === ""
       ? eventos
       : eventos.filter((evento) => evento.fecha === fecha);
 
-  if (cargandoEventos || cargandoTecnicos || cargandoMiembros) {
+  if (cargandoEventos || cargandoTecnicos) {
     return <CargandoInterior texto="Cargando datos..." />;
   }
 
@@ -82,10 +75,6 @@ export default function Index() {
 
       {errorPersistenciaTecnicos !== "" && (
         <Mensaje tipo="error" texto={errorPersistenciaTecnicos} />
-      )}
-
-      {errorPersistenciaMiembros !== "" && (
-        <Mensaje tipo="error" texto={errorPersistenciaMiembros} />
       )}
 
       {/* Quien no es admin ve el mismo calendario para filtrar, sin el formulario */}
@@ -146,7 +135,6 @@ export default function Index() {
           <ListaEventos
             eventos={eventosVisibles}
             tecnicos={tecnicos}
-            miembros={miembros}
             procesando={procesando}
             puedeEditar={esAdmin}
             onEliminar={eliminarEvento}

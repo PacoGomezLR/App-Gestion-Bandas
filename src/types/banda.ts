@@ -7,7 +7,8 @@ export interface Banda {
   creadaEn: string;
 }
 
-// Acceso de una cuenta a una banda; no es un Miembro musical
+// Fila de banda_usuarios: los integrantes de una banda son sus usuarios.
+// El rol solo decide permisos y no se muestra en la interfaz.
 export interface PertenenciaBanda {
   bandaId: string;
   usuarioId: string;

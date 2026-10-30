@@ -265,7 +265,6 @@ describe("useEventos", () => {
         notas: "",
         estado: "confirmado",
         tecnicoIds: ["1"],
-        miembroIds: [],
       },
     ];
 
@@ -337,7 +336,6 @@ describe("useEventos", () => {
     await act(() => {
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("2");
-      result.current.alternarMiembro("1");
       result.current.setHora("20:30");
       result.current.setLugar("Sala Principal");
       result.current.setNotas("Llevar amplificador de repuesto");
@@ -353,7 +351,6 @@ describe("useEventos", () => {
     expect(persistirEvento).toHaveBeenCalledTimes(1);
     expect(persistirEvento.mock.calls[0][0]).toBe(result.current.eventos[3]);
     expect(persistirEvento.mock.calls[0][0]).toMatchObject({
-      miembroIds: ["1"],
       hora: "20:30",
       lugar: "Sala Principal",
       notas: "Llevar amplificador de repuesto",
@@ -362,7 +359,6 @@ describe("useEventos", () => {
       titulo: "Concierto abierto Sala Principal 15/11/2026",
       fecha: "2026-11-15",
       tecnicoIds: ["2"],
-      miembroIds: ["1"],
     });
   });
 
@@ -513,7 +509,6 @@ describe("useEventos", () => {
       notas: "Prueba de sonido a las 18:00",
       estado: "confirmado",
       tecnicoIds: [],
-      miembroIds: [],
     };
 
     const { result } = await renderHook(() =>
@@ -600,150 +595,23 @@ describe("useEventos", () => {
     });
   });
 
-  test("asigna y desasigna miembros en el formulario", async () => {
-    const { result } = await renderHook(() => useEventos());
+  test("ya no hay músicos: ni estado, ni acción, ni campo en el evento guardado", async () => {
+    const persistirEvento = jest.fn(async (evento: Evento) => evento);
+    const { result } = await renderHook(() => useEventos({ persistirEvento }));
 
-    expect(result.current.miembroIds).toEqual([]);
-
-    await act(() => {
-      result.current.alternarMiembro("1");
-    });
-
-    expect(result.current.miembroIds).toEqual(["1"]);
-
-    await act(() => {
-      result.current.alternarMiembro("2");
-    });
-
-    expect(result.current.miembroIds).toEqual(["1", "2"]);
-
-    await act(() => {
-      result.current.alternarMiembro("1");
-    });
-
-    expect(result.current.miembroIds).toEqual(["2"]);
-  });
-
-  test("permite guardar un evento sin miembros asignados", async () => {
-    const { result } = await renderHook(() => useEventos());
+    expect(result.current).not.toHaveProperty("miembroIds");
+    expect(result.current).not.toHaveProperty("alternarMiembro");
 
     await act(() => {
       result.current.setFecha("2026-11-20");
     });
 
-    let guardado: boolean | undefined;
-
-    await act(async () => {
-      guardado = await result.current.guardarEvento();
-    });
-
-    expect(guardado).toBe(true);
-    expect(result.current.error).toBe("");
-    expect(result.current.eventos).toHaveLength(4);
-    expect(result.current.eventos[3]).toMatchObject({
-      titulo: "Concierto abierto 20/11/2026",
-      miembroIds: [],
-    });
-  });
-
-  test("crea un evento con miembros y limpia la selección", async () => {
-    const { result } = await renderHook(() => useEventos());
-
-    await act(() => {
-      result.current.setFecha("2026-12-05");
-      result.current.alternarMiembro("1");
-      result.current.alternarMiembro("2");
-    });
-
     await act(async () => {
       await result.current.guardarEvento();
     });
 
-    expect(result.current.eventos[3].miembroIds).toEqual(["1", "2"]);
-    expect(result.current.miembroIds).toEqual([]);
-  });
-
-  test("edita los miembros de un evento, incluso dejándolo sin ninguno", async () => {
-    const eventoConMiembros: Evento = {
-      id: "50",
-      titulo: "Concierto de primavera",
-      tipo: "concierto_abierto",
-      fecha: "2027-04-10",
-      hora: "",
-      lugar: "",
-      notas: "",
-      estado: "pendiente",
-      tecnicoIds: [],
-      miembroIds: ["1", "2"],
-    };
-
-    const { result } = await renderHook(() =>
-      useEventos({ datosIniciales: [eventoConMiembros] })
-    );
-
-    await act(() => {
-      result.current.prepararEdicion(result.current.eventos[0]);
-    });
-
-    expect(result.current.miembroIds).toEqual(["1", "2"]);
-
-    await act(() => {
-      result.current.alternarMiembro("1");
-    });
-
-    await act(async () => {
-      await result.current.guardarEvento();
-    });
-
-    expect(result.current.eventos).toHaveLength(1);
-    expect(result.current.eventos[0]).toMatchObject({
-      id: "50",
-      miembroIds: ["2"],
-    });
-    expect(result.current.miembroIds).toEqual([]);
-
-    // Se puede volver a editar y quitar todos los miembros
-    await act(() => {
-      result.current.prepararEdicion(result.current.eventos[0]);
-    });
-
-    await act(() => {
-      result.current.alternarMiembro("2");
-    });
-
-    let guardado: boolean | undefined;
-
-    await act(async () => {
-      guardado = await result.current.guardarEvento();
-    });
-
-    expect(guardado).toBe(true);
-    expect(result.current.eventos).toHaveLength(1);
-    expect(result.current.eventos[0]).toMatchObject({
-      id: "50",
-      miembroIds: [],
-    });
-  });
-
-  test("cancelar la edición limpia también la selección de miembros", async () => {
-    const { result } = await renderHook(() => useEventos());
-
-    await act(() => {
-      result.current.prepararEdicion(result.current.eventos[0]);
-    });
-
-    await act(() => {
-      result.current.alternarMiembro("3");
-    });
-
-    expect(result.current.miembroIds).toEqual(["3"]);
-
-    await act(() => {
-      result.current.cancelarEdicion();
-    });
-
-    expect(result.current.miembroIds).toEqual([]);
-    expect(result.current.eventos[0].miembroIds).toEqual([]);
+    expect(persistirEvento.mock.calls[0][0]).not.toHaveProperty("miembroIds");
+    expect(result.current.eventos[3]).not.toHaveProperty("miembroIds");
   });
 
   test("impide guardar dos veces mientras una escritura está pendiente", async () => {
@@ -966,9 +834,8 @@ describe("useEventos", () => {
     expect(result.current.eventos[0].titulo).toBe("Concierto abierto Montilla 15/11/2026");
   });
 
-  test("editar un evento con músicos sin tocarlos conserva sus miembroIds", async () => {
-    // El formulario ya no muestra el selector de músicos: no debe vaciarlos al guardar
-    const conMusicos: Evento = {
+  test("editar un evento conserva sus técnicos y no envía ningún campo de músicos", async () => {
+    const evento: Evento = {
       id: "m1",
       titulo: "Boda Lucena 29/10/2026",
       tipo: "boda",
@@ -978,12 +845,11 @@ describe("useEventos", () => {
       notas: "",
       estado: "pendiente",
       tecnicoIds: ["1"],
-      miembroIds: ["1", "2"],
     };
-    const persistirEvento = jest.fn(async (evento: Evento) => evento);
+    const persistirEvento = jest.fn(async (guardado: Evento, _esNuevo: boolean) => guardado);
 
     const { result } = await renderHook(() =>
-      useEventos({ datosIniciales: [conMusicos], persistirEvento })
+      useEventos({ datosIniciales: [evento], persistirEvento })
     );
 
     await act(() => {
@@ -992,7 +858,6 @@ describe("useEventos", () => {
 
     await act(() => {
       result.current.setLugar("Montilla");
-      result.current.setFecha("2026-11-07");
       result.current.setEstado("confirmado");
       result.current.alternarTecnico("2");
     });
@@ -1001,16 +866,11 @@ describe("useEventos", () => {
       await result.current.guardarEvento();
     });
 
-    expect(persistirEvento).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "m1", miembroIds: ["1", "2"], tecnicoIds: ["1", "2"] }),
-      false
-    );
-    expect(result.current.eventos[0]).toMatchObject({
-      lugar: "Montilla",
-      fecha: "2026-11-07",
-      estado: "confirmado",
-      miembroIds: ["1", "2"],
-    });
+    const enviado = persistirEvento.mock.calls[0][0];
+    expect(persistirEvento.mock.calls[0][1]).toBe(false);
+    expect(enviado).toMatchObject({ id: "m1", lugar: "Montilla", estado: "confirmado", tecnicoIds: ["1", "2"] });
+    // Los músicos heredados de Supabase los conserva el repositorio, no el dominio
+    expect(enviado).not.toHaveProperty("miembroIds");
   });
 
   describe("título automático", () => {

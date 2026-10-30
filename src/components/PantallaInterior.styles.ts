@@ -7,7 +7,7 @@ type ColoresTema = ReturnType<typeof useTheme>;
 
 const RADIO_TARJETA = 16;
 
-// Piezas comunes de las pantallas interiores (Calendario ahora; Músicos y Técnicos después)
+// Piezas comunes de las pantallas interiores (Calendario ahora; Técnicos después)
 export function crearEstilosPantallaInterior(colores: ColoresTema) {
   return StyleSheet.create({
     pagina: {
