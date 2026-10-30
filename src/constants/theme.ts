@@ -20,6 +20,11 @@ export const Colors = {
     errorBackground: '#FDECEC',
     info: '#1A4F8F',
     infoBackground: '#E8F1FD',
+    // Estados de evento: tonos suaves con texto de buen contraste
+    success: '#166534',
+    successBackground: '#DCFCE7',
+    warning: '#78350F',
+    warningBackground: '#FEF3C7',
   },
   dark: {
     text: '#ffffff',
@@ -33,6 +38,10 @@ export const Colors = {
     errorBackground: '#3A1715',
     info: '#9CC4F7',
     infoBackground: '#13263D',
+    success: '#86EFAC',
+    successBackground: '#0F2E1C',
+    warning: '#FCD34D',
+    warningBackground: '#3A2A0B',
   },
 } as const;
 

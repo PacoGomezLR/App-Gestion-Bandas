@@ -7,3 +7,8 @@ export function formatearFecha(fecha: string) {
 
   return `${dia}-${mes}-${anio}`;
 }
+
+// YYYY-MM-DD → DD/MM/YYYY (formato del título automático del evento)
+export function formatearFechaConBarras(fecha: string) {
+  return formatearFecha(fecha).replace(/-/g, "/");
+}

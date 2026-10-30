@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { Button, Pressable, StyleSheet, Text, View } from "react-native";
-import type { EstadoEvento, Evento } from "../types/evento";
+import { useMemo, useState } from "react";
+import { Button, Pressable, Text, View } from "react-native";
+import { useTheme } from "@/hooks/use-theme";
+import type { Evento } from "../types/evento";
 import type { Miembro } from "../types/miembro";
 import type { Tecnico } from "../types/tecnico";
 import { etiquetaEstadoEvento } from "../utils/estadosEvento";
-import { formatearFecha } from "../utils/fechas";
+import { formatearFechaConBarras } from "../utils/fechas";
 import { etiquetaTipoEvento } from "../utils/tiposEvento";
+import { coloresBadge, crearEstilosListaEventos } from "./ListaEventos.styles";
 
 interface ListaEventosProps {
   eventos: Evento[];
@@ -29,13 +31,19 @@ function obtenerTituloVistaPrevia(evento: Evento): string {
 export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEditar, onEliminar, onEditar }: ListaEventosProps) {
   // Solo un evento desplegado a la vez; no se persiste
   const [eventoAbiertoId, setEventoAbiertoId] = useState<string | null>(null);
+  const tema = useTheme();
+  const estilos = useMemo(() => crearEstilosListaEventos(tema), [tema]);
+  const badges = useMemo(() => coloresBadge(estilos), [estilos]);
 
   return (
-    <>
+    <View style={estilos.lista}>
       {eventos.map((evento) => {
         const abierto = eventoAbiertoId === evento.id;
         const tituloVistaPrevia = obtenerTituloVistaPrevia(evento);
+        const tipo = etiquetaTipoEvento(evento.tipo);
+        const lugar = evento.lugar.trim();
         const etiquetaEstado = etiquetaEstadoEvento(evento.estado);
+        const fechaVisible = formatearFechaConBarras(evento.fecha);
 
         const nombresTecnicos = evento.tecnicoIds
           .map((id) =>
@@ -50,19 +58,30 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEdi
           .filter((nombre): nombre is string => nombre !== undefined);
 
         return (
-          <View key={evento.id}>
+          <View key={evento.id} style={estilos.tarjeta}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Ver detalles de ${tituloVistaPrevia}. Estado ${etiquetaEstado}`}
+              accessibilityLabel={`Ver detalles de ${tituloVistaPrevia}, ${fechaVisible}. Estado ${etiquetaEstado}`}
               accessibilityState={{ expanded: abierto }}
               onPress={() => setEventoAbiertoId(abierto ? null : evento.id)}
+              style={({ pressed }) => [
+                estilos.vistaPrevia,
+                pressed && estilos.vistaPreviaPulsada,
+              ]}
             >
-              {/* flexWrap: en pantallas estrechas el estado pasa debajo del título */}
-              <View style={styles.filaVistaPrevia}>
-                <Text>{tituloVistaPrevia}</Text>
+              <View style={estilos.filaVistaPrevia}>
+                <View style={estilos.textosVistaPrevia}>
+                  {/* Tipo destacado y lugar en segundo plano; el texto completo sigue siendo "Tipo Lugar" */}
+                  <Text style={estilos.tipo}>
+                    {tipo}
+                    {lugar !== "" && <Text style={estilos.lugar}>{` ${lugar}`}</Text>}
+                  </Text>
+                  {/* Solo la fecha: la hora se queda en el detalle */}
+                  <Text style={estilos.fechaVistaPrevia}>{fechaVisible}</Text>
+                </View>
                 {/* El estado siempre se muestra con texto, no solo con color */}
-                <View style={[styles.badge, coloresBadge[evento.estado].fondo]}>
-                  <Text style={coloresBadge[evento.estado].texto}>
+                <View style={[estilos.badge, badges[evento.estado].fondo]}>
+                  <Text style={[estilos.textoBadge, badges[evento.estado].texto]}>
                     {etiquetaEstado}
                   </Text>
                 </View>
@@ -70,26 +89,26 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEdi
             </Pressable>
 
             {abierto && (
-              <View>
-                <Text>Título: {evento.titulo}</Text>
-                <Text>Tipo de evento: {etiquetaTipoEvento(evento.tipo)}</Text>
-                <Text>Fecha: {formatearFecha(evento.fecha)}</Text>
+              <View style={estilos.detalle}>
+                {/* El título se sigue guardando, pero no se muestra: repite tipo, lugar y fecha */}
+                <Text style={estilos.textoDetalle}>Tipo de evento: {etiquetaTipoEvento(evento.tipo)}</Text>
+                <Text style={estilos.textoDetalle}>Fecha: {fechaVisible}</Text>
                 {/* Campos opcionales: solo se muestran si tienen valor */}
-                {evento.hora !== "" && <Text>Hora: {evento.hora}</Text>}
-                {evento.lugar !== "" && <Text>Lugar: {evento.lugar}</Text>}
-                <Text>Estado: {etiquetaEstado}</Text>
-                <Text>
+                {evento.hora !== "" && <Text style={estilos.textoDetalle}>Hora: {evento.hora}</Text>}
+                {evento.lugar !== "" && <Text style={estilos.textoDetalle}>Lugar: {evento.lugar}</Text>}
+                <Text style={estilos.textoDetalle}>Estado: {etiquetaEstado}</Text>
+                <Text style={estilos.textoDetalle}>
                   Técnico: {nombresTecnicos.length > 0
                     ? nombresTecnicos.join(", ")
                     : "Sin asignar"}
                 </Text>
                 {/* Asignar músicos es opcional: si no hay ninguno válido, no se muestra la línea */}
                 {nombresMiembros.length > 0 && (
-                  <Text>
+                  <Text style={estilos.textoDetalle}>
                     Músicos: {nombresMiembros.join(", ")}
                   </Text>
                 )}
-                {evento.notas !== "" && <Text>Nota: {evento.notas}</Text>}
+                {evento.notas !== "" && <Text style={estilos.textoDetalle}>Nota: {evento.notas}</Text>}
 
                 {puedeEditar && (
                   <>
@@ -111,41 +130,6 @@ export function ListaEventos({ eventos, tecnicos, miembros, procesando, puedeEdi
           </View>
         );
       })}
-    </>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  filaVistaPrevia: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 8,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  fondoPendiente: {
-    backgroundColor: "#FEF3C7",
-  },
-  textoPendiente: {
-    color: "#78350F",
-  },
-  fondoConfirmado: {
-    backgroundColor: "#15803D",
-  },
-  textoConfirmado: {
-    color: "#FFFFFF",
-  },
-});
-
-// Record obliga a dar colores a cada estado: si se añade uno, TypeScript avisa aquí
-const coloresBadge: Record<
-  EstadoEvento,
-  { fondo: { backgroundColor: string }; texto: { color: string } }
-> = {
-  pendiente: { fondo: styles.fondoPendiente, texto: styles.textoPendiente },
-  confirmado: { fondo: styles.fondoConfirmado, texto: styles.textoConfirmado },
-};

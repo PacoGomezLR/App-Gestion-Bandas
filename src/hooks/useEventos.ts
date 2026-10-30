@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { eventosIniciales } from "../data/eventosIniciales";
 import type { EstadoEvento, Evento, TipoEvento } from "../types/evento";
+import { generarTituloEvento } from "../utils/tituloEvento";
 
 // HH:MM de 00:00 a 23:59
 const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -20,7 +21,6 @@ export function useEventos(options: UseEventosOptions = {}) {
   } = options;
 
   const [eventos, setEventos] = useState<Evento[]>(datosIniciales);
-  const [titulo, setTitulo] = useState("");
   const [tipo, setTipo] = useState<TipoEvento>("concierto_abierto");
   const [estado, setEstado] = useState<EstadoEvento>("pendiente");
   const [fecha, setFecha] = useState("");
@@ -29,6 +29,8 @@ export function useEventos(options: UseEventosOptions = {}) {
   const [notas, setNotas] = useState("");
   const [tecnicoIds, setTecnicoIds] = useState<string[]>([]);
   const [miembroIds, setMiembroIds] = useState<string[]>([]);
+  // Se recalcula en cada cambio de tipo, lugar o fecha: no hay campo de título
+  const titulo = generarTituloEvento(tipo, lugar, fecha);
   const [error, setError] = useState("");
   const [eventoEditandoId, setEventoEditandoId] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
@@ -56,7 +58,6 @@ export function useEventos(options: UseEventosOptions = {}) {
   }, []);
 
   function limpiarFormulario() {
-    setTitulo("");
     setFecha("");
     setHora("");
     setLugar("");
@@ -86,8 +87,9 @@ export function useEventos(options: UseEventosOptions = {}) {
   }
 
   async function guardarEvento(): Promise<boolean> {
-    if (titulo.trim() === "" || fecha.trim() === "") {
-      setError("El título y la fecha son obligatorios");
+    // El título se genera solo, así que lo único obligatorio es la fecha
+    if (fecha.trim() === "") {
+      setError("La fecha es obligatoria");
       return false;
     }
 
@@ -106,7 +108,8 @@ export function useEventos(options: UseEventosOptions = {}) {
 
       const eventoGuardado: Evento = {
         id: eventoEditandoId ?? Date.now().toString(),
-        titulo: titulo.trim(),
+        // Siempre se reconstruye desde tipo, lugar y fecha, también al editar
+        titulo: generarTituloEvento(tipo, lugar, fecha),
         tipo: tipo,
         fecha: fecha,
         hora: hora.trim(),
@@ -189,7 +192,6 @@ export function useEventos(options: UseEventosOptions = {}) {
     }
 
     setEventoEditandoId(evento.id);
-    setTitulo(evento.titulo);
     setTipo(evento.tipo);
     setFecha(evento.fecha);
     setHora(evento.hora);
@@ -214,7 +216,6 @@ export function useEventos(options: UseEventosOptions = {}) {
     error,
     eventoEditandoId,
     procesando,
-    setTitulo,
     setTipo,
     setEstado,
     setFecha,

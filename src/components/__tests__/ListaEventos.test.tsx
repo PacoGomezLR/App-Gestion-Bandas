@@ -5,6 +5,9 @@ import type { Miembro } from "../../types/miembro";
 import type { Tecnico } from "../../types/tecnico";
 import { ListaEventos } from "../ListaEventos";
 
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 const tecnicos: Tecnico[] = [
   {
     id: "1",
@@ -115,6 +118,42 @@ describe("ListaEventos", () => {
     expect(queryByText("Eliminar")).toBeNull();
   });
 
+  test("la vista previa cerrada muestra tipo + lugar + fecha DD/MM/YYYY + estado, sin hora", async () => {
+    const { getByText, queryByText, toJSON } = await renderizar([boda]);
+
+    expect(getByText("Boda Lucena")).toBeTruthy();
+    expect(getByText("15/05/2027")).toBeTruthy();
+    expect(getByText("Confirmado")).toBeTruthy();
+    // La fecha va sola, sin etiqueta: el detalle sigue cerrado
+    expect(queryByText(/^Fecha:/)).toBeNull();
+    expect(queryByText(/^Hora:/)).toBeNull();
+
+    const renderizado = JSON.stringify(toJSON());
+    expect(renderizado).not.toMatch(/15-05-2027|2027-05-15|20:30/);
+  });
+
+  test("sin lugar la vista previa cerrada muestra tipo + fecha + estado, sin hueco", async () => {
+    const { getByText, queryByText } = await renderizar([
+      { ...boda, tipo: "ensayo", lugar: "", estado: "pendiente" },
+    ]);
+
+    expect(getByText("Ensayo")).toBeTruthy();
+    expect(getByText("15/05/2027")).toBeTruthy();
+    expect(getByText("Pendiente")).toBeTruthy();
+    expect(queryByText(/^Ensayo\s/)).toBeNull();
+    expect(queryByText(/20:30/)).toBeNull();
+  });
+
+  test("al abrir el evento muestra su fecha en formato DD/MM/YYYY", async () => {
+    const { getByText } = await renderizar([fiesta]);
+
+    await abrir("Fiesta privada Córdoba");
+
+    expect(getByText("Fecha: 01/06/2027")).toBeTruthy();
+    // La fecha de la cabecera sigue a la vista, sin repetirse con otro formato
+    expect(getByText("01/06/2027")).toBeTruthy();
+  });
+
   test("muestra el badge Confirmado en la vista previa sin abrir el evento", async () => {
     const { getByText, queryByText } = await renderizar([boda]);
 
@@ -144,14 +183,17 @@ describe("ListaEventos", () => {
     expect(colorConfirmado.color).not.toBe(colorPendiente.color);
   });
 
-  test("al pulsar la vista previa muestra el detalle completo", async () => {
-    const { getByText } = await renderizar([boda]);
+  test("al pulsar la vista previa muestra el detalle completo, sin Título", async () => {
+    const { getByText, queryByText } = await renderizar([boda]);
 
     await abrir("Boda Lucena");
 
-    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+    // El título se guarda internamente, pero ya no se muestra
+    expect(queryByText(/^Título:/)).toBeNull();
+    expect(queryByText("Boda de María y Juan")).toBeNull();
     expect(getByText("Tipo de evento: Boda")).toBeTruthy();
-    expect(getByText("Fecha: 15-05-2027")).toBeTruthy();
+    expect(getByText("Fecha: 15/05/2027")).toBeTruthy();
+    expect(screen.queryByText("Fecha: 15-05-2027")).toBeNull();
     expect(getByText("Hora: 20:30")).toBeTruthy();
     expect(getByText("Lugar: Lucena")).toBeTruthy();
     expect(getByText("Estado: Confirmado")).toBeTruthy();
@@ -221,7 +263,7 @@ describe("ListaEventos", () => {
     await abrir("Ensayo");
 
     // Sin músicos es un estado válido: el detalle se ve, pero sin línea de músicos
-    expect(getByText("Título: Ensayo general")).toBeTruthy();
+    expect(getByText("Tipo de evento: Ensayo")).toBeTruthy();
     expect(queryByText(/^Músicos:/)).toBeNull();
     expect(queryByText(/Músicos|Miembros/)).toBeNull();
   });
@@ -243,7 +285,7 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Título: Concierto en Sevilla")).toBeTruthy();
+    expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
     expect(queryByText(/^Músicos:/)).toBeNull();
   });
 
@@ -264,7 +306,7 @@ describe("ListaEventos", () => {
 
     await abrir("Boda");
 
-    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
     expect(queryByText(/^Hora:/)).toBeNull();
     expect(queryByText(/^Lugar:/)).toBeNull();
     expect(queryByText(/^Nota:/)).toBeNull();
@@ -289,11 +331,11 @@ describe("ListaEventos", () => {
     const { getByText, queryByText } = await renderizar([boda]);
 
     await abrir("Boda Lucena");
-    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
 
     await abrir("Boda Lucena");
 
-    expect(queryByText(/^Título:/)).toBeNull();
+    expect(queryByText(/^Tipo de evento:/)).toBeNull();
     expect(queryByText("Editar")).toBeNull();
     expect(getByText("Boda Lucena")).toBeTruthy();
   });
@@ -305,13 +347,13 @@ describe("ListaEventos", () => {
     ]);
 
     await abrir("Boda Lucena");
-    expect(getByText("Título: Boda de María y Juan")).toBeTruthy();
+    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
 
     await abrir("Fiesta privada Córdoba");
 
-    expect(getByText("Título: Cumpleaños de Laura")).toBeTruthy();
-    expect(queryByText("Título: Boda de María y Juan")).toBeNull();
-    expect(getAllByText(/^Título:/)).toHaveLength(1);
+    expect(getByText("Tipo de evento: Fiesta privada")).toBeTruthy();
+    expect(queryByText("Tipo de evento: Boda")).toBeNull();
+    expect(getAllByText(/^Tipo de evento:/)).toHaveLength(1);
     expect(getAllByText("Editar")).toHaveLength(1);
   });
 
@@ -320,7 +362,7 @@ describe("ListaEventos", () => {
 
     expect(
       getByRole("button", {
-        name: "Ver detalles de Boda Lucena. Estado Confirmado",
+        name: "Ver detalles de Boda Lucena, 15/05/2027. Estado Confirmado",
         expanded: false,
       })
     ).toBeTruthy();
@@ -329,7 +371,7 @@ describe("ListaEventos", () => {
 
     expect(
       getByRole("button", {
-        name: "Ver detalles de Boda Lucena. Estado Confirmado",
+        name: "Ver detalles de Boda Lucena, 15/05/2027. Estado Confirmado",
         expanded: true,
       })
     ).toBeTruthy();
@@ -378,7 +420,7 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Título: Concierto en Sevilla")).toBeTruthy();
+    expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
     expect(getByText("Técnico: Carlos, Miguel")).toBeTruthy();
     expect(getByText("Músicos: Paco, Rafa")).toBeTruthy();
     expect(queryByText("Editar")).toBeNull();

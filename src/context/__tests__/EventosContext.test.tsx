@@ -107,7 +107,7 @@ function ConsumidorA() {
   const {
     eventos,
     titulo,
-    setTitulo,
+    setLugar,
     setFecha,
     guardarEvento,
     eliminarEvento,
@@ -120,7 +120,7 @@ function ConsumidorA() {
       <Button
         title="Rellenar en A"
         onPress={() => {
-          setTitulo("Concierto compartido");
+          setLugar("Compartido");
           setFecha("2026-12-31");
         }}
       />
@@ -195,14 +195,14 @@ describe("EventosContext", () => {
     );
 
     expect(getByText("Total en B: 3")).toBeTruthy();
-    expect(queryByText(/Concierto compartido \(/)).toBeNull();
+    expect(queryByText(/Compartido 31\/12\/2026 \(/)).toBeNull();
 
     await fireEvent.press(getByText("Rellenar en A"));
     await fireEvent.press(getByText("Guardar en A"));
 
     expect(await findByText("Total en B: 4")).toBeTruthy();
     // El evento queda en el estado con el id que devuelve Supabase
-    expect(getByText("Concierto compartido (uuid-nuevo)")).toBeTruthy();
+    expect(getByText("Concierto abierto Compartido 31/12/2026 (uuid-nuevo)")).toBeTruthy();
   });
 
   test("carga desde Supabase los eventos de la banda activa, sin usar SQLite", async () => {
@@ -265,10 +265,10 @@ describe("EventosContext", () => {
     // Supabase ya ha recibido el evento (sin id: lo genera la base), pero no ha confirmado
     expect(repositorio.crear).toHaveBeenCalledTimes(1);
     expect(repositorio.crear).toHaveBeenCalledWith({
-      titulo: "Concierto compartido",
+      titulo: "Concierto abierto Compartido 31/12/2026",
       fecha: "2026-12-31",
       hora: "",
-      lugar: "",
+      lugar: "Compartido",
       notas: "",
       tipo: "concierto_abierto",
       estado: "pendiente",
@@ -276,14 +276,14 @@ describe("EventosContext", () => {
       miembroIds: [],
     });
     expect(repositorio.actualizar).not.toHaveBeenCalled();
-    expect(queryByText(/Concierto compartido \(/)).toBeNull();
+    expect(queryByText(/Compartido 31\/12\/2026 \(/)).toBeNull();
     expect(getByText("Total en B: 3")).toBeTruthy();
 
     await act(async () => {
       terminarGuardado();
     });
 
-    expect(await findByText("Concierto compartido (uuid-nuevo)")).toBeTruthy();
+    expect(await findByText("Concierto abierto Compartido 31/12/2026 (uuid-nuevo)")).toBeTruthy();
     expect(getByText("Total en B: 4")).toBeTruthy();
   });
 
@@ -299,10 +299,10 @@ describe("EventosContext", () => {
     await fireEvent.press(getByText("Rellenar en A"));
     await fireEvent.press(getByText("Guardar en A"));
 
-    expect(await findByText("Concierto compartido (1)")).toBeTruthy();
+    expect(await findByText("Concierto abierto Compartido 31/12/2026 (1)")).toBeTruthy();
     expect(repositorio.actualizar).toHaveBeenCalledTimes(1);
     expect(repositorio.actualizar).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "1", titulo: "Concierto compartido" })
+      expect.objectContaining({ id: "1", titulo: "Concierto abierto Compartido 31/12/2026" })
     );
     expect(repositorio.crear).not.toHaveBeenCalled();
   });
@@ -322,9 +322,9 @@ describe("EventosContext", () => {
 
     expect(await findByText("No se ha podido guardar el evento")).toBeTruthy();
     expect(getByText("Total en B: 3")).toBeTruthy();
-    expect(queryByText(/Concierto compartido \(/)).toBeNull();
+    expect(queryByText(/Compartido 31\/12\/2026 \(/)).toBeNull();
     // El formulario no se limpia
-    expect(getByText("Título en A: Concierto compartido")).toBeTruthy();
+    expect(getByText("Título en A: Concierto abierto Compartido 31/12/2026")).toBeTruthy();
   });
 
   test("no elimina localmente si Supabase falla", async () => {

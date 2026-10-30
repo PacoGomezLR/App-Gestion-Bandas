@@ -1,24 +1,28 @@
-import {
-  Button,
-  ScrollView,
-  Text,
-} from "react-native";
 import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
 import { CalendarioEventos } from "../components/CalendarioEventos";
 import { FormularioEvento } from "../components/FormularioEvento";
 import { ListaEventos } from "../components/ListaEventos";
+import { Mensaje } from "../components/PantallaBase";
+import {
+  BotonSecundario,
+  CabeceraPantalla,
+  CargandoInterior,
+  EstadoVacio,
+  PantallaInterior,
+  Seccion,
+} from "../components/PantallaInterior";
 import { useBandaContext } from "../context/BandaContext";
 import { useEventosContext } from "../context/EventosContext";
 import { useMiembrosContext } from "../context/MiembrosContext";
 import { useTecnicosContext } from "../context/TecnicosContext";
+import { formatearFecha } from "../utils/fechas";
 
 export default function Index() {
   // Sin rol visible: a quien no es admin simplemente no se le ofrecen las acciones
-  const { esAdmin } = useBandaContext();
+  const { esAdmin, bandaActual } = useBandaContext();
 
   const {
     eventos,
-    titulo,
     tipo,
     estado,
     fecha,
@@ -26,10 +30,8 @@ export default function Index() {
     lugar,
     notas,
     tecnicoIds,
-    miembroIds,
     error,
     eventoEditandoId,
-    setTitulo,
     setTipo,
     setEstado,
     setFecha,
@@ -37,7 +39,6 @@ export default function Index() {
     setLugar,
     setNotas,
     alternarTecnico,
-    alternarMiembro,
     guardarEvento,
     eliminarEvento,
     prepararEdicion,
@@ -65,35 +66,31 @@ export default function Index() {
       : eventos.filter((evento) => evento.fecha === fecha);
 
   if (cargandoEventos || cargandoTecnicos || cargandoMiembros) {
-    return <Text>Cargando datos...</Text>;
+    return <CargandoInterior texto="Cargando datos..." />;
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        paddingBottom: 120,
-      }}
-    >
+    <PantallaInterior>
+      {/* Respeta la barra de estado (SafeAreaView propio) y queda arriba a la derecha */}
       <BotonCerrarSesion />
 
-      <Text>Calendario</Text>
+      <CabeceraPantalla titulo="Calendario" subtitulo={bandaActual?.nombre} />
 
       {errorPersistenciaEventos !== "" && (
-        <Text>{errorPersistenciaEventos}</Text>
+        <Mensaje tipo="error" texto={errorPersistenciaEventos} />
       )}
 
       {errorPersistenciaTecnicos !== "" && (
-        <Text>{errorPersistenciaTecnicos}</Text>
+        <Mensaje tipo="error" texto={errorPersistenciaTecnicos} />
       )}
 
       {errorPersistenciaMiembros !== "" && (
-        <Text>{errorPersistenciaMiembros}</Text>
+        <Mensaje tipo="error" texto={errorPersistenciaMiembros} />
       )}
 
       {/* Quien no es admin ve el mismo calendario para filtrar, sin el formulario */}
       {esAdmin ? (
         <FormularioEvento
-          titulo={titulo}
           tipo={tipo}
           estado={estado}
           fecha={fecha}
@@ -103,12 +100,9 @@ export default function Index() {
           fechasConEventos={eventos.map((evento) => evento.fecha)}
           tecnicos={tecnicos}
           tecnicoIds={tecnicoIds}
-          miembros={miembros}
-          miembroIds={miembroIds}
           error={error}
           editando={eventoEditandoId !== null}
           procesando={procesando}
-          onCambiarTitulo={setTitulo}
           onCambiarTipo={setTipo}
           onCambiarEstado={setEstado}
           onSeleccionarFecha={setFecha}
@@ -116,7 +110,6 @@ export default function Index() {
           onCambiarLugar={setLugar}
           onCambiarNotas={setNotas}
           onAlternarTecnico={alternarTecnico}
-          onAlternarMiembro={alternarMiembro}
           onGuardar={guardarEvento}
           onCancelar={cancelarEdicion}
         />
@@ -128,23 +121,39 @@ export default function Index() {
         />
       )}
 
-      {fecha !== "" && (
-        <Button
-          title="Ver todos"
-          onPress={() => setFecha("")}
-          disabled={procesando}
-        />
-      )}
-
-      <ListaEventos
-        eventos={eventosVisibles}
-        tecnicos={tecnicos}
-        miembros={miembros}
-        procesando={procesando}
-        puedeEditar={esAdmin}
-        onEliminar={eliminarEvento}
-        onEditar={prepararEdicion}
-      />
-    </ScrollView>
+      <Seccion
+        titulo="Fechas"
+        accion={
+          fecha !== "" && (
+            <BotonSecundario
+              titulo="Ver todos"
+              onPress={() => setFecha("")}
+              disabled={procesando}
+            />
+          )
+        }
+      >
+        {eventosVisibles.length === 0 ? (
+          <EstadoVacio
+            titulo={fecha !== "" ? "Sin eventos este día" : "Todavía no hay eventos"}
+            detalle={
+              fecha !== ""
+                ? `No hay nada programado para el ${formatearFecha(fecha)}.`
+                : "Los conciertos, ensayos y bodas de la banda aparecerán aquí."
+            }
+          />
+        ) : (
+          <ListaEventos
+            eventos={eventosVisibles}
+            tecnicos={tecnicos}
+            miembros={miembros}
+            procesando={procesando}
+            puedeEditar={esAdmin}
+            onEliminar={eliminarEvento}
+            onEditar={prepararEdicion}
+          />
+        )}
+      </Seccion>
+    </PantallaInterior>
   );
 }

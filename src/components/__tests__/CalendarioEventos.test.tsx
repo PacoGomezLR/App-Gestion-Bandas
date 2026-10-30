@@ -5,6 +5,9 @@ import {
 
 import { CalendarioEventos } from "../CalendarioEventos";
 
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 jest.mock("react-native-calendars", () => {
   const { Button, Text } = require("react-native");
 

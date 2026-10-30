@@ -9,7 +9,6 @@ describe("useEventos", () => {
     expect(result.current.eventos).toHaveLength(3);
 
     await act(() => {
-      result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("1");
       result.current.alternarTecnico("2");
@@ -22,7 +21,7 @@ describe("useEventos", () => {
     expect(result.current.eventos).toHaveLength(4);
 
     expect(result.current.eventos[3]).toMatchObject({
-      titulo: "Concierto en Sevilla",
+      titulo: "Concierto abierto 15/11/2026",
       tipo: "concierto_abierto",
       fecha: "2026-11-15",
       estado: "pendiente",
@@ -32,12 +31,8 @@ describe("useEventos", () => {
     expect(result.current.tecnicoIds).toEqual([]);
   });
 
-  test("no crea un evento si faltan título o fecha", async () => {
+  test("no crea un evento si falta la fecha", async () => {
     const { result } = await renderHook(() => useEventos());
-
-    await act(() => {
-      result.current.setTitulo("Concierto sin fecha");
-    });
 
     await act(async () => {
       await result.current.guardarEvento();
@@ -45,7 +40,7 @@ describe("useEventos", () => {
 
     expect(result.current.eventos).toHaveLength(3);
     expect(result.current.error).toBe(
-      "El título y la fecha son obligatorios"
+      "La fecha es obligatoria"
     );
   });
 
@@ -61,7 +56,6 @@ describe("useEventos", () => {
     });
 
     await act(() => {
-      result.current.setTitulo("Ensayo completo");
       result.current.setEstado("confirmado");
     });
 
@@ -73,7 +67,8 @@ describe("useEventos", () => {
 
     expect(result.current.eventos[1]).toMatchObject({
       id: eventoOriginal.id,
-      titulo: "Ensayo completo",
+      // Al guardar se reconstruye desde tipo, lugar y fecha
+      titulo: "Ensayo 02/10/2026",
       tipo: eventoOriginal.tipo,
       fecha: eventoOriginal.fecha,
       estado: "confirmado",
@@ -116,7 +111,7 @@ describe("useEventos", () => {
     });
 
     expect(result.current.eventoEditandoId).toBe("1");
-    expect(result.current.titulo).toBe(eventoEditado.titulo);
+    expect(result.current.titulo).toBe("Concierto abierto 30/09/2026");
     expect(result.current.tipo).toBe(eventoEditado.tipo);
     expect(result.current.fecha).toBe(eventoEditado.fecha);
     expect(result.current.estado).toBe(eventoEditado.estado);
@@ -130,7 +125,8 @@ describe("useEventos", () => {
       result.current.eventos.some((evento) => evento.id === "1")
     ).toBe(false);
     expect(result.current.eventoEditandoId).toBeNull();
-    expect(result.current.titulo).toBe("");
+    // Formulario limpio: solo queda el tipo por defecto
+    expect(result.current.titulo).toBe("Concierto abierto");
     expect(result.current.fecha).toBe("");
     expect(result.current.tipo).toBe("concierto_abierto");
     expect(result.current.estado).toBe("pendiente");
@@ -155,7 +151,7 @@ describe("useEventos", () => {
       result.current.eventos.some((evento) => evento.id === "2")
     ).toBe(false);
     expect(result.current.eventoEditandoId).toBe("1");
-    expect(result.current.titulo).toBe(eventoEditado.titulo);
+    expect(result.current.titulo).toBe("Concierto abierto 30/09/2026");
     expect(result.current.fecha).toBe(eventoEditado.fecha);
     expect(result.current.tipo).toBe(eventoEditado.tipo);
     expect(result.current.estado).toBe(eventoEditado.estado);
@@ -173,16 +169,13 @@ describe("useEventos", () => {
     expect(result.current.eventoEditandoId).toBe("1");
 
     await act(() => {
-      result.current.setTitulo("Título modificado");
-    });
-
-    await act(() => {
       result.current.cancelarEdicion();
     });
 
     expect(result.current.eventos).toEqual(eventosOriginales);
     expect(result.current.eventoEditandoId).toBeNull();
-    expect(result.current.titulo).toBe("");
+    // Formulario limpio: solo queda el tipo por defecto
+    expect(result.current.titulo).toBe("Concierto abierto");
     expect(result.current.fecha).toBe("");
     expect(result.current.tipo).toBe("concierto_abierto");
     expect(result.current.estado).toBe("pendiente");
@@ -277,7 +270,7 @@ describe("useEventos", () => {
     ];
 
     await act(() => {
-      result.current.setTitulo("Borrador en el formulario");
+      result.current.setLugar("Montilla");
     });
 
     await act(() => {
@@ -288,7 +281,7 @@ describe("useEventos", () => {
     // Guarda una copia, no el mismo array recibido
     expect(result.current.eventos).not.toBe(eventosExternos);
     // No toca el formulario
-    expect(result.current.titulo).toBe("Borrador en el formulario");
+    expect(result.current.titulo).toBe("Concierto abierto Montilla");
   });
 
   test("no guarda localmente si falla la persistencia", async () => {
@@ -299,7 +292,6 @@ describe("useEventos", () => {
     const eventosOriginales = [...result.current.eventos];
 
     await act(() => {
-      result.current.setTitulo("Concierto sin guardar");
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("1");
     });
@@ -312,7 +304,7 @@ describe("useEventos", () => {
 
     expect(guardado).toBe(false);
     expect(result.current.eventos).toEqual(eventosOriginales);
-    expect(result.current.titulo).toBe("Concierto sin guardar");
+    expect(result.current.titulo).toBe("Concierto abierto 15/11/2026");
     expect(result.current.fecha).toBe("2026-11-15");
     expect(result.current.tecnicoIds).toEqual(["1"]);
   });
@@ -343,7 +335,6 @@ describe("useEventos", () => {
     );
 
     await act(() => {
-      result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("2");
       result.current.alternarMiembro("1");
@@ -368,7 +359,7 @@ describe("useEventos", () => {
       notas: "Llevar amplificador de repuesto",
     });
     expect(result.current.eventos[3]).toMatchObject({
-      titulo: "Concierto en Sevilla",
+      titulo: "Concierto abierto Sala Principal 15/11/2026",
       fecha: "2026-11-15",
       tecnicoIds: ["2"],
       miembroIds: ["1"],
@@ -379,7 +370,6 @@ describe("useEventos", () => {
     const { result } = await renderHook(() => useEventos());
 
     await act(() => {
-      result.current.setTitulo("Concierto en la sala");
       result.current.setFecha("2026-12-12");
       result.current.setHora("20:30");
       result.current.setLugar("Sala Principal");
@@ -404,7 +394,6 @@ describe("useEventos", () => {
     const { result } = await renderHook(() => useEventos());
 
     await act(() => {
-      result.current.setTitulo("Ensayo rápido");
       result.current.setFecha("2026-12-13");
     });
 
@@ -417,7 +406,7 @@ describe("useEventos", () => {
     expect(guardado).toBe(true);
     expect(result.current.error).toBe("");
     expect(result.current.eventos[3]).toMatchObject({
-      titulo: "Ensayo rápido",
+      titulo: "Concierto abierto 13/12/2026",
       hora: "",
       lugar: "",
       notas: "",
@@ -432,7 +421,6 @@ describe("useEventos", () => {
 
     for (const horaInvalida of ["25:30", "9:30", "12:90", "abc"]) {
       await act(() => {
-        result.current.setTitulo("Concierto");
         result.current.setFecha("2026-12-14");
         result.current.setHora(horaInvalida);
       });
@@ -466,7 +454,6 @@ describe("useEventos", () => {
 
     for (const tipo of tipos) {
       await act(() => {
-        result.current.setTitulo(`Evento de tipo ${tipo}`);
         result.current.setFecha("2026-12-20");
         result.current.setTipo(tipo);
       });
@@ -492,7 +479,6 @@ describe("useEventos", () => {
 
     for (const horaValida of ["09:05", "00:00", "23:59"]) {
       await act(() => {
-        result.current.setTitulo(`Evento a las ${horaValida}`);
         result.current.setFecha("2026-12-15");
         result.current.setHora(horaValida);
       });
@@ -570,7 +556,6 @@ describe("useEventos", () => {
 
     for (const estado of ["pendiente", "confirmado"] as const) {
       await act(() => {
-        result.current.setTitulo(`Evento ${estado}`);
         result.current.setFecha("2026-12-21");
         result.current.setEstado(estado);
       });
@@ -643,7 +628,6 @@ describe("useEventos", () => {
     const { result } = await renderHook(() => useEventos());
 
     await act(() => {
-      result.current.setTitulo("Ensayo sin banda completa");
       result.current.setFecha("2026-11-20");
     });
 
@@ -657,7 +641,7 @@ describe("useEventos", () => {
     expect(result.current.error).toBe("");
     expect(result.current.eventos).toHaveLength(4);
     expect(result.current.eventos[3]).toMatchObject({
-      titulo: "Ensayo sin banda completa",
+      titulo: "Concierto abierto 20/11/2026",
       miembroIds: [],
     });
   });
@@ -666,7 +650,6 @@ describe("useEventos", () => {
     const { result } = await renderHook(() => useEventos());
 
     await act(() => {
-      result.current.setTitulo("Concierto con banda");
       result.current.setFecha("2026-12-05");
       result.current.alternarMiembro("1");
       result.current.alternarMiembro("2");
@@ -779,7 +762,6 @@ describe("useEventos", () => {
     );
 
     await act(() => {
-      result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
     });
 
@@ -809,7 +791,7 @@ describe("useEventos", () => {
     expect(result.current.eventos).toHaveLength(4);
     expect(
       result.current.eventos.filter(
-        (evento) => evento.titulo === "Concierto en Sevilla"
+        (evento) => evento.titulo === "Concierto abierto 15/11/2026"
       )
     ).toHaveLength(1);
     expect(result.current.procesando).toBe(false);
@@ -884,14 +866,14 @@ describe("useEventos", () => {
     });
 
     expect(result.current.eventoEditandoId).toBe("1");
-    expect(result.current.titulo).toBe("Concierto en Córdoba");
+    expect(result.current.titulo).toBe("Concierto abierto 30/09/2026");
 
     await act(() => {
       result.current.cancelarEdicion();
     });
 
     expect(result.current.eventoEditandoId).toBe("1");
-    expect(result.current.titulo).toBe("Concierto en Córdoba");
+    expect(result.current.titulo).toBe("Concierto abierto 30/09/2026");
 
     await act(async () => {
       resolverPersistencia(true);
@@ -914,7 +896,6 @@ describe("useEventos", () => {
     );
 
     await act(() => {
-      result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
     });
 
@@ -956,7 +937,6 @@ describe("useEventos", () => {
     );
 
     await act(() => {
-      result.current.setTitulo("Concierto en Sevilla");
       result.current.setFecha("2026-11-15");
     });
 
@@ -970,7 +950,10 @@ describe("useEventos", () => {
     // Al editarlo se indica que no es nuevo y se conserva el id definitivo
     await act(() => {
       result.current.prepararEdicion(result.current.eventos[0]);
-      result.current.setTitulo("Concierto en Sevilla (cambiado)");
+    });
+
+    await act(() => {
+      result.current.setLugar("Montilla");
     });
 
     await act(async () => {
@@ -980,6 +963,146 @@ describe("useEventos", () => {
     expect(persistirEvento.mock.calls[1][1]).toBe(false);
     expect(persistirEvento.mock.calls[1][0].id).toBe("uuid-supabase");
     expect(result.current.eventos).toHaveLength(1);
-    expect(result.current.eventos[0].titulo).toBe("Concierto en Sevilla (cambiado)");
+    expect(result.current.eventos[0].titulo).toBe("Concierto abierto Montilla 15/11/2026");
+  });
+
+  test("editar un evento con músicos sin tocarlos conserva sus miembroIds", async () => {
+    // El formulario ya no muestra el selector de músicos: no debe vaciarlos al guardar
+    const conMusicos: Evento = {
+      id: "m1",
+      titulo: "Boda Lucena 29/10/2026",
+      tipo: "boda",
+      fecha: "2026-10-29",
+      hora: "20:00",
+      lugar: "Lucena",
+      notas: "",
+      estado: "pendiente",
+      tecnicoIds: ["1"],
+      miembroIds: ["1", "2"],
+    };
+    const persistirEvento = jest.fn(async (evento: Evento) => evento);
+
+    const { result } = await renderHook(() =>
+      useEventos({ datosIniciales: [conMusicos], persistirEvento })
+    );
+
+    await act(() => {
+      result.current.prepararEdicion(result.current.eventos[0]);
+    });
+
+    await act(() => {
+      result.current.setLugar("Montilla");
+      result.current.setFecha("2026-11-07");
+      result.current.setEstado("confirmado");
+      result.current.alternarTecnico("2");
+    });
+
+    await act(async () => {
+      await result.current.guardarEvento();
+    });
+
+    expect(persistirEvento).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "m1", miembroIds: ["1", "2"], tecnicoIds: ["1", "2"] }),
+      false
+    );
+    expect(result.current.eventos[0]).toMatchObject({
+      lugar: "Montilla",
+      fecha: "2026-11-07",
+      estado: "confirmado",
+      miembroIds: ["1", "2"],
+    });
+  });
+
+  describe("título automático", () => {
+    test("Concierto abierto + Montilla + 2026-10-29 da «Concierto abierto Montilla 29/10/2026»", async () => {
+      const { result } = await renderHook(() => useEventos({ datosIniciales: [] }));
+
+      await act(() => {
+        result.current.setTipo("concierto_abierto");
+        result.current.setLugar("  Montilla  ");
+        result.current.setFecha("2026-10-29");
+      });
+
+      expect(result.current.titulo).toBe("Concierto abierto Montilla 29/10/2026");
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(result.current.eventos[0].titulo).toBe("Concierto abierto Montilla 29/10/2026");
+    });
+
+    test("sin lugar da «Ensayo 29/10/2026»", async () => {
+      const { result } = await renderHook(() => useEventos({ datosIniciales: [] }));
+
+      await act(() => {
+        result.current.setTipo("ensayo");
+        result.current.setFecha("2026-10-29");
+      });
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(result.current.eventos[0].titulo).toBe("Ensayo 29/10/2026");
+    });
+
+    test("al editar, cambiar tipo, lugar o fecha regenera el título", async () => {
+      const { result } = await renderHook(() => useEventos({ datosIniciales: [] }));
+
+      await act(() => {
+        result.current.setTipo("ensayo");
+        result.current.setFecha("2026-10-29");
+      });
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      await act(() => {
+        result.current.prepararEdicion(result.current.eventos[0]);
+      });
+
+      await act(() => {
+        result.current.setTipo("boda");
+      });
+      expect(result.current.titulo).toBe("Boda 29/10/2026");
+
+      await act(() => {
+        result.current.setLugar("Lucena");
+      });
+      expect(result.current.titulo).toBe("Boda Lucena 29/10/2026");
+
+      await act(() => {
+        result.current.setFecha("2026-11-07");
+      });
+      expect(result.current.titulo).toBe("Boda Lucena 07/11/2026");
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(result.current.eventos).toHaveLength(1);
+      expect(result.current.eventos[0]).toMatchObject({
+        titulo: "Boda Lucena 07/11/2026",
+        tipo: "boda",
+        lugar: "Lucena",
+        fecha: "2026-11-07",
+      });
+    });
+
+    test("un título antiguo escrito a mano se sustituye al guardar la edición", async () => {
+      const { result } = await renderHook(() => useEventos());
+
+      await act(() => {
+        result.current.prepararEdicion(result.current.eventos[0]);
+      });
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(result.current.eventos[0].titulo).toBe("Concierto abierto 30/09/2026");
+    });
   });
 });

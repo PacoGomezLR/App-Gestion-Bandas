@@ -6,6 +6,9 @@ import { useMiembrosContext } from "../../context/MiembrosContext";
 import { useTecnicosContext } from "../../context/TecnicosContext";
 import type { Evento } from "../../types/evento";
 
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 // Los contextos reales importan el cliente Supabase; aquí nunca se usa
 jest.mock("../../lib/supabase", () => ({ supabase: {} }));
 
@@ -151,7 +154,6 @@ function crearValorUseEventosContext(
     miembroIds: [],
     error: "",
     eventoEditandoId: null,
-    setTitulo: jest.fn(),
     setTipo: jest.fn(),
     setEstado: jest.fn(),
     setFecha,
@@ -272,6 +274,17 @@ describe("Index", () => {
     expect(setFecha).toHaveBeenCalledWith("");
   });
 
+  test("la sección de la lista se titula Fechas y no Eventos", async () => {
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("", jest.fn())
+    );
+
+    const { getByText, queryByText } = await render(<Index />);
+
+    expect(getByText("Fechas")).toBeTruthy();
+    expect(queryByText("Eventos")).toBeNull();
+  });
+
   test("el Calendario ofrece Cerrar sesión", async () => {
     mockUseEventosContext.mockReturnValue(
       crearValorUseEventosContext("", jest.fn())
@@ -337,5 +350,17 @@ describe("Index", () => {
 
     expect(getByText("Cargando datos...")).toBeTruthy();
     expect(queryByText("Formulario simulado")).toBeNull();
+  });
+
+  test("sin eventos en la fecha elegida muestra un estado vacío en lugar de la lista", async () => {
+    mockUseEventosContext.mockReturnValue(
+      crearValorUseEventosContext("2027-05-01", jest.fn())
+    );
+
+    const { getByText, queryByText } = await render(<Index />);
+
+    expect(getByText("Sin eventos este día")).toBeTruthy();
+    expect(getByText("No hay nada programado para el 01-05-2027.")).toBeTruthy();
+    expect(queryByText("Concierto en Córdoba")).toBeNull();
   });
 });

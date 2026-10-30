@@ -1,14 +1,14 @@
 import { Button, Text, TextInput, View } from "react-native";
 import type { EstadoEvento, TipoEvento } from "../types/evento";
-import type { Miembro } from "../types/miembro";
 import type { Tecnico } from "../types/tecnico";
 import { ESTADOS_EVENTO, etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { etiquetaTipoEvento, TIPOS_EVENTO } from "../utils/tiposEvento";
 import { CalendarioEventos } from "./CalendarioEventos";
 import { SelectorHora } from "./SelectorHora";
 
+// Sin campo de título: se genera solo a partir de tipo, lugar y fecha.
+// Sin selector de músicos: al editar, useEventos conserva los miembroIds que ya tenía el evento.
 interface FormularioEventoProps {
-  titulo: string;
   tipo: TipoEvento;
   estado: EstadoEvento;
   fecha: string;
@@ -18,12 +18,9 @@ interface FormularioEventoProps {
   fechasConEventos: string[];
   tecnicos: Tecnico[];
   tecnicoIds: string[];
-  miembros: Miembro[];
-  miembroIds: string[];
   error: string;
   editando: boolean;
   procesando: boolean;
-  onCambiarTitulo: (titulo: string) => void;
   onCambiarTipo: (tipo: TipoEvento) => void;
   onCambiarEstado: (estado: EstadoEvento) => void;
   onSeleccionarFecha: (fecha: string) => void;
@@ -31,13 +28,11 @@ interface FormularioEventoProps {
   onCambiarLugar: (lugar: string) => void;
   onCambiarNotas: (notas: string) => void;
   onAlternarTecnico: (tecnicoId: string) => void;
-  onAlternarMiembro: (miembroId: string) => void;
   onGuardar: () => void;
   onCancelar: () => void;
 }
 
 export function FormularioEvento({
-  titulo,
   tipo,
   estado,
   fecha,
@@ -47,12 +42,9 @@ export function FormularioEvento({
   fechasConEventos,
   tecnicos,
   tecnicoIds,
-  miembros,
-  miembroIds,
   error,
   editando,
   procesando,
-  onCambiarTitulo,
   onCambiarTipo,
   onCambiarEstado,
   onSeleccionarFecha,
@@ -60,19 +52,11 @@ export function FormularioEvento({
   onCambiarLugar,
   onCambiarNotas,
   onAlternarTecnico,
-  onAlternarMiembro,
   onGuardar,
   onCancelar,
 }: FormularioEventoProps) {
   return (
     <>
-      <TextInput
-        placeholder="Título del evento"
-        value={titulo}
-        onChangeText={onCambiarTitulo}
-        editable={!procesando}
-      />
-
       <CalendarioEventos
         fecha={fecha}
         fechasConEventos={fechasConEventos}
@@ -82,28 +66,6 @@ export function FormularioEvento({
             onSeleccionarFecha(fechaSeleccionada);
           }
         }}
-      />
-
-      {/* Hora, lugar y notas son opcionales */}
-      <SelectorHora
-        hora={hora}
-        onCambiarHora={onCambiarHora}
-        disabled={procesando}
-      />
-
-      <TextInput
-        placeholder="Lugar"
-        value={lugar}
-        onChangeText={onCambiarLugar}
-        editable={!procesando}
-      />
-
-      <TextInput
-        placeholder="Notas"
-        value={notas}
-        onChangeText={onCambiarNotas}
-        editable={!procesando}
-        multiline
       />
 
       <Text>Tipo de evento: {etiquetaTipoEvento(tipo)}</Text>
@@ -118,6 +80,20 @@ export function FormularioEvento({
           />
         ))}
       </View>
+
+      <TextInput
+        placeholder="Lugar"
+        value={lugar}
+        onChangeText={onCambiarLugar}
+        editable={!procesando}
+      />
+
+      {/* Lugar, hora y notas son opcionales */}
+      <SelectorHora
+        hora={hora}
+        onCambiarHora={onCambiarHora}
+        disabled={procesando}
+      />
 
       <Text>Técnicos asignados</Text>
 
@@ -140,27 +116,26 @@ export function FormularioEvento({
         })}
       </View>
 
-      {/* Opcional: no se exige seleccionar ningún miembro */}
-      <Text>Músicos que asistirán</Text>
+      <Text>Estado: {etiquetaEstadoEvento(estado)}</Text>
 
       <View>
-        {miembros.map((miembro) => {
-          const seleccionado = miembroIds.includes(miembro.id);
-
-          return (
-            <Button
-              key={miembro.id}
-              title={
-                seleccionado
-                  ? `${miembro.nombre} ✓`
-                  : miembro.nombre
-              }
-              onPress={() => onAlternarMiembro(miembro.id)}
-              disabled={procesando}
-            />
-          );
-        })}
+        {ESTADOS_EVENTO.map((estadoEvento) => (
+          <Button
+            key={estadoEvento}
+            title={etiquetaEstadoEvento(estadoEvento)}
+            onPress={() => onCambiarEstado(estadoEvento)}
+            disabled={procesando}
+          />
+        ))}
       </View>
+
+      <TextInput
+        placeholder="Notas"
+        value={notas}
+        onChangeText={onCambiarNotas}
+        editable={!procesando}
+        multiline
+      />
 
       {error !== "" && <Text>{error}</Text>}
 
@@ -177,19 +152,6 @@ export function FormularioEvento({
           disabled={procesando}
         />
       )}
-
-      <Text>Estado: {etiquetaEstadoEvento(estado)}</Text>
-
-      <View>
-        {ESTADOS_EVENTO.map((estadoEvento) => (
-          <Button
-            key={estadoEvento}
-            title={etiquetaEstadoEvento(estadoEvento)}
-            onPress={() => onCambiarEstado(estadoEvento)}
-            disabled={procesando}
-          />
-        ))}
-      </View>
     </>
   );
 }
