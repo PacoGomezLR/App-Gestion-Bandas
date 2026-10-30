@@ -5,11 +5,9 @@ import { TIPOS_EVENTO } from "../../utils/tiposEvento";
 // Lo que se envía al crear: el id lo genera la base de datos
 export type DatosEvento = Omit<Evento, "id">;
 
-// Evento con sus asignaciones embebidas (una sola consulta, sin N+1).
-// LEGADO TEMPORAL: evento_miembros solo se lee para no perder esas filas al
-// editar (ver eventos.ts). La app ya no usa músicos; desaparece con la migración 003.
+// Evento con sus técnicos embebidos (una sola consulta, sin N+1)
 export const COLUMNAS_EVENTO =
-  "id, titulo, tipo, fecha, hora, lugar, notas, estado, evento_miembros (miembro_id, orden), evento_tecnicos (tecnico_id, orden)";
+  "id, titulo, tipo, fecha, hora, lugar, notas, estado, evento_tecnicos (tecnico_id, orden)";
 
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 // time de PostgreSQL: HH:MM:SS (con fracción opcional)
@@ -124,45 +122,19 @@ export function convertirFilaEvento(fila: unknown): Evento {
   };
 }
 
-// Eventos de la app y, aparte, los ids de músicos heredados de cada evento.
-// Los músicos heredados nunca entran en Evento: solo los usa el repositorio.
-export interface FilasEventosConvertidas {
-  eventos: Evento[];
-  miembrosLegadoPorEvento: Map<string, string[]>;
-}
-
 // La respuesta de Supabase no está tipada: cualquier fila incorrecta invalida la carga
-export function convertirFilasEventos(filas: unknown): FilasEventosConvertidas {
+export function convertirFilasEventos(filas: unknown): Evento[] {
   if (!Array.isArray(filas)) {
     throw new Error("Respuesta de eventos no válida");
   }
 
-  const eventos = filas.map(convertirFilaEvento);
-  const miembrosLegadoPorEvento = new Map<string, string[]>();
-
-  filas.forEach((fila: unknown, indice) => {
-    const legado = esObjeto(fila)
-      ? convertirAsignaciones(fila.evento_miembros ?? [], "miembro_id")
-      : [];
-
-    if (legado.length > 0) {
-      miembrosLegadoPorEvento.set(eventos[indice].id, legado);
-    }
-  });
-
-  return { eventos, miembrosLegadoPorEvento };
+  return filas.map(convertirFilaEvento);
 }
 
 // Parámetros comunes de crear_evento y actualizar_evento. La hora viaja
 // como texto ("" = sin hora) para no convertirla nunca con zona horaria.
-// COMPATIBILIDAD TEMPORAL: las RPC de 002 aún exigen p_miembro_ids y
-// actualizar_evento reescribe evento_miembros con él. Por eso se reenvían los
-// ids heredados del evento (o [] al crear). No es una funcionalidad visible.
-export function convertirDatosEventoAParametros(
-  bandaId: string,
-  datos: DatosEvento,
-  miembroIdsLegado: readonly string[] = []
-) {
+// Coinciden exactamente con la firma de las RPC de la migración 003.
+export function convertirDatosEventoAParametros(bandaId: string, datos: DatosEvento) {
   return {
     p_banda_id: bandaId,
     p_titulo: datos.titulo,
@@ -172,7 +144,6 @@ export function convertirDatosEventoAParametros(
     p_lugar: datos.lugar,
     p_notas: datos.notas,
     p_estado: datos.estado,
-    p_miembro_ids: [...miembroIdsLegado],
     p_tecnico_ids: [...datos.tecnicoIds],
   };
 }

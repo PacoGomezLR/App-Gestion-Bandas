@@ -1,5 +1,6 @@
 import { convertirErrorSupabase, esErrorEnUso, ErrorRepositorio } from "../errores";
 import {
+  COLUMNAS_EVENTO,
   convertirFechaDeBase,
   convertirFilaEvento,
   convertirFilasEventos,
@@ -50,13 +51,12 @@ describe("convertirFilaEvento", () => {
         lugar: "",
         notas: "",
         estado: "pendiente",
-        evento_miembros: [],
         evento_tecnicos: [{ tecnico_id: 5, orden: 1 }],
       })
     ).toThrow();
   });
 
-  test("el evento de la app no lleva músicos", () => {
+  test("el mapeo no conoce músicos aunque la fila traiga campos de más", () => {
     const evento = convertirFilaEvento({
       id: "e1",
       titulo: "Ensayo",
@@ -74,36 +74,46 @@ describe("convertirFilaEvento", () => {
   });
 });
 
-describe("convertirFilasEventos (legado evento_miembros)", () => {
-  const fila = {
-    id: "e1",
-    titulo: "Ensayo",
-    tipo: "ensayo",
-    fecha: "2026-03-12",
-    hora: null,
-    lugar: "",
-    notas: "",
-    estado: "pendiente",
-    evento_tecnicos: [],
-  };
-
-  test("separa los músicos heredados de los eventos de la app", () => {
-    const { eventos, miembrosLegadoPorEvento } = convertirFilasEventos([
-      { ...fila, evento_miembros: [{ miembro_id: "m1", orden: 1 }] },
-      { ...fila, id: "e2", evento_miembros: [] },
+describe("convertirFilasEventos", () => {
+  test("devuelve solo los eventos del dominio", () => {
+    const eventos = convertirFilasEventos([
+      {
+        id: "e1",
+        titulo: "Ensayo",
+        tipo: "ensayo",
+        fecha: "2026-03-12",
+        hora: null,
+        lugar: "",
+        notas: "",
+        estado: "pendiente",
+        evento_tecnicos: [{ tecnico_id: "t1", orden: 1 }],
+      },
     ]);
 
-    expect(eventos.map((evento) => evento.id)).toEqual(["e1", "e2"]);
-    expect(eventos[0]).not.toHaveProperty("miembroIds");
-    expect(miembrosLegadoPorEvento.get("e1")).toEqual(["m1"]);
-    expect(miembrosLegadoPorEvento.has("e2")).toBe(false);
+    expect(eventos).toEqual([
+      {
+        id: "e1",
+        titulo: "Ensayo",
+        tipo: "ensayo",
+        fecha: "2026-03-12",
+        hora: "",
+        lugar: "",
+        notas: "",
+        estado: "pendiente",
+        tecnicoIds: ["t1"],
+      },
+    ]);
   });
 
-  test("tolera que falte la relación y rechaza una mal formada", () => {
-    expect(convertirFilasEventos([fila]).miembrosLegadoPorEvento.size).toBe(0);
-    expect(() =>
-      convertirFilasEventos([{ ...fila, evento_miembros: [{ miembro_id: 5, orden: 1 }] }])
-    ).toThrow();
+  test("rechaza una respuesta que no es una lista", () => {
+    expect(() => convertirFilasEventos({ eventos: [] })).toThrow();
+  });
+});
+
+describe("COLUMNAS_EVENTO", () => {
+  test("pide los técnicos embebidos y ya no pide ninguna relación de músicos", () => {
+    expect(COLUMNAS_EVENTO).toContain("evento_tecnicos (tecnico_id, orden)");
+    expect(COLUMNAS_EVENTO).not.toMatch(/miembro/);
   });
 });
 
