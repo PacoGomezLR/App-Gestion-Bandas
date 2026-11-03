@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 
 import { useAuthContext } from "../context/AuthContext";
 import { BandaProvider, useBandaContext } from "../context/BandaContext";
+import { CompletarPerfil } from "./CompletarPerfil";
 import { useTheme } from "@/hooks/use-theme";
 import { crearEstilosAppAuthGate } from "./AppAuthGate.styles";
 import { CrearBanda } from "./CrearBanda";
@@ -57,7 +58,7 @@ function ContenidoBanda({ children }: PropsWithChildren) {
 
 // Sin sesión no se montan los hijos: los datos locales no se cargan antes de autenticar
 export function AppAuthGate({ children }: PropsWithChildren) {
-  const { cargando, session } = useAuthContext();
+  const { cargando, session, perfil } = useAuthContext();
 
   if (cargando) {
     return <Cargando />;
@@ -65,6 +66,11 @@ export function AppAuthGate({ children }: PropsWithChildren) {
 
   if (session === null) {
     return <PantallaAcceso />;
+  }
+
+  // Cuentas anteriores al registro con nombre: lo completan una vez antes de seguir
+  if (perfil !== null && perfil.nombreVisible === null) {
+    return <CompletarPerfil />;
   }
 
   return (

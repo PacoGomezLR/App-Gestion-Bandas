@@ -81,11 +81,12 @@ beforeEach(() => {
   useAuthContextMock.mockReturnValue({
     session: null,
     usuario: paco,
-    perfil: { id: "paco", email: "paco@email.com" },
+    perfil: { id: "paco", email: "paco@email.com", nombreVisible: "Paco Gómez" },
     cargando: false,
     error: "",
     iniciarSesion: jest.fn(),
     crearCuenta: jest.fn(),
+    completarNombreVisible: jest.fn(),
     cerrarSesion: jest.fn(),
   });
 });

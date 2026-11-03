@@ -7,4 +7,6 @@ export type RolUsuario =
 export interface PerfilUsuario {
   id: string;
   email: string;
+  // Lo que ven los demás integrantes; null en cuentas anteriores al registro con nombre
+  nombreVisible: string | null;
 }

@@ -1,5 +1,5 @@
 // Motivo de un fallo de persistencia, sin detalles técnicos de PostgreSQL ni de RLS
-export type MotivoErrorRepositorio = "en_uso" | "sin_permiso" | "desconocido";
+export type MotivoErrorRepositorio = "en_uso" | "sin_permiso" | "duplicado" | "desconocido";
 
 export class ErrorRepositorio extends Error {
   readonly motivo: MotivoErrorRepositorio;
@@ -15,6 +15,8 @@ export class ErrorRepositorio extends Error {
 const MOTIVOS_POR_CODIGO: Record<string, MotivoErrorRepositorio> = {
   // foreign_key_violation: el registro sigue asignado a algún evento
   "23503": "en_uso",
+  // unique_violation: por ejemplo, el mismo día ya marcado como no disponible
+  "23505": "duplicado",
   // insufficient_privilege: RLS o permisos de tabla
   "42501": "sin_permiso",
   // no_data_found: actualizar_evento no encontró el evento en esa banda

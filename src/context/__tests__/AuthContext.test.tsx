@@ -12,7 +12,7 @@ type CallbackAuth = (evento: AuthChangeEvent, sesion: Session | null) => void;
 interface Credenciales {
   email: string;
   password: string;
-  options?: { emailRedirectTo?: string };
+  options?: { emailRedirectTo?: string; data?: Record<string, unknown> };
 }
 
 interface TokensSesion {
@@ -30,6 +30,13 @@ interface RespuestaPerfil {
   data: unknown;
   error: { message: string } | null;
 }
+
+// Guardar el nombre propio (cuentas antiguas) tiene sus propios tests de repositorio
+const mockGuardarNombre = jest.fn(async (_usuarioId: string, _nombre: string) => {});
+
+jest.mock("../../services/supabase/perfiles", () => ({
+  guardarNombreVisiblePropio: (usuarioId: string, nombre: string) => mockGuardarNombre(usuarioId, nombre),
+}));
 
 // Cliente Supabase simulado: no se conecta a Internet ni necesita .env
 let mockCallbackAuth: CallbackAuth | null = null;
@@ -129,8 +136,8 @@ function crearSesion(id: string, email: string): Session {
   };
 }
 
-function devolverPerfil(id: string, email: string) {
-  mockSingle.mockResolvedValue({ data: { id, email }, error: null });
+function devolverPerfil(id: string, email: string, nombreVisible: string | null = "Paco Gómez") {
+  mockSingle.mockResolvedValue({ data: { id, email, nombre_visible: nombreVisible }, error: null });
 }
 
 async function renderizarAuth() {
@@ -170,7 +177,7 @@ describe("AuthContext", () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  test("restaura la sesión y carga solo id y email del propio perfil", async () => {
+  test("restaura la sesión y carga solo id, email y nombre visible del propio perfil", async () => {
     mockGetSession.mockResolvedValue({
       data: { session: crearSesion("u1", "usuario@email.com") },
       error: null,
@@ -181,10 +188,14 @@ describe("AuthContext", () => {
 
     expect(result.current.session?.user.id).toBe("u1");
     expect(result.current.usuario?.email).toBe("usuario@email.com");
-    expect(result.current.perfil).toEqual({ id: "u1", email: "usuario@email.com" });
+    expect(result.current.perfil).toEqual({
+      id: "u1",
+      email: "usuario@email.com",
+      nombreVisible: "Paco Gómez",
+    });
     expect(mockFrom).toHaveBeenCalledWith("perfiles");
     // El perfil no tiene rol: no se pide
-    expect(mockSelect).toHaveBeenCalledWith("id, email");
+    expect(mockSelect).toHaveBeenCalledWith("id, email, nombre_visible");
     expect(mockEq).toHaveBeenCalledWith("id", "u1");
     expect(mockSingle).toHaveBeenCalledTimes(1);
   });
@@ -194,15 +205,15 @@ describe("AuthContext", () => {
       data: { session: crearSesion("u1", "usuario@email.com") },
       error: null,
     });
-    // Aunque llegara un campo rol, el perfil solo conserva id y email
+    // Aunque llegara un campo rol, el perfil solo conserva id, email y nombre
     mockSingle.mockResolvedValue({
-      data: { id: "u1", email: "usuario@email.com", rol: "admin" },
+      data: { id: "u1", email: "usuario@email.com", nombre_visible: null, rol: "admin" },
       error: null,
     });
 
     const { result } = await renderizarAuth();
 
-    expect(result.current.perfil).toEqual({ id: "u1", email: "usuario@email.com" });
+    expect(result.current.perfil).toEqual({ id: "u1", email: "usuario@email.com", nombreVisible: null });
     expect(Object.keys(result.current)).not.toContain("esAdmin");
   });
 
@@ -317,14 +328,15 @@ describe("AuthContext", () => {
     const { result } = await renderizarAuth();
 
     await act(async () => {
-      await result.current.crearCuenta("  PACO@EMAIL.COM  ", "password");
+      await result.current.crearCuenta("  Paco Gómez  ", "  PACO@EMAIL.COM  ", "password");
     });
 
     expect(mockSignUp).toHaveBeenCalledTimes(1);
+    // El nombre viaja recortado en los metadatos; el trigger 005 lo copia al perfil
     expect(mockSignUp).toHaveBeenCalledWith({
       email: "paco@email.com",
       password: "password",
-      options: { emailRedirectTo: URL_CALLBACK },
+      options: { emailRedirectTo: URL_CALLBACK, data: { nombre_visible: "Paco Gómez" } },
     });
     expect(mockCreateURL).toHaveBeenCalledWith("auth/callback");
   });
@@ -338,7 +350,7 @@ describe("AuthContext", () => {
 
     let resultado = "";
     await act(async () => {
-      resultado = await result.current.crearCuenta("paco@email.com", "password");
+      resultado = await result.current.crearCuenta("Paco Gómez", "paco@email.com", "password");
     });
 
     expect(resultado).toBe("sesion_iniciada");
@@ -361,7 +373,7 @@ describe("AuthContext", () => {
 
     let resultado = "";
     await act(async () => {
-      resultado = await result.current.crearCuenta("paco@email.com", "password");
+      resultado = await result.current.crearCuenta("Paco Gómez", "paco@email.com", "password");
     });
 
     expect(resultado).toBe("confirmacion_requerida");
@@ -380,7 +392,7 @@ describe("AuthContext", () => {
 
     let resultado = "";
     await act(async () => {
-      resultado = await result.current.crearCuenta("paco@email.com", "123");
+      resultado = await result.current.crearCuenta("Paco Gómez", "paco@email.com", "123");
     });
 
     expect(resultado).toBe("error");
@@ -492,5 +504,72 @@ describe("AuthContext", () => {
     await unmount();
 
     expect(mockRemoveListener).toHaveBeenCalledTimes(1);
+  });
+
+  test("crear cuenta con un nombre no válido no llama a signUp", async () => {
+    const { result } = await renderizarAuth();
+    let resultado = "";
+
+    await act(async () => {
+      resultado = await result.current.crearCuenta(" P ", "paco@email.com", "password");
+    });
+
+    expect(resultado).toBe("error");
+    expect(mockSignUp).not.toHaveBeenCalled();
+    expect(result.current.error).toBe("Escribe tu nombre (entre 2 y 80 caracteres)");
+  });
+
+  test("solo envía nombre_visible en los metadatos: nada de rol ni banda", async () => {
+    const { result } = await renderizarAuth();
+
+    await act(async () => {
+      await result.current.crearCuenta("Paco Gómez", "paco@email.com", "password");
+    });
+
+    expect(mockSignUp.mock.calls[0][0].options?.data).toEqual({ nombre_visible: "Paco Gómez" });
+  });
+
+  test("una cuenta antigua sin nombre lo completa una vez, solo en su propio perfil", async () => {
+    mockGetSession.mockResolvedValue({
+      data: { session: crearSesion("u1", "usuario@email.com") },
+      error: null,
+    });
+    devolverPerfil("u1", "usuario@email.com", null);
+
+    const { result } = await renderizarAuth();
+    expect(result.current.perfil?.nombreVisible).toBeNull();
+
+    let guardado: boolean | undefined;
+    await act(async () => {
+      guardado = await result.current.completarNombreVisible("  Paco Gómez ");
+    });
+
+    expect(guardado).toBe(true);
+    // Siempre el id de la sesión: no hay forma de pasar el de otra persona
+    expect(mockGuardarNombre).toHaveBeenCalledWith("u1", "Paco Gómez");
+    expect(result.current.perfil?.nombreVisible).toBe("Paco Gómez");
+  });
+
+  test("completar el nombre valida la longitud y avisa si falla Supabase", async () => {
+    mockGetSession.mockResolvedValue({
+      data: { session: crearSesion("u1", "usuario@email.com") },
+      error: null,
+    });
+    devolverPerfil("u1", "usuario@email.com", null);
+    mockGuardarNombre.mockRejectedValueOnce(new Error("sin red"));
+
+    const { result } = await renderizarAuth();
+
+    await act(async () => {
+      await result.current.completarNombreVisible("P");
+    });
+    expect(mockGuardarNombre).not.toHaveBeenCalled();
+    expect(result.current.error).toBe("Escribe tu nombre (entre 2 y 80 caracteres)");
+
+    await act(async () => {
+      await result.current.completarNombreVisible("Paco Gómez");
+    });
+    expect(result.current.error).toBe("No se ha podido guardar tu nombre");
+    expect(result.current.perfil?.nombreVisible).toBeNull();
   });
 });

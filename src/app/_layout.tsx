@@ -6,7 +6,9 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { AppAuthGate } from '@/components/AppAuthGate';
 import { AuthProvider } from '@/context/AuthContext';
+import { DisponibilidadProvider } from '@/context/DisponibilidadContext';
 import { EventosProvider } from '@/context/EventosContext';
+import { IntegrantesProvider } from '@/context/IntegrantesContext';
 import { TecnicosProvider } from '@/context/TecnicosContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -21,7 +23,11 @@ export default function TabLayout() {
         <AppAuthGate>
           <EventosProvider>
             <TecnicosProvider>
-              <AppTabs />
+              <IntegrantesProvider>
+                <DisponibilidadProvider>
+                  <AppTabs />
+                </DisponibilidadProvider>
+              </IntegrantesProvider>
             </TecnicosProvider>
           </EventosProvider>
         </AppAuthGate>

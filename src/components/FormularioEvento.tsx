@@ -2,11 +2,12 @@ import { Button, Text, TextInput, View } from "react-native";
 import type { EstadoEvento, TipoEvento } from "../types/evento";
 import type { Tecnico } from "../types/tecnico";
 import { ESTADOS_EVENTO, etiquetaEstadoEvento } from "../utils/estadosEvento";
+import { formatearFecha } from "../utils/fechas";
 import { etiquetaTipoEvento, TIPOS_EVENTO } from "../utils/tiposEvento";
-import { CalendarioEventos } from "./CalendarioEventos";
 import { SelectorHora } from "./SelectorHora";
 
-// Sin campo de título: se genera solo a partir de tipo, lugar y fecha
+// Sin campo de título: se genera solo a partir de tipo, lugar y fecha.
+// Sin calendario propio: la fecha es el día elegido en el calendario del Calendario.
 interface FormularioEventoProps {
   tipo: TipoEvento;
   estado: EstadoEvento;
@@ -14,7 +15,6 @@ interface FormularioEventoProps {
   hora: string;
   lugar: string;
   notas: string;
-  fechasConEventos: string[];
   tecnicos: Tecnico[];
   tecnicoIds: string[];
   error: string;
@@ -22,7 +22,6 @@ interface FormularioEventoProps {
   procesando: boolean;
   onCambiarTipo: (tipo: TipoEvento) => void;
   onCambiarEstado: (estado: EstadoEvento) => void;
-  onSeleccionarFecha: (fecha: string) => void;
   onCambiarHora: (hora: string) => void;
   onCambiarLugar: (lugar: string) => void;
   onCambiarNotas: (notas: string) => void;
@@ -38,7 +37,6 @@ export function FormularioEvento({
   hora,
   lugar,
   notas,
-  fechasConEventos,
   tecnicos,
   tecnicoIds,
   error,
@@ -46,7 +44,6 @@ export function FormularioEvento({
   procesando,
   onCambiarTipo,
   onCambiarEstado,
-  onSeleccionarFecha,
   onCambiarHora,
   onCambiarLugar,
   onCambiarNotas,
@@ -56,16 +53,7 @@ export function FormularioEvento({
 }: FormularioEventoProps) {
   return (
     <>
-      <CalendarioEventos
-        fecha={fecha}
-        fechasConEventos={fechasConEventos}
-        onSeleccionarFecha={(fechaSeleccionada) => {
-          // El calendario no tiene modo deshabilitado: se ignora la fecha mientras se guarda
-          if (!procesando) {
-            onSeleccionarFecha(fechaSeleccionada);
-          }
-        }}
-      />
+      <Text>Fecha: {formatearFecha(fecha)}</Text>
 
       <Text>Tipo de evento: {etiquetaTipoEvento(tipo)}</Text>
 
@@ -144,13 +132,12 @@ export function FormularioEvento({
         disabled={procesando}
       />
 
-      {editando && (
-        <Button
-          title="Cancelar"
-          onPress={onCancelar}
-          disabled={procesando}
-        />
-      )}
+      {/* Crear o editar: Cancelar siempre descarta y cierra el formulario */}
+      <Button
+        title="Cancelar"
+        onPress={onCancelar}
+        disabled={procesando}
+      />
     </>
   );
 }

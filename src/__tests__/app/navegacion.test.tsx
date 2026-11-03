@@ -14,12 +14,14 @@ function pestanas(archivo: string): string[] {
 }
 
 describe("navegación principal", () => {
-  test("las pestañas nativas son solo Calendario y Técnicos: ya no existe Músicos", () => {
+  test("las pestañas nativas son solo Calendario y Técnicos: sin Disponibilidad ni Músicos", () => {
     const codigo = fs.readFileSync("src/components/app-tabs.tsx", "utf8");
 
     expect(pestanas("src/components/app-tabs.tsx")).toEqual(["index", "tecnicos"]);
     expect(codigo).toContain("Calendario");
     expect(codigo).toContain("Técnicos");
+    // La disponibilidad vive dentro del Calendario
+    expect(codigo).not.toMatch(/Disponibilidad|disponibilidad/);
     expect(codigo).not.toMatch(/Músicos|miembros/i);
   });
 
@@ -27,6 +29,7 @@ describe("navegación principal", () => {
     const codigo = fs.readFileSync("src/components/app-tabs.web.tsx", "utf8");
 
     expect(pestanas("src/components/app-tabs.web.tsx")).toEqual(["home", "tecnicos"]);
+    expect(codigo).not.toMatch(/Disponibilidad|disponibilidad/);
     expect(codigo).not.toMatch(/Músicos|miembros/i);
   });
 
@@ -36,6 +39,8 @@ describe("navegación principal", () => {
 
     expect(rutas.filter((archivo) => /miembro|m[uú]sico/i.test(archivo))).toEqual([]);
     expect(rutas).toEqual(expect.arrayContaining(["_layout.tsx", "index.tsx", "tecnicos.tsx"]));
+    // Tampoco existe ya una ruta propia de disponibilidad
+    expect(rutas.filter((archivo) => /disponibilidad/i.test(archivo))).toEqual([]);
     expect(() => require("../../app/miembros")).toThrow(/Cannot find module/);
   });
 
@@ -44,6 +49,8 @@ describe("navegación principal", () => {
 
     expect(codigo).toContain("<EventosProvider>");
     expect(codigo).toContain("<TecnicosProvider>");
+    expect(codigo).toContain("<IntegrantesProvider>");
+    expect(codigo).toContain("<DisponibilidadProvider>");
     expect(codigo).not.toMatch(/Miembros/);
   });
 });

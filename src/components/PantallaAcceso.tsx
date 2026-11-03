@@ -1,14 +1,17 @@
 import { useState } from "react";
 
 import { useAuthContext } from "../context/AuthContext";
+import { ERROR_NOMBRE_VISIBLE, LONGITUD_MAXIMA_NOMBRE, normalizarNombreVisible } from "../utils/nombreVisible";
 import { AccionSecundaria, BotonPrincipal, CampoFormulario, Mensaje, PantallaBase } from "./PantallaBase";
 
 type ModoAcceso = "entrar" | "registro";
 
-// Entrar o crear una cuenta. Crear cuenta no da acceso a ninguna banda ni pide rol
+// Entrar o crear una cuenta. Crear cuenta pide el nombre que verá la banda, pero
+// no da acceso a ninguna banda ni pide rol
 export function PantallaAcceso() {
   const { iniciarSesion, crearCuenta, error } = useAuthContext();
   const [modo, setModo] = useState<ModoAcceso>("entrar");
+  const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repetirPassword, setRepetirPassword] = useState("");
@@ -52,6 +55,11 @@ export function PantallaAcceso() {
       return;
     }
 
+    if (normalizarNombreVisible(nombre) === null) {
+      setErrorValidacion(ERROR_NOMBRE_VISIBLE);
+      return;
+    }
+
     if (email.trim() === "" || password === "" || repetirPassword === "") {
       setErrorValidacion("Introduce el correo electrónico y la contraseña");
       return;
@@ -67,7 +75,7 @@ export function PantallaAcceso() {
     setProcesando(true);
 
     try {
-      const resultado = await crearCuenta(email, password);
+      const resultado = await crearCuenta(nombre, email, password);
 
       // Con sesión iniciada no hay nada que mostrar: AppAuthGate cambia de pantalla
       if (resultado === "confirmacion_requerida") {
@@ -87,6 +95,19 @@ export function PantallaAcceso() {
     <PantallaBase
       subtitulo={registrando ? "Crea tu cuenta" : "Organiza tu banda en un solo lugar"}
     >
+      {registrando && (
+        <CampoFormulario
+          etiqueta="Nombre"
+          placeholder="Nombre y apellido"
+          value={nombre}
+          onChangeText={setNombre}
+          editable={!procesando}
+          maxLength={LONGITUD_MAXIMA_NOMBRE}
+          autoCapitalize="words"
+          autoComplete="name"
+        />
+      )}
+
       <CampoFormulario
         etiqueta="Correo electrónico"
         placeholder="nombre@correo.com"

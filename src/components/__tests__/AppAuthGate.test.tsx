@@ -4,6 +4,7 @@ import { Text } from "react-native";
 import { useAuthContext } from "../../context/AuthContext";
 import { useBandaContext } from "../../context/BandaContext";
 import type { Banda } from "../../types/banda";
+import type { PerfilUsuario } from "../../types/usuario";
 import { AppAuthGate } from "../AppAuthGate";
 
 // constants/theme importa global.css, que Jest no puede interpretar
@@ -33,6 +34,14 @@ jest.mock("../PantallaAcceso", () => {
 
   return {
     PantallaAcceso: () => <Text>Pantalla de acceso</Text>,
+  };
+});
+
+jest.mock("../CompletarPerfil", () => {
+  const { Text } = require("react-native");
+
+  return {
+    CompletarPerfil: () => <Text>Completa tu perfil</Text>,
   };
 });
 
@@ -69,15 +78,26 @@ const cathaline: Banda = {
   creadaEn: "2026-01-01T10:00:00Z",
 };
 
-function simularAuth(cargando: boolean, session: Session | null) {
+const perfilConNombre: PerfilUsuario = {
+  id: "paco",
+  email: "paco@email.com",
+  nombreVisible: "Paco Gómez",
+};
+
+function simularAuth(
+  cargando: boolean,
+  session: Session | null,
+  perfil: PerfilUsuario | null = session === null ? null : perfilConNombre
+) {
   useAuthContextMock.mockReturnValue({
     session,
     usuario: session?.user ?? null,
-    perfil: null,
+    perfil,
     cargando,
     error: "",
     iniciarSesion: jest.fn(),
     crearCuenta: jest.fn(),
+    completarNombreVisible: jest.fn(),
     cerrarSesion: jest.fn(),
   });
 }
@@ -194,5 +214,46 @@ describe("AppAuthGate", () => {
     expect(queryByText("Pantalla de acceso")).toBeNull();
     expect(queryByText("Formulario de crear banda")).toBeNull();
     expect(queryByText("Cargando...")).toBeNull();
+  });
+
+  test("una cuenta antigua sin nombre visible lo completa antes de entrar", async () => {
+    simularAuth(false, sesion, { ...perfilConNombre, nombreVisible: null });
+    simularBanda(false, cathaline);
+
+    const { getByText, queryByText } = await renderizarGate();
+
+    expect(getByText("Completa tu perfil")).toBeTruthy();
+    // Ni bandas ni datos hasta tener nombre
+    expect(queryByText("Proveedor de banda montado")).toBeNull();
+    expect(queryByText("Aplicación")).toBeNull();
+    expect(montajeApp).not.toHaveBeenCalled();
+  });
+
+  test("con nombre visible no vuelve a pedirlo y entra normalmente", async () => {
+    simularAuth(false, sesion, perfilConNombre);
+    simularBanda(false, cathaline);
+
+    const { getByText, queryByText } = await renderizarGate();
+
+    expect(queryByText("Completa tu perfil")).toBeNull();
+    expect(getByText("Aplicación")).toBeTruthy();
+  });
+
+  test("tras guardar el nombre (el perfil ya lo tiene) entra en la app", async () => {
+    simularAuth(false, sesion, { ...perfilConNombre, nombreVisible: null });
+    simularBanda(false, cathaline);
+
+    const { getByText, queryByText, rerender } = await renderizarGate();
+    expect(getByText("Completa tu perfil")).toBeTruthy();
+
+    simularAuth(false, sesion, perfilConNombre);
+    await rerender(
+      <AppAuthGate>
+        <App />
+      </AppAuthGate>
+    );
+
+    expect(queryByText("Completa tu perfil")).toBeNull();
+    expect(getByText("Aplicación")).toBeTruthy();
   });
 });

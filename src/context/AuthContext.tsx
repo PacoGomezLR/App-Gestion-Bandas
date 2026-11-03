@@ -12,7 +12,9 @@ import {
 
 import { procesarEnlaceAuth, RUTA_CALLBACK_AUTH } from "../lib/auth-deep-link";
 import { supabase } from "../lib/supabase";
+import { guardarNombreVisiblePropio } from "../services/supabase/perfiles";
 import type { PerfilUsuario } from "../types/usuario";
+import { ERROR_NOMBRE_VISIBLE, normalizarNombreVisible } from "../utils/nombreVisible";
 
 // Supabase puede iniciar la sesión al registrar o exigir antes confirmar el correo
 export type ResultadoCrearCuenta =
@@ -27,8 +29,10 @@ interface AuthContextValue {
   cargando: boolean;
   error: string;
   iniciarSesion: (email: string, password: string) => Promise<boolean>;
-  // Solo crea la cuenta: sin banda ni rol
-  crearCuenta: (email: string, password: string) => Promise<ResultadoCrearCuenta>;
+  // Solo crea la cuenta (con su nombre visible): sin banda ni rol
+  crearCuenta: (nombre: string, email: string, password: string) => Promise<ResultadoCrearCuenta>;
+  // Una sola vez, para cuentas antiguas sin nombre visible
+  completarNombreVisible: (nombre: string) => Promise<boolean>;
   cerrarSesion: () => Promise<void>;
 }
 
@@ -40,9 +44,25 @@ function esPerfilUsuario(valor: unknown): valor is PerfilUsuario {
     return false;
   }
 
-  const { id, email } = valor as Record<string, unknown>;
+  const { id, email, nombreVisible } = valor as Record<string, unknown>;
 
-  return typeof id === "string" && typeof email === "string";
+  return (
+    typeof id === "string" &&
+    typeof email === "string" &&
+    (nombreVisible === null || typeof nombreVisible === "string")
+  );
+}
+
+// Fila de perfiles (snake_case) → PerfilUsuario
+function convertirPerfil(fila: unknown): PerfilUsuario | null {
+  if (typeof fila !== "object" || fila === null) {
+    return null;
+  }
+
+  const { id, email, nombre_visible } = fila as Record<string, unknown>;
+  const perfil = { id, email, nombreVisible: nombre_visible ?? null };
+
+  return esPerfilUsuario(perfil) ? perfil : null;
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -142,7 +162,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const { data, error: errorConsulta } = await supabase
           .from("perfiles")
-          .select("id, email")
+          .select("id, email, nombre_visible")
           .eq("id", id)
           .single();
 
@@ -150,12 +170,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
           return;
         }
 
-        if (errorConsulta || !esPerfilUsuario(data)) {
+        const perfilCargado = errorConsulta ? null : convertirPerfil(data);
+
+        if (perfilCargado === null) {
           setPerfil(null);
           setError("No se ha podido cargar el perfil");
         } else {
-          // Solo id y email: el rol vive en cada banda, no en el perfil
-          setPerfil({ id: data.id, email: data.email });
+          // Solo id, email y nombre: el rol vive en cada banda, no en el perfil
+          setPerfil(perfilCargado);
         }
       } catch {
         if (activo) {
@@ -203,8 +225,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const crearCuenta = useCallback(
-    async (email: string, password: string): Promise<ResultadoCrearCuenta> => {
+    async (nombre: string, email: string, password: string): Promise<ResultadoCrearCuenta> => {
       setError("");
+
+      const nombreVisible = normalizarNombreVisible(nombre);
+
+      if (nombreVisible === null) {
+        setError(ERROR_NOMBRE_VISIBLE);
+        return "error";
+      }
 
       try {
         // No se comprueba antes si el correo existe: eso permitiría enumerar cuentas
@@ -214,6 +243,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
           options: {
             // mibanda://auth/callback en una build; exp://.../--/auth/callback en Expo Go
             emailRedirectTo: Linking.createURL(RUTA_CALLBACK_AUTH),
+            // El trigger de perfiles (005) copia solo esta clave a nombre_visible
+            data: { nombre_visible: nombreVisible },
           },
         });
 
@@ -239,6 +270,36 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     },
     []
+  );
+
+  const completarNombreVisible = useCallback(
+    async (nombre: string) => {
+      const nombreVisible = normalizarNombreVisible(nombre);
+
+      if (nombreVisible === null) {
+        setError(ERROR_NOMBRE_VISIBLE);
+        return false;
+      }
+
+      if (usuarioId === null) {
+        return false;
+      }
+
+      setError("");
+
+      try {
+        // Siempre el perfil propio: no se puede pasar el id de otra persona
+        await guardarNombreVisiblePropio(usuarioId, nombreVisible);
+        setPerfil((actual) =>
+          actual !== null && actual.id === usuarioId ? { ...actual, nombreVisible } : actual
+        );
+        return true;
+      } catch {
+        setError("No se ha podido guardar tu nombre");
+        return false;
+      }
+    },
+    [usuarioId]
   );
 
   const cerrarSesion = useCallback(async () => {
@@ -272,6 +333,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         error,
         iniciarSesion,
         crearCuenta,
+        completarNombreVisible,
         cerrarSesion,
       }}
     >

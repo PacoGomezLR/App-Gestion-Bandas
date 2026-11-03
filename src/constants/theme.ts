@@ -25,6 +25,9 @@ export const Colors = {
     successBackground: '#DCFCE7',
     warning: '#78350F',
     warningBackground: '#FEF3C7',
+    // Algún integrante no disponible: tono propio, distinto del estado Pendiente
+    conflict: '#C2410C',
+    conflictBackground: '#FFEDD5',
   },
   dark: {
     text: '#ffffff',
@@ -42,6 +45,8 @@ export const Colors = {
     successBackground: '#0F2E1C',
     warning: '#FCD34D',
     warningBackground: '#3A2A0B',
+    conflict: '#FDBA74',
+    conflictBackground: '#3B1D0A',
   },
 } as const;
 

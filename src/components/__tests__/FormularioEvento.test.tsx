@@ -2,28 +2,6 @@ import { fireEvent, render } from "@testing-library/react-native";
 import type { Tecnico } from "../../types/tecnico";
 import { FormularioEvento } from "../FormularioEvento";
 
-jest.mock("../CalendarioEventos", () => {
-  const { Button, Text } = require("react-native");
-
-  return {
-    CalendarioEventos: ({
-      fecha,
-      onSeleccionarFecha,
-    }: {
-      fecha: string;
-      onSeleccionarFecha: (fecha: string) => void;
-    }) => (
-      <>
-        <Text>Fecha del calendario: {fecha}</Text>
-        <Button
-          title="Elegir día de prueba"
-          onPress={() => onSeleccionarFecha("2026-12-24")}
-        />
-      </>
-    ),
-  };
-});
-
 describe("FormularioEvento", () => {
   test("muestra los valores recibidos por props", async () => {
     const { getByText, queryByPlaceholderText, queryByText } = await render(
@@ -34,7 +12,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
         error=""
@@ -42,7 +19,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -56,11 +32,13 @@ describe("FormularioEvento", () => {
     expect(queryByPlaceholderText("Título del evento")).toBeNull();
     expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
     expect(getByText("Estado: Confirmado")).toBeTruthy();
-    expect(getByText("Fecha del calendario: 2026-12-20")).toBeTruthy();
+    // La fecha es la del día elegido en el calendario de la pantalla
+    expect(getByText("Fecha: 20-12-2026")).toBeTruthy();
 
     expect(getByText("Guardar evento")).toBeTruthy();
     expect(queryByText("Guardar cambios")).toBeNull();
-    expect(queryByText("Cancelar")).toBeNull();
+    // Crear también se puede cancelar: cierra el formulario
+    expect(getByText("Cancelar")).toBeTruthy();
   });
 
   test("envía las acciones del formulario mediante callbacks", async () => {
@@ -76,7 +54,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
         error=""
@@ -84,7 +61,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={onCambiarTipo}
         onCambiarEstado={onCambiarEstado}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -119,7 +95,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
         error="La fecha es obligatoria"
@@ -127,7 +102,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -151,7 +125,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
         error=""
@@ -159,7 +132,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -173,7 +145,7 @@ describe("FormularioEvento", () => {
     expect(queryByText("Guardar evento")).toBeNull();
   });
 
-  test("permite cancelar cuando está editando", async () => {
+  test("Cancelar llama a onCancelar", async () => {
     const onCancelar = jest.fn();
 
     const { getByText } = await render(
@@ -184,7 +156,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
         error=""
@@ -192,7 +163,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -230,7 +200,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={tecnicos}
         tecnicoIds={["1"]}
         error=""
@@ -238,7 +207,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -265,7 +233,6 @@ describe("FormularioEvento", () => {
   test("bloquea todos los controles mientras procesa", async () => {
     const onCambiarTipo = jest.fn();
     const onCambiarEstado = jest.fn();
-    const onSeleccionarFecha = jest.fn();
     const onAlternarTecnico = jest.fn();
     const onGuardar = jest.fn();
     const onCancelar = jest.fn();
@@ -278,7 +245,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
         error=""
@@ -286,7 +252,6 @@ describe("FormularioEvento", () => {
         procesando={true}
         onCambiarTipo={onCambiarTipo}
         onCambiarEstado={onCambiarEstado}
-        onSeleccionarFecha={onSeleccionarFecha}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -318,15 +283,12 @@ describe("FormularioEvento", () => {
     // El selector de hora tampoco se puede abrir
     expect(getByRole("button", { name: "Elegir hora", disabled: true })).toBeTruthy();
 
-    // El calendario no se deshabilita, pero la fecha elegida se ignora
-    await fireEvent.press(getByText("Elegir día de prueba"));
 
     expect(onCambiarTipo).not.toHaveBeenCalled();
     expect(onCambiarEstado).not.toHaveBeenCalled();
     expect(onAlternarTecnico).not.toHaveBeenCalled();
     expect(onGuardar).not.toHaveBeenCalled();
     expect(onCancelar).not.toHaveBeenCalled();
-    expect(onSeleccionarFecha).not.toHaveBeenCalled();
   });
 
   test("no muestra ningún selector de músicos", async () => {
@@ -338,7 +300,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
         error=""
@@ -346,7 +307,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -375,7 +335,6 @@ describe("FormularioEvento", () => {
         hora="20:30"
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
         error=""
@@ -383,7 +342,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={onCambiarHora}
         onCambiarLugar={onCambiarLugar}
         onCambiarNotas={onCambiarNotas}
@@ -418,7 +376,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[]}
         tecnicoIds={[]}
         error=""
@@ -426,7 +383,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={onCambiarTipo}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -467,7 +423,6 @@ describe("FormularioEvento", () => {
         hora=""
         lugar=""
         notas=""
-        fechasConEventos={[]}
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
         error=""
@@ -475,7 +430,6 @@ describe("FormularioEvento", () => {
         procesando={false}
         onCambiarTipo={jest.fn()}
         onCambiarEstado={jest.fn()}
-        onSeleccionarFecha={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
         onCambiarNotas={jest.fn()}
@@ -487,7 +441,7 @@ describe("FormularioEvento", () => {
 
     const texto = JSON.stringify(toJSON());
     const posiciones = [
-      "Fecha del calendario",
+      "Fecha: ",
       "Tipo de evento",
       "Lugar",
       "Elegir hora",

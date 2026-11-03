@@ -20,7 +20,7 @@ function simularAuth({
   error = "",
 }: {
   iniciarSesion?: (email: string, password: string) => Promise<boolean>;
-  crearCuenta?: (email: string, password: string) => Promise<ResultadoCrearCuenta>;
+  crearCuenta?: (nombre: string, email: string, password: string) => Promise<ResultadoCrearCuenta>;
   error?: string;
 } = {}) {
   useAuthContextMock.mockReturnValue({
@@ -31,6 +31,7 @@ function simularAuth({
     error,
     iniciarSesion,
     crearCuenta,
+    completarNombreVisible: jest.fn(),
     cerrarSesion: jest.fn(),
   });
 }
@@ -45,8 +46,10 @@ async function rellenarRegistro(
   pantalla: Pantalla,
   email: string,
   password: string,
-  repetir: string
+  repetir: string,
+  nombre = "Paco Gómez"
 ) {
+  await fireEvent.changeText(pantalla.getByLabelText("Nombre"), nombre);
   await fireEvent.changeText(pantalla.getByLabelText("Correo electrónico"), email);
   await fireEvent.changeText(pantalla.getByLabelText("Contraseña"), password);
   await fireEvent.changeText(pantalla.getByLabelText("Repetir contraseña"), repetir);
@@ -155,6 +158,7 @@ describe("PantallaAcceso: crear cuenta", () => {
 
     expect(pantalla.getByText("MI Banda")).toBeTruthy();
     expect(pantalla.getByText("Crea tu cuenta")).toBeTruthy();
+    expect(pantalla.getByLabelText("Nombre")).toBeTruthy();
     expect(pantalla.getByLabelText("Correo electrónico")).toBeTruthy();
     expect(pantalla.getByLabelText("Contraseña")).toBeTruthy();
     expect(
@@ -167,7 +171,7 @@ describe("PantallaAcceso: crear cuenta", () => {
     expect(pantalla.queryByText("¿Aún no tienes cuenta?")).toBeNull();
   });
 
-  test("el registro no pide rol, banda ni nombre de músico", async () => {
+  test("el registro pide el nombre, pero no rol, banda ni músico", async () => {
     simularAuth();
 
     const pantalla = await render(<PantallaAcceso />);
@@ -175,8 +179,10 @@ describe("PantallaAcceso: crear cuenta", () => {
 
     // Solo dos acciones: crear la cuenta o volver a entrar
     expect(pantalla.getAllByRole("button")).toHaveLength(2);
-    // Ningún campo de rol, banda, músico o nombre (el único texto con "Banda" es la marca)
-    expect(pantalla.queryByLabelText(/rol|banda|músico|nombre/i)).toBeNull();
+    // Ningún campo de rol, banda o músico (el único texto con "Banda" es la marca)
+    expect(pantalla.queryByLabelText(/rol|banda|músico/i)).toBeNull();
+    // El único nombre es el propio, el que verá la banda
+    expect(pantalla.getAllByLabelText(/nombre/i)).toHaveLength(1);
     for (const texto of [/admin/i, /usuario/i, /\brol\b/i, /músico/i]) {
       expect(pantalla.queryByText(texto)).toBeNull();
     }
@@ -220,7 +226,7 @@ describe("PantallaAcceso: crear cuenta", () => {
     await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
 
     expect(crearCuenta).toHaveBeenCalledTimes(1);
-    expect(crearCuenta).toHaveBeenCalledWith("paco@email.com", "secreta");
+    expect(crearCuenta).toHaveBeenCalledWith("Paco Gómez", "paco@email.com", "secreta");
   });
 
   test("con sesión iniciada no muestra el aviso de confirmación", async () => {
@@ -292,7 +298,7 @@ describe("PantallaAcceso: crear cuenta", () => {
     expect(
       pantalla.getByRole("button", { name: "Entrar", disabled: true })
     ).toBeTruthy();
-    for (const campo of ["Correo electrónico", "Contraseña", "Repetir contraseña"]) {
+    for (const campo of ["Nombre", "Correo electrónico", "Contraseña", "Repetir contraseña"]) {
       expect(pantalla.getByLabelText(campo).props.editable).toBe(false);
     }
 
@@ -322,5 +328,45 @@ describe("PantallaAcceso: crear cuenta", () => {
     expect(pantalla.queryByText("Las contraseñas no coinciden")).toBeNull();
     expect(iniciarSesion).not.toHaveBeenCalled();
     expect(crearCuenta).not.toHaveBeenCalled();
+  });
+
+  test("Entrar no pide nombre", async () => {
+    simularAuth();
+
+    const pantalla = await render(<PantallaAcceso />);
+
+    expect(pantalla.queryByLabelText("Nombre")).toBeNull();
+  });
+
+  test.each([
+    ["vacío", ""],
+    ["solo espacios", "   "],
+    ["de 1 carácter", "P"],
+    ["de más de 80 caracteres", "P".repeat(81)],
+  ])("con un nombre %s avisa y no crea la cuenta", async (_, nombre) => {
+    const crearCuenta = jest.fn(async (): Promise<ResultadoCrearCuenta> => "sesion_iniciada");
+    simularAuth({ crearCuenta });
+
+    const pantalla = await render(<PantallaAcceso />);
+    await abrirRegistro(pantalla);
+    await rellenarRegistro(pantalla, "paco@email.com", "secreta", "secreta", nombre);
+    await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
+
+    expect(pantalla.getByText("Escribe tu nombre (entre 2 y 80 caracteres)")).toBeTruthy();
+    expect(crearCuenta).not.toHaveBeenCalled();
+  });
+
+  test("acepta un nombre de 2 y de 80 caracteres", async () => {
+    const crearCuenta = jest.fn(async (): Promise<ResultadoCrearCuenta> => "sesion_iniciada");
+    simularAuth({ crearCuenta });
+
+    const pantalla = await render(<PantallaAcceso />);
+    await abrirRegistro(pantalla);
+    await rellenarRegistro(pantalla, "paco@email.com", "secreta", "secreta", "Jo");
+    await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
+    await rellenarRegistro(pantalla, "paco@email.com", "secreta", "secreta", "P".repeat(80));
+    await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
+
+    expect(crearCuenta).toHaveBeenCalledTimes(2);
   });
 });

@@ -8,6 +8,12 @@ import type { Evento } from "../../types/evento";
 // Camino real de la pantalla Calendario: aquí ListaEventos NO se simula,
 // para comprobar el detalle tal y como lo ve el usuario.
 
+// "Hoy" fijo: el evento del 29/10/2026 es una próxima fecha
+jest.mock("../../utils/fechas", () => ({
+  ...jest.requireActual("../../utils/fechas"),
+  fechaDeHoy: () => "2026-10-01",
+}));
+
 // constants/theme importa global.css, que Jest no puede interpretar
 jest.mock("../../global.css", () => ({}));
 
@@ -22,6 +28,29 @@ jest.mock("../../context/EventosContext", () => ({
 jest.mock("../../context/TecnicosContext", () => ({
   ...jest.requireActual("../../context/TecnicosContext"),
   useTecnicosContext: jest.fn(),
+}));
+
+// Los nombres de los integrantes tienen sus propios tests
+jest.mock("../../context/IntegrantesContext", () => ({
+  useIntegrantesContext: () => ({
+    integrantes: [],
+    nombresPorUsuario: {},
+    cargando: false,
+    errorPersistencia: "",
+  }),
+}));
+
+// La disponibilidad tiene sus propios tests; aquí la banda no tiene días marcados
+jest.mock("../../context/DisponibilidadContext", () => ({
+  useDisponibilidadContext: () => ({
+    indisponibilidades: [],
+    usuarioActualId: "u1",
+    cargando: false,
+    procesando: false,
+    errorPersistencia: "",
+    marcarNoDisponible: jest.fn(),
+    marcarDisponible: jest.fn(),
+  }),
 }));
 
 jest.mock("../../context/BandaContext", () => ({

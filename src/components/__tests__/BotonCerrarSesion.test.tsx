@@ -23,11 +23,12 @@ function simularAuth(cerrarSesion: () => Promise<void>, error = "") {
   useAuthContextMock.mockReturnValue({
     session: null,
     usuario: null,
-    perfil: { id: "paco", email: "paco@email.com" },
+    perfil: { id: "paco", email: "paco@email.com", nombreVisible: "Paco Gómez" },
     cargando: false,
     error,
     iniciarSesion: jest.fn(),
     crearCuenta: jest.fn(),
+    completarNombreVisible: jest.fn(),
     cerrarSesion,
   });
 }
