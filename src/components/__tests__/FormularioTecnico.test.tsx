@@ -1,12 +1,15 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { FormularioTecnico } from "../FormularioTecnico";
 
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 describe("FormularioTecnico", () => {
   test("muestra los datos recibidos y envía las acciones mediante callbacks", async () => {
     const onCambiarNombre = jest.fn();
     const onGuardar = jest.fn();
 
-    const { getByDisplayValue, getByText, queryByText } = await render(
+    const { getByDisplayValue, getByText } = await render(
       <FormularioTecnico
         nombre="Carlos"
         error="El nombre es obligatorio"
@@ -20,7 +23,7 @@ describe("FormularioTecnico", () => {
 
     expect(getByDisplayValue("Carlos")).toBeTruthy();
     expect(getByText("El nombre es obligatorio")).toBeTruthy();
-    expect(queryByText("Cancelar")).toBeNull();
+    expect(getByText("Nuevo técnico")).toBeTruthy();
 
     await fireEvent.changeText(getByDisplayValue("Carlos"), "Lucía");
     await fireEvent.press(getByText("Guardar técnico"));
@@ -42,18 +45,19 @@ describe("FormularioTecnico", () => {
       />
     );
 
+    expect(getByText("Editar técnico")).toBeTruthy();
     expect(getByText("Guardar cambios")).toBeTruthy();
     expect(queryByText("Guardar técnico")).toBeNull();
   });
 
-  test("permite cancelar cuando está editando", async () => {
+  test("permite cancelar también al crear", async () => {
     const onCancelar = jest.fn();
 
     const { getByText } = await render(
       <FormularioTecnico
-        nombre="Carlos"
+        nombre=""
         error=""
-        editando={true}
+        editando={false}
         procesando={false}
         onCambiarNombre={jest.fn()}
         onGuardar={jest.fn()}
@@ -72,7 +76,7 @@ describe("FormularioTecnico", () => {
     const onGuardar = jest.fn();
     const onCancelar = jest.fn();
 
-    const { getByPlaceholderText, getByRole, getByText } = await render(
+    const { getByLabelText, getByRole, getByText } = await render(
       <FormularioTecnico
         nombre="Carlos"
         error=""
@@ -84,7 +88,7 @@ describe("FormularioTecnico", () => {
       />
     );
 
-    expect(getByPlaceholderText("Nombre del técnico").props.editable).toBe(false);
+    expect(getByLabelText("Nombre del técnico").props.editable).toBe(false);
     expect(getByRole("button", { name: "Guardar cambios", disabled: true })).toBeTruthy();
     expect(getByRole("button", { name: "Cancelar", disabled: true })).toBeTruthy();
 

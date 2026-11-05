@@ -1,3 +1,4 @@
+import { useIsFocused } from "expo-router";
 import { useState } from "react";
 import { Alert } from "react-native";
 
@@ -5,7 +6,6 @@ import { AvisoNoDisponibles } from "../components/AvisoNoDisponibles";
 import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
 import { CalendarioEventos } from "../components/CalendarioEventos";
 import { FormularioEvento } from "../components/FormularioEvento";
-import { GestionarBanda } from "../components/GestionarBanda";
 import { ListaEventos } from "../components/ListaEventos";
 import { PanelDia } from "../components/PanelDia";
 import { BotonPrincipal, Mensaje } from "../components/PantallaBase";
@@ -35,10 +35,10 @@ import {
 } from "../utils/disponibilidad";
 import { fechaDeHoy } from "../utils/fechas";
 
-// Inicio (calendario + próximas 5), todas las fechas futuras, el historial o
-// Gestionar banda (solo admin). Son vistas de la misma pantalla, no pestañas
-// ni rutas: el botón Atrás de Android las recorre con useAtrasAndroid.
-type Vista = "inicio" | "todas" | "historial" | "gestionar";
+// Inicio (calendario + próximas 5), todas las fechas futuras o el historial.
+// Son vistas de la misma pantalla, no pestañas ni rutas: el botón Atrás de
+// Android las recorre con useAtrasAndroid.
+type Vista = "inicio" | "todas" | "historial";
 
 export default function Index() {
   // Sin rol visible: a quien no es admin simplemente no se le ofrecen las acciones
@@ -88,7 +88,6 @@ export default function Index() {
   } = useDisponibilidadContext();
 
   const {
-    integrantes,
     nombresPorUsuario,
     cargando: cargandoIntegrantes,
     errorPersistencia: errorPersistenciaIntegrantes,
@@ -169,7 +168,7 @@ export default function Index() {
       return () => setVista(origenHistorial);
     }
 
-    if (vista === "todas" || vista === "gestionar") {
+    if (vista === "todas") {
       return () => setVista("inicio");
     }
 
@@ -184,7 +183,9 @@ export default function Index() {
     return formularioAbierto ? cancelarFormulario : cerrarPanel;
   }
 
-  useAtrasAndroid(accionAtras());
+  // Las pestañas siguen montadas: Atrás solo se intercepta en la que se ve
+  const enFoco = useIsFocused();
+  useAtrasAndroid(enFoco ? accionAtras() : null);
 
   async function guardarYCerrar() {
     if (await guardarEvento()) {
@@ -260,31 +261,6 @@ export default function Index() {
     errorPersistenciaIntegrantes,
   ].filter((mensaje) => mensaje !== "");
 
-  // Solo un admin gestiona la banda (la base vuelve a comprobarlo al invitar)
-  if (vista === "gestionar" && esAdmin && bandaActual !== null) {
-    return (
-      <PantallaInterior>
-        <BotonCerrarSesion />
-
-        <CabeceraPantalla titulo="Gestionar banda" subtitulo={bandaActual.nombre} />
-
-        <BotonSecundario titulo="Volver al calendario" onPress={() => setVista("inicio")} />
-
-        {errores.map((mensaje) => (
-          <Mensaje key={mensaje} tipo="error" texto={mensaje} />
-        ))}
-
-        <GestionarBanda
-          // Otra banda, otra pantalla: nada de la anterior se queda a medias
-          key={bandaActual.id}
-          bandaId={bandaActual.id}
-          bandaNombre={bandaActual.nombre}
-          integrantes={integrantes}
-        />
-      </PantallaInterior>
-    );
-  }
-
   if (vista === "todas" || vista === "historial") {
     const esHistorial = vista === "historial";
     const eventosVista = esHistorial ? pasados : proximos;
@@ -341,11 +317,6 @@ export default function Index() {
       <BotonCerrarSesion />
 
       <CabeceraPantalla titulo="Calendario" subtitulo={bandaActual?.nombre} />
-
-      {/* Acceso discreto: no compite con el calendario ni con Crear evento */}
-      {esAdmin && (
-        <BotonSecundario titulo="Gestionar banda" onPress={() => setVista("gestionar")} />
-      )}
 
       {errores.map((mensaje) => (
         <Mensaje key={mensaje} tipo="error" texto={mensaje} />

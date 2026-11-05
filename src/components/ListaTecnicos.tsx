@@ -1,48 +1,30 @@
-import { Button, Text, View } from "react-native";
-
 import type { Tecnico } from "../types/tecnico";
+import { FilaNavegable, FilaTexto, GrupoFilas } from "./PantallaInterior";
 
 interface ListaTecnicosProps {
   tecnicos: Tecnico[];
   procesando: boolean;
-  // Solo el admin de la banda edita o elimina; el resto solo consulta
-  puedeEditar: boolean;
-  onEditar: (tecnico: Tecnico) => void;
-  onEliminar: (id: string) => void;
+  // Solo el admin abre un técnico para gestionarlo; el resto solo consulta
+  puedeGestionar: boolean;
+  onElegir: (tecnico: Tecnico) => void;
 }
 
-export function ListaTecnicos({
-  tecnicos,
-  procesando,
-  puedeEditar,
-  onEditar,
-  onEliminar,
-}: ListaTecnicosProps) {
+export function ListaTecnicos({ tecnicos, procesando, puedeGestionar, onElegir }: ListaTecnicosProps) {
   return (
-    <View>
-      {tecnicos.map((tecnico) => (
-        <View key={tecnico.id}>
-          <Text>
-            {tecnico.nombre}
-          </Text>
-
-          {puedeEditar && (
-            <>
-              <Button
-                title="Editar"
-                onPress={() => onEditar(tecnico)}
-                disabled={procesando}
-              />
-
-              <Button
-                title="Eliminar"
-                onPress={() => onEliminar(tecnico.id)}
-                disabled={procesando}
-              />
-            </>
-          )}
-        </View>
-      ))}
-    </View>
+    <GrupoFilas>
+      {tecnicos.map((tecnico) =>
+        puedeGestionar ? (
+          <FilaNavegable
+            key={tecnico.id}
+            titulo={tecnico.nombre}
+            centrado
+            disabled={procesando}
+            onPress={() => onElegir(tecnico)}
+          />
+        ) : (
+          <FilaTexto key={tecnico.id} titulo={tecnico.nombre} centrado />
+        )
+      )}
+    </GrupoFilas>
   );
 }

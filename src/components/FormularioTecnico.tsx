@@ -1,4 +1,5 @@
-import { Button, Text, TextInput } from "react-native";
+import { BotonPrincipal, CampoFormulario, Mensaje } from "./PantallaBase";
+import { BotonSecundario, Tarjeta } from "./PantallaInterior";
 
 interface FormularioTecnicoProps {
   nombre: string;
@@ -20,29 +21,23 @@ export function FormularioTecnico({
   onCancelar,
 }: FormularioTecnicoProps) {
   return (
-    <>
-      <TextInput
-        placeholder="Nombre del técnico"
+    <Tarjeta titulo={editando ? "Editar técnico" : "Nuevo técnico"}>
+      <CampoFormulario
+        etiqueta="Nombre del técnico"
         value={nombre}
         onChangeText={onCambiarNombre}
         editable={!procesando}
+        autoCapitalize="words"
       />
 
-      {error !== "" && <Text>{error}</Text>}
+      {error !== "" && <Mensaje tipo="error" texto={error} />}
 
-      <Button
-        title={editando ? "Guardar cambios" : "Guardar técnico"}
+      <BotonPrincipal
+        titulo={editando ? "Guardar cambios" : "Guardar técnico"}
         onPress={onGuardar}
         disabled={procesando}
       />
-
-      {editando && (
-        <Button
-          title="Cancelar"
-          onPress={onCancelar}
-          disabled={procesando}
-        />
-      )}
-    </>
+      <BotonSecundario titulo="Cancelar" onPress={onCancelar} disabled={procesando} />
+    </Tarjeta>
   );
 }

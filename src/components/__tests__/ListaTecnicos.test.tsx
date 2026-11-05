@@ -1,6 +1,11 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
+
 import type { Tecnico } from "../../types/tecnico";
 import { ListaTecnicos } from "../ListaTecnicos";
+
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
 
 const tecnicos: Tecnico[] = [
   {
@@ -14,98 +19,80 @@ const tecnicos: Tecnico[] = [
 ];
 
 describe("ListaTecnicos", () => {
-  test("muestra los técnicos recibidos", async () => {
-    const { getByText } = await render(
+  test("el admin abre un técnico al pulsar su fila", async () => {
+    const onElegir = jest.fn();
+
+    await render(
+      <ListaTecnicos tecnicos={tecnicos} procesando={false} puedeGestionar onElegir={onElegir} />
+    );
+
+    await fireEvent.press(screen.getByRole("button", { name: "Miguel" }));
+
+    expect(onElegir).toHaveBeenCalledTimes(1);
+    expect(onElegir).toHaveBeenCalledWith(tecnicos[1]);
+  });
+
+  test.each([true, false])("nombres centrados y sin flecha (admin: %s)", async (puedeGestionar) => {
+    await render(
       <ListaTecnicos
         tecnicos={tecnicos}
         procesando={false}
-        puedeEditar
-        onEditar={jest.fn()}
-        onEliminar={jest.fn()}
+        puedeGestionar={puedeGestionar}
+        onElegir={jest.fn()}
       />
     );
 
-    expect(getByText("Carlos")).toBeTruthy();
-    expect(getByText("Miguel")).toBeTruthy();
+    for (const { nombre } of tecnicos) {
+      const estilo = StyleSheet.flatten(screen.getByText(nombre).props.style);
+
+      expect(estilo.textAlign).toBe("center");
+      // Ocupa todo el ancho de la fila: se centra respecto a ella, no a su propio texto
+      expect(estilo.flex).toBe(1);
+    }
+
+    expect(screen.queryByText("›")).toBeNull();
   });
 
-  test("llama a onEditar con el técnico correcto", async () => {
-    const onEditar = jest.fn();
-
-    const { getAllByText } = await render(
-      <ListaTecnicos
-        tecnicos={tecnicos}
-        procesando={false}
-        puedeEditar
-        onEditar={onEditar}
-        onEliminar={jest.fn()}
-      />
+  test("la fila entera es un único botón con el nombre del técnico", async () => {
+    await render(
+      <ListaTecnicos tecnicos={tecnicos} procesando={false} puedeGestionar onElegir={jest.fn()} />
     );
 
-    await fireEvent.press(getAllByText("Editar")[1]);
+    const fila = screen.getByRole("button", { name: "Carlos" });
 
-    expect(onEditar).toHaveBeenCalledTimes(1);
-    expect(onEditar).toHaveBeenCalledWith(tecnicos[1]);
+    expect(StyleSheet.flatten(fila.props.style).minHeight).toBe(56);
+    expect(screen.getAllByRole("button")).toHaveLength(2);
   });
 
-  test("llama a onEliminar con el id correcto", async () => {
-    const onEliminar = jest.fn();
-
-    const { getAllByText } = await render(
-      <ListaTecnicos
-        tecnicos={tecnicos}
-        procesando={false}
-        puedeEditar
-        onEditar={jest.fn()}
-        onEliminar={onEliminar}
-      />
+  test("no hay botones Editar ni Eliminar en la lista", async () => {
+    await render(
+      <ListaTecnicos tecnicos={tecnicos} procesando={false} puedeGestionar onElegir={jest.fn()} />
     );
 
-    await fireEvent.press(getAllByText("Eliminar")[0]);
-
-    expect(onEliminar).toHaveBeenCalledTimes(1);
-    expect(onEliminar).toHaveBeenCalledWith("1");
+    expect(screen.queryByText(/editar/i)).toBeNull();
+    expect(screen.queryByText(/eliminar/i)).toBeNull();
   });
 
-  test("deshabilita Editar y Eliminar mientras procesa", async () => {
-    const onEditar = jest.fn();
-    const onEliminar = jest.fn();
+  test("las filas no se pueden abrir mientras procesa", async () => {
+    const onElegir = jest.fn();
 
-    const { getAllByRole, getAllByText } = await render(
-      <ListaTecnicos
-        tecnicos={tecnicos}
-        procesando={true}
-        puedeEditar
-        onEditar={onEditar}
-        onEliminar={onEliminar}
-      />
-    );
+    await render(<ListaTecnicos tecnicos={tecnicos} procesando puedeGestionar onElegir={onElegir} />);
 
-    expect(getAllByRole("button", { name: "Editar", disabled: true })).toHaveLength(2);
-    expect(getAllByRole("button", { name: "Eliminar", disabled: true })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { disabled: true })).toHaveLength(2);
 
-    await fireEvent.press(getAllByText("Editar")[0]);
-    await fireEvent.press(getAllByText("Eliminar")[0]);
+    await fireEvent.press(screen.getByText("Carlos"));
 
-    expect(onEditar).not.toHaveBeenCalled();
-    expect(onEliminar).not.toHaveBeenCalled();
+    expect(onElegir).not.toHaveBeenCalled();
   });
 
-  test("sin permiso de edición muestra los nombres sin Editar ni Eliminar", async () => {
-    const { getByText, queryByText } = await render(
-      <ListaTecnicos
-        tecnicos={tecnicos}
-        procesando={false}
-        puedeEditar={false}
-        onEditar={jest.fn()}
-        onEliminar={jest.fn()}
-      />
+  test("sin permiso muestra los nombres, sin filas pulsables ni textos de rol", async () => {
+    await render(
+      <ListaTecnicos tecnicos={tecnicos} procesando={false} puedeGestionar={false} onElegir={jest.fn()} />
     );
 
-    expect(getByText("Carlos")).toBeTruthy();
-    expect(getByText("Miguel")).toBeTruthy();
-    expect(queryByText("Editar")).toBeNull();
-    expect(queryByText("Eliminar")).toBeNull();
-    expect(queryByText(/admin|usuario|solo lectura/i)).toBeNull();
+    expect(screen.getByText("Carlos")).toBeTruthy();
+    expect(screen.getByText("Miguel")).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByText(/admin|usuario|solo lectura/i)).toBeNull();
   });
 });

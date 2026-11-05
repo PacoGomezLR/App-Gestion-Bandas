@@ -127,7 +127,7 @@ describe("página web: sin registro, almacenamiento ni Supabase", () => {
     "src/app/invitacion.web.tsx",
     "src/app/index.web.tsx",
     "src/app/_layout.web.tsx",
-    "src/app/tecnicos.web.tsx",
+    "src/app/banda.web.tsx",
     "src/app/+html.tsx",
   ];
 

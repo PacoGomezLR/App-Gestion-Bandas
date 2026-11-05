@@ -1,5 +1,12 @@
 import { type PropsWithChildren, type ReactNode, useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  type ScrollViewProps,
+  Text,
+  View,
+} from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
 import { crearEstilosPantallaInterior } from "./PantallaInterior.styles";
@@ -12,11 +19,20 @@ function useEstilos() {
   return useMemo(() => crearEstilosPantallaInterior(tema), [tema]);
 }
 
-export function PantallaInterior({ children }: PropsWithChildren) {
+interface PantallaInteriorProps extends PropsWithChildren {
+  // Con formularios: un toque en Guardar no se gasta en cerrar el teclado
+  keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
+}
+
+export function PantallaInterior({ children, keyboardShouldPersistTaps }: PantallaInteriorProps) {
   const estilos = useEstilos();
 
   return (
-    <ScrollView style={estilos.pagina} contentContainerStyle={estilos.contenido}>
+    <ScrollView
+      style={estilos.pagina}
+      contentContainerStyle={estilos.contenido}
+      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+    >
       {children}
     </ScrollView>
   );
@@ -116,5 +132,123 @@ export function EstadoVacio({ titulo, detalle }: EstadoVacioProps) {
       <Text style={estilos.textoVacio}>{titulo}</Text>
       {detalle !== undefined && <Text style={estilos.detalleVacio}>{detalle}</Text>}
     </View>
+  );
+}
+
+interface BotonDestructivoProps {
+  titulo: string;
+  onPress: () => void;
+  disabled?: boolean;
+}
+
+// Acción que borra algo: solo texto en color de error, sin competir con la principal
+export function BotonDestructivo({ titulo, onPress, disabled = false }: BotonDestructivoProps) {
+  const estilos = useEstilos();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        estilos.botonDestructivo,
+        pressed && estilos.pulsado,
+        disabled && estilos.deshabilitado,
+      ]}
+    >
+      <Text style={estilos.textoDestructivo}>{titulo}</Text>
+    </Pressable>
+  );
+}
+
+interface TarjetaProps extends PropsWithChildren {
+  titulo: string;
+}
+
+// Bloque contextual: un formulario corto o un paso de un flujo
+export function Tarjeta({ titulo, children }: TarjetaProps) {
+  const estilos = useEstilos();
+
+  return (
+    <View style={estilos.tarjeta}>
+      <Text accessibilityRole="header" style={estilos.tituloTarjeta}>
+        {titulo}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+// Filas de una lista: el fondo del grupo hace de separador entre ellas
+export function GrupoFilas({ children }: PropsWithChildren) {
+  const estilos = useEstilos();
+
+  return <View style={estilos.grupoFilas}>{children}</View>;
+}
+
+interface FilaTextoProps {
+  titulo: string;
+  // Texto de relleno (por ejemplo, sin nombre): se ve más apagado
+  secundario?: boolean;
+  centrado?: boolean;
+}
+
+// Fila de solo lectura
+export function FilaTexto({ titulo, secundario = false, centrado = false }: FilaTextoProps) {
+  const estilos = useEstilos();
+
+  return (
+    <View style={estilos.fila}>
+      <Text
+        style={[
+          estilos.tituloFila,
+          secundario && estilos.tituloFilaSecundario,
+          centrado && estilos.tituloFilaCentrado,
+        ]}
+      >
+        {titulo}
+      </Text>
+    </View>
+  );
+}
+
+interface FilaNavegableProps {
+  titulo: string;
+  // Dato breve a la derecha (por ejemplo, un contador)
+  valor?: number;
+  // Título centrado en toda la fila, sin flecha que le reste espacio
+  centrado?: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+}
+
+// Fila que abre otra vista: el título y el contador se leen como un solo botón
+export function FilaNavegable({
+  titulo,
+  valor,
+  centrado = false,
+  onPress,
+  disabled = false,
+}: FilaNavegableProps) {
+  const estilos = useEstilos();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={valor === undefined ? titulo : `${titulo}: ${valor}`}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        estilos.fila,
+        pressed && estilos.pulsado,
+        disabled && estilos.deshabilitado,
+      ]}
+    >
+      <Text style={[estilos.tituloFila, centrado && estilos.tituloFilaCentrado]}>{titulo}</Text>
+      {valor !== undefined && <Text style={estilos.valorFila}>{valor}</Text>}
+      {!centrado && <Text style={estilos.flechaFila}>›</Text>}
+    </Pressable>
   );
 }

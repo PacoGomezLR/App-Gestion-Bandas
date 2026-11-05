@@ -3,8 +3,7 @@ import { Share } from "react-native";
 
 import { ErrorRepositorio } from "../../services/supabase/errores";
 import { crearInvitacionBanda } from "../../services/supabase/invitaciones";
-import type { IntegranteBanda } from "../../types/banda";
-import { GestionarBanda } from "../GestionarBanda";
+import { InvitarUsuario } from "../InvitarUsuario";
 
 // constants/theme importa global.css, que Jest no puede interpretar
 jest.mock("../../global.css", () => ({}));
@@ -23,14 +22,10 @@ const mockCrear = jest.mocked(crearInvitacionBanda);
 // Valor de prueba con el formato del token (no es ningún token real)
 const TOKEN = "0123456789abcdef".repeat(4);
 
-const INTEGRANTES: IntegranteBanda[] = [
-  { usuarioId: "u1", nombreVisible: "Paco Gómez" },
-  { usuarioId: "u2", nombreVisible: "Kike Fuentes" },
-  { usuarioId: "u3", nombreVisible: null },
-];
+const mockCerrar = jest.fn();
 
 async function renderizar() {
-  await render(<GestionarBanda bandaId="b1" bandaNombre="Indiespensables" integrantes={INTEGRANTES} />);
+  await render(<InvitarUsuario bandaId="b1" bandaNombre="Indiespensables" onCerrar={mockCerrar} />);
 }
 
 beforeEach(() => {
@@ -38,21 +33,10 @@ beforeEach(() => {
   mockCrear.mockResolvedValue({ token: TOKEN, expiraEn: "2026-11-10T10:00:00+00:00", rol: "usuario" });
 });
 
-describe("GestionarBanda", () => {
-  test("lista los usuarios con su nombre visible, sin roles ni correos", async () => {
+describe("InvitarUsuario", () => {
+  test("empieza en la elección con Usuario por defecto", async () => {
     await renderizar();
 
-    expect(screen.getByText("Usuarios")).toBeTruthy();
-    expect(screen.getByText("Paco Gómez")).toBeTruthy();
-    expect(screen.getByText("Kike Fuentes")).toBeTruthy();
-    expect(screen.getByText("Integrante sin nombre")).toBeTruthy();
-    expect(screen.queryByText(/@|admin|administrador/i)).toBeNull();
-  });
-
-  test("Invitar usuario abre la elección con Usuario por defecto", async () => {
-    await renderizar();
-
-    await fireEvent.press(screen.getByText("+ Invitar usuario"));
 
     expect(screen.getByText("Tipo de acceso")).toBeTruthy();
     expect(screen.getByRole("radio", { name: "Usuario", checked: true })).toBeTruthy();
@@ -64,18 +48,16 @@ describe("GestionarBanda", () => {
   test("Cancelar no crea ninguna invitación", async () => {
     await renderizar();
 
-    await fireEvent.press(screen.getByText("+ Invitar usuario"));
     await fireEvent.press(screen.getByText("Cancelar"));
 
     expect(mockCrear).not.toHaveBeenCalled();
-    expect(screen.getByText("+ Invitar usuario")).toBeTruthy();
+    expect(mockCerrar).toHaveBeenCalledTimes(1);
   });
 
   test("Generar invitación usa la banda actual y el tipo elegido", async () => {
     mockCrear.mockResolvedValue({ token: TOKEN, expiraEn: "2026-11-10T10:00:00+00:00", rol: "admin" });
     await renderizar();
 
-    await fireEvent.press(screen.getByText("+ Invitar usuario"));
     await fireEvent.press(screen.getByRole("radio", { name: "Administrador" }));
     await fireEvent.press(screen.getByText("Generar invitación"));
 
@@ -89,7 +71,6 @@ describe("GestionarBanda", () => {
     const compartir = jest.spyOn(Share, "share").mockResolvedValue({ action: Share.sharedAction, activityType: undefined });
     await renderizar();
 
-    await fireEvent.press(screen.getByText("+ Invitar usuario"));
     await fireEvent.press(screen.getByText("Generar invitación"));
 
     expect(screen.queryByText(new RegExp(TOKEN))).toBeNull();
@@ -112,8 +93,7 @@ describe("GestionarBanda", () => {
 
     try {
       await renderizar();
-      await fireEvent.press(screen.getByText("+ Invitar usuario"));
-      await fireEvent.press(screen.getByText("Generar invitación"));
+        await fireEvent.press(screen.getByText("Generar invitación"));
       await fireEvent.press(screen.getByText("Compartir invitación"));
 
       const { message } = compartir.mock.calls[0][0] as { message: string };
@@ -131,8 +111,7 @@ describe("GestionarBanda", () => {
 
     try {
       await renderizar();
-      await fireEvent.press(screen.getByText("+ Invitar usuario"));
-      await fireEvent.press(screen.getByText("Generar invitación"));
+        await fireEvent.press(screen.getByText("Generar invitación"));
 
       expect(screen.getByText("No se ha podido preparar el enlace de invitación.")).toBeTruthy();
       // Ni se gasta una invitación en la base ni se comparte nada
@@ -146,22 +125,20 @@ describe("GestionarBanda", () => {
     }
   });
 
-  test("Cerrar descarta la invitación preparada", async () => {
+  test("Cerrar vuelve atrás sin crear otra invitación", async () => {
     await renderizar();
 
-    await fireEvent.press(screen.getByText("+ Invitar usuario"));
     await fireEvent.press(screen.getByText("Generar invitación"));
     await fireEvent.press(screen.getByText("Cerrar"));
 
-    expect(screen.queryByText("Invitación preparada")).toBeNull();
-    expect(screen.getByText("+ Invitar usuario")).toBeTruthy();
+    expect(mockCerrar).toHaveBeenCalledTimes(1);
+    expect(mockCrear).toHaveBeenCalledTimes(1);
   });
 
   test("si la base lo rechaza (no es admin) lo explica sin detalles técnicos", async () => {
     mockCrear.mockRejectedValue(new ErrorRepositorio("sin_permiso"));
     await renderizar();
 
-    await fireEvent.press(screen.getByText("+ Invitar usuario"));
     await fireEvent.press(screen.getByText("Generar invitación"));
 
     expect(screen.getByText("Solo un administrador de la banda puede invitar.")).toBeTruthy();

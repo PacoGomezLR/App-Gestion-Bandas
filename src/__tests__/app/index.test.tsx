@@ -20,6 +20,10 @@ jest.mock("../../utils/fechas", () => ({
 }));
 
 // constants/theme importa global.css, que Jest no puede interpretar
+let mockEnFoco = true;
+
+jest.mock("expo-router", () => ({ useIsFocused: () => mockEnFoco }));
+
 jest.mock("../../global.css", () => ({}));
 jest.mock("../../lib/supabase", () => ({ supabase: {} }));
 
@@ -637,6 +641,7 @@ describe("Calendario: botón Atrás de Android", () => {
 
   beforeEach(() => {
     manejadores = [];
+    mockEnFoco = true;
     jest.replaceProperty(Platform, "OS", "android");
     jest.spyOn(BackHandler, "addEventListener").mockImplementation((_evento, manejador) => {
       manejadores.push(manejador);
@@ -728,16 +733,23 @@ describe("Calendario: botón Atrás de Android", () => {
     expect(manejadores).toHaveLength(0);
   });
 
-  test("Gestionar banda + Atrás vuelve al calendario", async () => {
-    simular();
-    await render(<Index />);
+  test("con otra pestaña a la vista, una vista abierta no intercepta Atrás", async () => {
+    simular({ eventos: AGENDA });
+    const { rerender } = await render(<Index />);
 
-    await fireEvent.press(screen.getByText("Gestionar banda"));
-    expect(screen.getByText("+ Invitar usuario")).toBeTruthy();
+    await fireEvent.press(screen.getByText("Ver todas las fechas"));
+    expect(manejadores).toHaveLength(1);
 
+    mockEnFoco = false;
+    await rerender(<Index />);
+    expect(manejadores).toHaveLength(0);
+
+    // Al volver a la pestaña, sigue donde estaba
+    mockEnFoco = true;
+    await rerender(<Index />);
+    expect(manejadores).toHaveLength(1);
     expect(await pulsarAtras()).toBe(true);
     expect(screen.getByText("Próximas fechas")).toBeTruthy();
-    expect(manejadores).toHaveLength(0);
   });
 
   test("los botones visibles siguen funcionando igual", async () => {
@@ -838,39 +850,18 @@ describe("Calendario: orden y botones del panel del día", () => {
   });
 });
 
-describe("Calendario: Gestionar banda", () => {
-  test("el admin ve un acceso discreto a Gestionar banda", async () => {
+describe("Calendario: la gestión de la banda vive en la pestaña Banda", () => {
+  test("ni el admin ni un usuario normal ven Gestionar banda", async () => {
     simular();
-    await render(<Index />);
+    const { unmount } = await render(<Index />);
 
-    // Botón secundario, no compite con el calendario
-    expect(screen.getByRole("button", { name: "Gestionar banda" })).toBeTruthy();
-    estaEnOrden(["Calendario", "Gestionar banda", "marked-dates", "Próximas fechas"]);
-  });
+    expect(screen.queryByText("Gestionar banda")).toBeNull();
+    expect(screen.queryByText("+ Invitar usuario")).toBeNull();
+    await unmount();
 
-  test("un usuario normal no lo ve", async () => {
     simular({ esAdmin: false });
     await render(<Index />);
 
     expect(screen.queryByText("Gestionar banda")).toBeNull();
-    expect(screen.queryByText("+ Invitar usuario")).toBeNull();
-  });
-
-  test("lista los usuarios de la banda con sus nombres y permite invitar", async () => {
-    simular();
-    await render(<Index />);
-
-    await fireEvent.press(screen.getByText("Gestionar banda"));
-
-    expect(screen.getByText("Usuarios")).toBeTruthy();
-    // Los mismos nombres que usa la disponibilidad (IntegrantesContext)
-    expect(screen.getByText("Paco Gómez")).toBeTruthy();
-    expect(screen.getByText("Kike Fuentes")).toBeTruthy();
-    expect(screen.getByText("+ Invitar usuario")).toBeTruthy();
-    // Sigue sin enseñarse el rol fuera de la invitación
-    expect(screen.queryByText(/admin|administrador/i)).toBeNull();
-
-    await fireEvent.press(screen.getByText("Volver al calendario"));
-    expect(screen.getByText("Próximas fechas")).toBeTruthy();
   });
 });

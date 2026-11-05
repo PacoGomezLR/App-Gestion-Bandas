@@ -161,7 +161,7 @@ describe("enlace de invitación HTTPS", () => {
     expect(redirigir({ path: `${ORIGEN}/invitacion?token=${TOKEN}`, initial: true })).toBe("/");
     expect(redirigir({ path: `${ORIGEN}/invitacion?token=${TOKEN}`, initial: false })).toBeNull();
     expect(redirigir({ path: `/invitacion?token=${TOKEN}`, initial: true })).toBe("/");
-    expect(redirigir({ path: "/tecnicos", initial: false })).toBe("/tecnicos");
+    expect(redirigir({ path: "/banda", initial: false })).toBe("/banda");
   });
 });
 
@@ -185,7 +185,7 @@ describe("+native-intent", () => {
   });
 
   test("el resto de rutas siguen igual", () => {
-    expect(redirigir({ path: "/tecnicos", initial: false })).toBe("/tecnicos");
+    expect(redirigir({ path: "/banda", initial: false })).toBe("/banda");
   });
 });
 

@@ -7,7 +7,7 @@ type ColoresTema = ReturnType<typeof useTheme>;
 
 const RADIO_TARJETA = 16;
 
-// Piezas comunes de las pantallas interiores (Calendario ahora; Técnicos después)
+// Piezas comunes de las pantallas interiores (Calendario y Banda)
 export function crearEstilosPantallaInterior(colores: ColoresTema) {
   return StyleSheet.create({
     pagina: {
@@ -77,6 +77,68 @@ export function crearEstilosPantallaInterior(colores: ColoresTema) {
     },
     deshabilitado: {
       opacity: 0.5,
+    },
+    // Sin relleno ni borde: visible pero sin el peso de un botón
+    botonDestructivo: {
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: Spacing.three,
+    },
+    textoDestructivo: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colores.error,
+    },
+    tarjeta: {
+      padding: Spacing.three,
+      borderRadius: RADIO_TARJETA,
+      backgroundColor: colores.backgroundElement,
+      gap: Spacing.three,
+    },
+    tituloTarjeta: {
+      fontSize: 18,
+      lineHeight: 24,
+      fontWeight: "700",
+      color: colores.text,
+    },
+    grupoFilas: {
+      borderRadius: RADIO_TARJETA,
+      overflow: "hidden",
+      gap: StyleSheet.hairlineWidth,
+      backgroundColor: colores.backgroundSelected,
+    },
+    fila: {
+      minHeight: 56,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.two,
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+      backgroundColor: colores.backgroundElement,
+    },
+    tituloFila: {
+      flex: 1,
+      fontSize: 16,
+      lineHeight: 22,
+      color: colores.text,
+    },
+    tituloFilaSecundario: {
+      fontStyle: "italic",
+      color: colores.textSecondary,
+    },
+    tituloFilaCentrado: {
+      textAlign: "center",
+    },
+    valorFila: {
+      fontSize: 16,
+      lineHeight: 22,
+      color: colores.textSecondary,
+    },
+    flechaFila: {
+      fontSize: 22,
+      lineHeight: 24,
+      color: colores.textSecondary,
     },
     vacio: {
       paddingVertical: Spacing.five,

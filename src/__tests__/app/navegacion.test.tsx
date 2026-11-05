@@ -14,12 +14,14 @@ function pestanas(archivo: string): string[] {
 }
 
 describe("navegación principal", () => {
-  test("las pestañas nativas son solo Calendario y Técnicos: sin Disponibilidad ni Músicos", () => {
+  test("las pestañas nativas son solo Calendario y Banda: sin Técnicos, Disponibilidad ni Músicos", () => {
     const codigo = fs.readFileSync("src/components/app-tabs.tsx", "utf8");
 
-    expect(pestanas("src/components/app-tabs.tsx")).toEqual(["index", "tecnicos"]);
+    // El orden importa: la primera pestaña es el destino inicial
+    expect(pestanas("src/components/app-tabs.tsx")).toEqual(["index", "banda"]);
     expect(codigo).toContain("Calendario");
-    expect(codigo).toContain("Técnicos");
+    expect(codigo).toContain("<NativeTabs.Trigger.Label>Banda</NativeTabs.Trigger.Label>");
+    expect(codigo).not.toMatch(/Técnicos|tecnicos/);
     // La disponibilidad vive dentro del Calendario
     expect(codigo).not.toMatch(/Disponibilidad|disponibilidad/);
     expect(codigo).not.toMatch(/Músicos|miembros/i);
@@ -28,7 +30,7 @@ describe("navegación principal", () => {
   test("la versión web tampoco tiene pestaña de Músicos", () => {
     const codigo = fs.readFileSync("src/components/app-tabs.web.tsx", "utf8");
 
-    expect(pestanas("src/components/app-tabs.web.tsx")).toEqual(["home", "tecnicos"]);
+    expect(pestanas("src/components/app-tabs.web.tsx")).toEqual(["home", "banda"]);
     expect(codigo).not.toMatch(/Disponibilidad|disponibilidad/);
     expect(codigo).not.toMatch(/Músicos|miembros/i);
   });
@@ -38,7 +40,11 @@ describe("navegación principal", () => {
     const rutas = fs.readdirSync("src/app");
 
     expect(rutas.filter((archivo) => /miembro|m[uú]sico/i.test(archivo))).toEqual([]);
-    expect(rutas).toEqual(expect.arrayContaining(["_layout.tsx", "index.tsx", "tecnicos.tsx"]));
+    expect(rutas).toEqual(
+      expect.arrayContaining(["_layout.tsx", "index.tsx", "banda.tsx", "banda.web.tsx", "invitacion.web.tsx"])
+    );
+    // Técnicos ya no es una ruta propia: vive dentro de Banda
+    expect(rutas.filter((archivo) => /tecnicos/i.test(archivo))).toEqual([]);
     // Tampoco existe ya una ruta propia de disponibilidad
     expect(rutas.filter((archivo) => /disponibilidad/i.test(archivo))).toEqual([]);
     expect(() => require("../../app/miembros")).toThrow(/Cannot find module/);

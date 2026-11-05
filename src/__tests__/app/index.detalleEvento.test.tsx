@@ -15,6 +15,8 @@ jest.mock("../../utils/fechas", () => ({
 }));
 
 // constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("expo-router", () => ({ useIsFocused: () => true }));
+
 jest.mock("../../global.css", () => ({}));
 
 // Los contextos reales importan el cliente Supabase; aquí nunca se usa

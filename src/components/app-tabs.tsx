@@ -20,8 +20,8 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="tecnicos">
-        <NativeTabs.Trigger.Label>Técnicos</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="banda">
+        <NativeTabs.Trigger.Label>Banda</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"

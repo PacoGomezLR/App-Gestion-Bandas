@@ -5,44 +5,8 @@ import type { useTheme } from "@/hooks/use-theme";
 
 type ColoresTema = ReturnType<typeof useTheme>;
 
-export function crearEstilosGestionarBanda(colores: ColoresTema) {
+export function crearEstilosInvitarUsuario(colores: ColoresTema) {
   return StyleSheet.create({
-    // Lista sencilla: una fila por usuario, sin tarjetas dentro de tarjetas
-    lista: {
-      borderRadius: 16,
-      backgroundColor: colores.backgroundElement,
-      overflow: "hidden",
-    },
-    usuario: {
-      minHeight: 48,
-      justifyContent: "center",
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.two,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colores.backgroundSelected,
-    },
-    nombre: {
-      fontSize: 16,
-      lineHeight: 22,
-      color: colores.text,
-    },
-    sinNombre: {
-      fontStyle: "italic",
-      color: colores.textSecondary,
-    },
-    tarjeta: {
-      paddingHorizontal: Spacing.three,
-      paddingVertical: Spacing.three,
-      borderRadius: 16,
-      backgroundColor: colores.backgroundElement,
-      gap: Spacing.three,
-    },
-    tituloTarjeta: {
-      fontSize: 18,
-      lineHeight: 24,
-      fontWeight: "700",
-      color: colores.text,
-    },
     etiqueta: {
       fontSize: 13,
       lineHeight: 18,
