@@ -24,7 +24,9 @@ interface BandaContextValue {
   esAdmin: boolean;
   crearBanda: (nombre: string) => Promise<boolean>;
   seleccionarBanda: (id: string) => void;
-  recargarBandas: () => Promise<void>;
+  // Con bandaPreferidaId (por ejemplo, la de una invitación recién aceptada)
+  // se selecciona esa banda si está entre las cargadas
+  recargarBandas: (bandaPreferidaId?: string) => Promise<void>;
 }
 
 interface DatosBandas {
@@ -181,7 +183,7 @@ export function BandaProvider({ children }: PropsWithChildren) {
     };
   }, [usuarioId, aplicarDatos]);
 
-  const recargarBandas = useCallback(async () => {
+  const recargarBandas = useCallback(async (bandaPreferidaId?: string) => {
     if (usuarioId === null) {
       return;
     }
@@ -189,7 +191,12 @@ export function BandaProvider({ children }: PropsWithChildren) {
     setCargando(true);
 
     try {
-      aplicarDatos(await consultarBandas(usuarioId));
+      const datos = await consultarBandas(usuarioId);
+      aplicarDatos(datos);
+
+      if (bandaPreferidaId !== undefined && datos.bandas.some(({ id }) => id === bandaPreferidaId)) {
+        setBandaSeleccionadaId(bandaPreferidaId);
+      }
     } catch {
       setErrorCarga("No se han podido cargar las bandas");
     } finally {

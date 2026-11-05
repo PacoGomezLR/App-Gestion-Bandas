@@ -4,8 +4,10 @@ const fs = jest.requireActual<{
   readFileSync: (ruta: string, codificacion: "utf8") => string;
 }>("fs");
 
+// Git puede dejar el archivo con CRLF en Windows: se normaliza a \n
 function sinComentarios(sql: string): string {
   return sql
+    .replace(/\r\n/g, "\n")
     .split("\n")
     .filter((linea) => !linea.trimStart().startsWith("--"))
     .join("\n");

@@ -3,12 +3,14 @@ import { ActivityIndicator, Text, View } from "react-native";
 
 import { useAuthContext } from "../context/AuthContext";
 import { BandaProvider, useBandaContext } from "../context/BandaContext";
+import { useInvitacionPendiente } from "../context/InvitacionPendienteContext";
 import { CompletarPerfil } from "./CompletarPerfil";
 import { useTheme } from "@/hooks/use-theme";
 import { crearEstilosAppAuthGate } from "./AppAuthGate.styles";
 import { CrearBanda } from "./CrearBanda";
 import { BotonPrincipal, Mensaje, PantallaBase } from "./PantallaBase";
 import { PantallaAcceso } from "./PantallaAcceso";
+import { PantallaInvitacion } from "./PantallaInvitacion";
 
 function Cargando() {
   const tema = useTheme();
@@ -27,9 +29,15 @@ function Cargando() {
 // Los hijos (datos de la app) solo se montan con una banda activa
 function ContenidoBanda({ children }: PropsWithChildren) {
   const { cargando, bandaActual, errorCarga, recargarBandas } = useBandaContext();
+  const { tokenPendiente } = useInvitacionPendiente();
 
   if (cargando) {
     return <Cargando />;
+  }
+
+  // Una invitación abierta va antes que todo, también antes de crear una banda
+  if (tokenPendiente !== null) {
+    return <PantallaInvitacion />;
   }
 
   if (bandaActual === null) {

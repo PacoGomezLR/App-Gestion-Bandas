@@ -10,6 +10,15 @@ jest.mock("../../context/AuthContext", () => ({
   useAuthContext: jest.fn(),
 }));
 
+// Invitación pendiente controlada por cada test (por defecto, ninguna)
+let mockTokenPendiente: string | null = null;
+jest.mock("../../context/InvitacionPendienteContext", () => ({
+  useInvitacionPendiente: () => ({
+    tokenPendiente: mockTokenPendiente,
+    descartarInvitacion: jest.fn(),
+  }),
+}));
+
 const useAuthContextMock = jest.mocked(useAuthContext);
 
 const AVISO_CONFIRMACION = "Cuenta creada. Revisa tu correo para confirmar tu cuenta.";
@@ -57,6 +66,7 @@ async function rellenarRegistro(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockTokenPendiente = null;
 });
 
 describe("PantallaAcceso: entrar", () => {
@@ -368,5 +378,30 @@ describe("PantallaAcceso: crear cuenta", () => {
     await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
 
     expect(crearCuenta).toHaveBeenCalledTimes(2);
+  });
+
+});
+
+describe("PantallaAcceso: invitación pendiente", () => {
+  const AVISO = "Tienes una invitación a una banda. Entra o crea tu cuenta para continuar.";
+
+  test("sin invitación no hay aviso", async () => {
+    simularAuth();
+
+    const pantalla = await render(<PantallaAcceso />);
+
+    expect(pantalla.queryByText(AVISO)).toBeNull();
+  });
+
+  test("con una invitación pendiente avisa al entrar y al crear cuenta, sin mostrar el token", async () => {
+    mockTokenPendiente = "a".repeat(64);
+    simularAuth();
+
+    const pantalla = await render(<PantallaAcceso />);
+    expect(pantalla.getByText(AVISO)).toBeTruthy();
+
+    await abrirRegistro(pantalla);
+    expect(pantalla.getByText(AVISO)).toBeTruthy();
+    expect(pantalla.queryByText(/a{64}/)).toBeNull();
   });
 });

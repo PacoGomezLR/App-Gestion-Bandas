@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { useAuthContext } from "../context/AuthContext";
+import { useInvitacionPendiente } from "../context/InvitacionPendienteContext";
 import { ERROR_NOMBRE_VISIBLE, LONGITUD_MAXIMA_NOMBRE, normalizarNombreVisible } from "../utils/nombreVisible";
 import { AccionSecundaria, BotonPrincipal, CampoFormulario, Mensaje, PantallaBase } from "./PantallaBase";
 
@@ -10,6 +11,7 @@ type ModoAcceso = "entrar" | "registro";
 // no da acceso a ninguna banda ni pide rol
 export function PantallaAcceso() {
   const { iniciarSesion, crearCuenta, error } = useAuthContext();
+  const { tokenPendiente } = useInvitacionPendiente();
   const [modo, setModo] = useState<ModoAcceso>("entrar");
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
@@ -138,6 +140,14 @@ export function PantallaAcceso() {
           secureTextEntry
           autoCapitalize="none"
           autoComplete="new-password"
+        />
+      )}
+
+      {/* La invitación se recuerda mientras entra, crea la cuenta o confirma el correo */}
+      {tokenPendiente !== null && (
+        <Mensaje
+          tipo="info"
+          texto="Tienes una invitación a una banda. Entra o crea tu cuenta para continuar."
         />
       )}
 

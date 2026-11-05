@@ -177,7 +177,10 @@ function simular({ esAdmin = true, eventos = [], indisponibilidades = [] }: Esce
   });
 
   mockUseIntegrantesContext.mockReturnValue({
-    integrantes: [],
+    integrantes: [
+      { usuarioId: "yo", nombreVisible: "Paco Gómez" },
+      { usuarioId: "otro", nombreVisible: "Kike Fuentes" },
+    ],
     nombresPorUsuario: { yo: "Paco Gómez", otro: "Kike Fuentes" },
     cargando: false,
     errorPersistencia: "",
@@ -725,6 +728,18 @@ describe("Calendario: botón Atrás de Android", () => {
     expect(manejadores).toHaveLength(0);
   });
 
+  test("Gestionar banda + Atrás vuelve al calendario", async () => {
+    simular();
+    await render(<Index />);
+
+    await fireEvent.press(screen.getByText("Gestionar banda"));
+    expect(screen.getByText("+ Invitar usuario")).toBeTruthy();
+
+    expect(await pulsarAtras()).toBe(true);
+    expect(screen.getByText("Próximas fechas")).toBeTruthy();
+    expect(manejadores).toHaveLength(0);
+  });
+
   test("los botones visibles siguen funcionando igual", async () => {
     simular({ eventos: AGENDA });
     await render(<Index />);
@@ -820,5 +835,42 @@ describe("Calendario: orden y botones del panel del día", () => {
     expect(guardar.backgroundColor).toBeDefined();
     expect(guardar.backgroundColor).not.toBe(crear.backgroundColor);
     expect(descartar.backgroundColor).toBe("transparent");
+  });
+});
+
+describe("Calendario: Gestionar banda", () => {
+  test("el admin ve un acceso discreto a Gestionar banda", async () => {
+    simular();
+    await render(<Index />);
+
+    // Botón secundario, no compite con el calendario
+    expect(screen.getByRole("button", { name: "Gestionar banda" })).toBeTruthy();
+    estaEnOrden(["Calendario", "Gestionar banda", "marked-dates", "Próximas fechas"]);
+  });
+
+  test("un usuario normal no lo ve", async () => {
+    simular({ esAdmin: false });
+    await render(<Index />);
+
+    expect(screen.queryByText("Gestionar banda")).toBeNull();
+    expect(screen.queryByText("+ Invitar usuario")).toBeNull();
+  });
+
+  test("lista los usuarios de la banda con sus nombres y permite invitar", async () => {
+    simular();
+    await render(<Index />);
+
+    await fireEvent.press(screen.getByText("Gestionar banda"));
+
+    expect(screen.getByText("Usuarios")).toBeTruthy();
+    // Los mismos nombres que usa la disponibilidad (IntegrantesContext)
+    expect(screen.getByText("Paco Gómez")).toBeTruthy();
+    expect(screen.getByText("Kike Fuentes")).toBeTruthy();
+    expect(screen.getByText("+ Invitar usuario")).toBeTruthy();
+    // Sigue sin enseñarse el rol fuera de la invitación
+    expect(screen.queryByText(/admin|administrador/i)).toBeNull();
+
+    await fireEvent.press(screen.getByText("Volver al calendario"));
+    expect(screen.getByText("Próximas fechas")).toBeTruthy();
   });
 });

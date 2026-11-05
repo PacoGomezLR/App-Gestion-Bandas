@@ -5,7 +5,10 @@ const fs = jest.requireActual<{
   readFileSync: (ruta: string, codificacion: "utf8") => string;
 }>("fs");
 
-const sql = fs.readFileSync("supabase/migrations/004_disponibilidad_usuarios.sql", "utf8");
+// Git puede dejar el archivo con CRLF en Windows: se normaliza a \n
+const sql = fs
+  .readFileSync("supabase/migrations/004_disponibilidad_usuarios.sql", "utf8")
+  .replace(/\r\n/g, "\n");
 
 // Sin comentarios, para no confundir explicaciones con instrucciones
 const codigo = sql

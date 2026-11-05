@@ -37,6 +37,14 @@ jest.mock("../PantallaAcceso", () => {
   };
 });
 
+jest.mock("../PantallaInvitacion", () => {
+  const { Text } = require("react-native");
+
+  return {
+    PantallaInvitacion: () => <Text>Pantalla de invitación</Text>,
+  };
+});
+
 jest.mock("../CompletarPerfil", () => {
   const { Text } = require("react-native");
 
@@ -52,6 +60,15 @@ jest.mock("../CrearBanda", () => {
     CrearBanda: () => <Text>Formulario de crear banda</Text>,
   };
 });
+
+// Invitación pendiente controlada por cada test (por defecto, ninguna)
+let mockTokenPendiente: string | null = null;
+jest.mock("../../context/InvitacionPendienteContext", () => ({
+  useInvitacionPendiente: () => ({
+    tokenPendiente: mockTokenPendiente,
+    descartarInvitacion: jest.fn(),
+  }),
+}));
 
 const useAuthContextMock = jest.mocked(useAuthContext);
 const useBandaContextMock = jest.mocked(useBandaContext);
@@ -139,6 +156,7 @@ async function renderizarGate() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockTokenPendiente = null;
 });
 
 describe("AppAuthGate", () => {
@@ -255,5 +273,61 @@ describe("AppAuthGate", () => {
 
     expect(queryByText("Completa tu perfil")).toBeNull();
     expect(getByText("Aplicación")).toBeTruthy();
+  });
+
+  describe("invitación pendiente", () => {
+    test("sin sesión muestra el acceso (la invitación se recuerda para después)", async () => {
+      mockTokenPendiente = "a".repeat(64);
+      simularAuth(false, null);
+
+      const { getByText, queryByText } = await renderizarGate();
+
+      expect(getByText("Pantalla de acceso")).toBeTruthy();
+      expect(queryByText("Pantalla de invitación")).toBeNull();
+    });
+
+    test("con sesión, tras entrar o confirmar el correo, continúa con la invitación", async () => {
+      mockTokenPendiente = "a".repeat(64);
+      simularAuth(false, sesion);
+      simularBanda(false, cathaline);
+
+      const { getByText, queryByText } = await renderizarGate();
+
+      expect(getByText("Pantalla de invitación")).toBeTruthy();
+      // No se monta la app hasta resolver la invitación
+      expect(queryByText("Aplicación")).toBeNull();
+    });
+
+    test("una persona sin bandas ve la invitación en lugar de Crear banda", async () => {
+      mockTokenPendiente = "a".repeat(64);
+      simularAuth(false, sesion);
+      simularBanda(false, null);
+
+      const { getByText, queryByText } = await renderizarGate();
+
+      expect(getByText("Pantalla de invitación")).toBeTruthy();
+      expect(queryByText("Formulario de crear banda")).toBeNull();
+    });
+
+    test("una cuenta antigua sin nombre lo completa antes de ver la invitación", async () => {
+      mockTokenPendiente = "a".repeat(64);
+      simularAuth(false, sesion, { ...perfilConNombre, nombreVisible: null });
+      simularBanda(false, cathaline);
+
+      const { getByText, queryByText } = await renderizarGate();
+
+      expect(getByText("Completa tu perfil")).toBeTruthy();
+      expect(queryByText("Pantalla de invitación")).toBeNull();
+    });
+
+    test("sin invitación pendiente entra normalmente", async () => {
+      simularAuth(false, sesion);
+      simularBanda(false, cathaline);
+
+      const { getByText, queryByText } = await renderizarGate();
+
+      expect(getByText("Aplicación")).toBeTruthy();
+      expect(queryByText("Pantalla de invitación")).toBeNull();
+    });
   });
 });
