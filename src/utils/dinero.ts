@@ -86,6 +86,12 @@ export function formatearCentimos(centimos: number): string {
   return `${centimos < 0 ? "-" : ""}${conMiles},${decimales}${ESPACIO_FIJO}€`;
 }
 
+// Para leer de un vistazo: sin ,00 (1.600 €), pero sin esconder céntimos reales
+// (1.200,50 €). Finanzas sigue usando formatearCentimos, con sus dos decimales
+export function formatearSinCerosDecimales(centimos: number): string {
+  return formatearCentimos(centimos).replace(`,00${ESPACIO_FIJO}`, ESPACIO_FIJO);
+}
+
 // Importe de un movimiento: el signo lo da su tipo
 export function formatearImporteMovimiento(tipo: TipoMovimiento, centimos: number): string {
   return `${tipo === "ingreso" ? "+" : "-"}${formatearCentimos(centimos)}`;

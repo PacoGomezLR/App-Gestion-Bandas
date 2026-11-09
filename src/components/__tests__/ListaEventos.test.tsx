@@ -455,7 +455,7 @@ describe("ListaEventos: evento que no se puede eliminar", () => {
 });
 
 describe("ListaEventos: datos económicos", () => {
-  const DATOS = { caches: { "1": 120000, "2": 0 }, cargando: false, error: "" };
+  const DATOS = { caches: { "1": 160000, "2": 0 }, cargando: false, error: "" };
 
   async function pintar(datosEconomicos?: {
     caches: Record<string, number>;
@@ -485,16 +485,23 @@ describe("ListaEventos: datos económicos", () => {
     await abrirConcierto();
 
     expect(screen.getByText("Caché")).toBeTruthy();
-    expect(screen.getByText("1.200,00 €")).toBeTruthy();
+    expect(screen.getByText("1.600 €")).toBeTruthy();
     expect(screen.queryByText("Datos económicos")).toBeNull();
     expect(screen.queryByText("Personal")).toBeNull();
   });
 
-  test("un caché de 0 se ve como 0,00 €, no como que falta", async () => {
+  test("un caché con céntimos los enseña: nunca muestra un importe falso", async () => {
+    await pintar({ ...DATOS, caches: { "1": 120050 } });
+    await abrirConcierto();
+
+    expect(screen.getByText("1.200,50 €")).toBeTruthy();
+  });
+
+  test("un caché de 0 se ve como 0 €, no como que falta", async () => {
     await pintar(DATOS);
     await abrirEnsayo();
 
-    expect(screen.getByText("0,00 €")).toBeTruthy();
+    expect(screen.getByText("0 €")).toBeTruthy();
     expect(screen.queryByText("Sin caché registrado")).toBeNull();
   });
 

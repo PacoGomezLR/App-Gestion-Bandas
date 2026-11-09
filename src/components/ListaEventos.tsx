@@ -3,7 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import type { CachesPorEvento, ErrorEliminacionEvento, Evento } from "../types/evento";
 import type { Tecnico } from "../types/tecnico";
-import { formatearCentimos } from "../utils/dinero";
+import { formatearSinCerosDecimales } from "../utils/dinero";
 import { etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { formatearFechaConBarras } from "../utils/fechas";
 import { etiquetaTipoEvento } from "../utils/tiposEvento";
@@ -52,7 +52,7 @@ function textoCache(
     return "Cargando...";
   }
 
-  return cache === undefined ? "Sin caché registrado" : formatearCentimos(cache);
+  return cache === undefined ? "Sin caché registrado" : formatearSinCerosDecimales(cache);
 }
 
 export function ListaEventos({

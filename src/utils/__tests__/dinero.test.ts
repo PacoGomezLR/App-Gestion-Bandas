@@ -1,6 +1,7 @@
 import {
   formatearCentimos,
   formatearImporteMovimiento,
+  formatearSinCerosDecimales,
   importeParaFormulario,
   parsearImporte,
 } from "../dinero";
@@ -171,5 +172,33 @@ describe("parsearImporte con permitirCero (caché de un evento)", () => {
   test("el formato en español sirve también para el caché", () => {
     expect(formatearCentimos(120000)).toBe("1.200,00\u00A0€");
     expect(formatearCentimos(0)).toBe("0,00\u00A0€");
+  });
+});
+
+describe("formatearSinCerosDecimales (caché en el detalle de un evento)", () => {
+  const conEuro = (texto: string) => `${texto}\u00A0€`;
+
+  test.each([
+    [160000, "1.600"],
+    [120000, "1.200"],
+    [0, "0"],
+    [100, "1"],
+    [123456700, "1.234.567"],
+  ])("%i → %s €, sin decimales", (valor, esperado) => {
+    expect(formatearSinCerosDecimales(valor)).toBe(conEuro(esperado));
+  });
+
+  test.each([
+    [120050, "1.200,50"],
+    [125005, "1.250,05"],
+    [1, "0,01"],
+  ])("%i → %s €: los céntimos reales nunca se esconden", (valor, esperado) => {
+    expect(formatearSinCerosDecimales(valor)).toBe(conEuro(esperado));
+  });
+
+  test("no cambia el formato de Finanzas", () => {
+    expect(formatearCentimos(160000)).toBe(conEuro("1.600,00"));
+    expect(formatearCentimos(0)).toBe(conEuro("0,00"));
+    expect(formatearImporteMovimiento("ingreso", 160000)).toBe(conEuro("+1.600,00"));
   });
 });
