@@ -33,4 +33,6 @@ export type TipoEvento =
   notas: string;
   estado: EstadoEvento;
   tecnicoIds: string[];
+  // El que pegó el admin, tal cual; null = sin enlace. Distinto de lugar
+  googleMapsUrl: string | null;
 }

@@ -86,6 +86,7 @@ const BODA: Evento = {
   notas: "",
   estado: "confirmado",
   tecnicoIds: [],
+  googleMapsUrl: null,
 };
 
 const ENSAYO: Evento = { ...BODA, id: "e2", tipo: "ensayo", lugar: "", fecha: "2026-11-21" };

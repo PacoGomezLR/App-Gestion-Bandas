@@ -251,6 +251,7 @@ describe("EventosContext", () => {
         notas: "",
         estado: "confirmado",
         tecnicoIds: ["2"],
+        googleMapsUrl: null,
       },
     ];
     repositorio = crearRepositorioSimulado(eventosGuardados);
@@ -306,6 +307,7 @@ describe("EventosContext", () => {
       tipo: "concierto_abierto",
       estado: "pendiente",
       tecnicoIds: [],
+      googleMapsUrl: null,
     });
     // Crear ya no envía ningún campo de músicos
     expect(repositorio.crear.mock.calls[0][0]).not.toHaveProperty("miembroIds");

@@ -30,6 +30,7 @@ const evento: Evento = {
   notas: "",
   estado: "confirmado",
   tecnicoIds: [],
+  googleMapsUrl: null,
 };
 
 describe("consultas de disponibilidad", () => {

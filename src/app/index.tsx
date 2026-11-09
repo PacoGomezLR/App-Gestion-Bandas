@@ -51,6 +51,7 @@ export default function Index() {
     fecha,
     hora,
     lugar,
+    googleMapsUrl,
     notas,
     tecnicoIds,
     cache,
@@ -61,6 +62,7 @@ export default function Index() {
     setFecha,
     setHora,
     setLugar,
+    setGoogleMapsUrl,
     setNotas,
     setCache,
     alternarTecnico,
@@ -352,6 +354,7 @@ export default function Index() {
                 fecha={fecha}
                 hora={hora}
                 lugar={lugar}
+                googleMapsUrl={googleMapsUrl}
                 notas={notas}
                 tecnicos={tecnicos}
                 tecnicoIds={tecnicoIds}
@@ -369,6 +372,7 @@ export default function Index() {
                 onCambiarEstado={setEstado}
                 onCambiarHora={setHora}
                 onCambiarLugar={setLugar}
+                onCambiarGoogleMapsUrl={setGoogleMapsUrl}
                 onCambiarNotas={setNotas}
                 onAlternarTecnico={alternarTecnico}
                 onGuardar={guardarConAviso}

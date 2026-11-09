@@ -34,6 +34,8 @@ interface FormularioEventoProps {
   fecha: string;
   hora: string;
   lugar: string;
+  // Lo escrito en el campo, todavía sin validar
+  googleMapsUrl: string;
   notas: string;
   tecnicos: Tecnico[];
   tecnicoIds: string[];
@@ -52,6 +54,7 @@ interface FormularioEventoProps {
   onCambiarEstado: (estado: EstadoEvento) => void;
   onCambiarHora: (hora: string) => void;
   onCambiarLugar: (lugar: string) => void;
+  onCambiarGoogleMapsUrl: (url: string) => void;
   onCambiarNotas: (notas: string) => void;
   onAlternarTecnico: (tecnicoId: string) => void;
   onGuardar: () => void;
@@ -64,6 +67,7 @@ export function FormularioEvento({
   fecha,
   hora,
   lugar,
+  googleMapsUrl,
   notas,
   tecnicos,
   tecnicoIds,
@@ -75,6 +79,7 @@ export function FormularioEvento({
   onCambiarEstado,
   onCambiarHora,
   onCambiarLugar,
+  onCambiarGoogleMapsUrl,
   onCambiarNotas,
   onAlternarTecnico,
   onGuardar,
@@ -121,6 +126,22 @@ export function FormularioEvento({
           editable={!procesando}
           autoCapitalize="words"
         />
+
+        {/* Otro dato, no otra forma de escribir el lugar: se abre tal cual se pegó */}
+        <View style={estilos.campo}>
+          <CampoFormulario
+            etiqueta="Enlace de Google Maps"
+            placeholder="https://maps.app.goo.gl/..."
+            value={googleMapsUrl}
+            onChangeText={onCambiarGoogleMapsUrl}
+            editable={!procesando}
+            keyboardType="url"
+            textContentType="URL"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={estilos.secundario}>Pega aquí el enlace compartido desde Google Maps.</Text>
+        </View>
       </View>
 
       {tecnicos.length === 0 ? (

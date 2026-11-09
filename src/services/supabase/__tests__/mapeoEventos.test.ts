@@ -101,6 +101,8 @@ describe("convertirFilasEventos", () => {
         notas: "",
         estado: "pendiente",
         tecnicoIds: ["t1"],
+        // Fila de antes de 010, sin la columna: sin enlace
+        googleMapsUrl: null,
       },
     ]);
   });

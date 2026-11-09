@@ -7,7 +7,7 @@ export type DatosEvento = Omit<Evento, "id">;
 
 // Evento con sus técnicos embebidos (una sola consulta, sin N+1)
 export const COLUMNAS_EVENTO =
-  "id, titulo, tipo, fecha, hora, lugar, notas, estado, evento_tecnicos (tecnico_id, orden)";
+  "id, titulo, tipo, fecha, hora, lugar, notas, estado, google_maps_url, evento_tecnicos (tecnico_id, orden)";
 
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 // time de PostgreSQL: HH:MM:SS (con fracción opcional)
@@ -90,6 +90,18 @@ function textoOVacio(valor: unknown): string {
   return valor;
 }
 
+function textoONull(valor: unknown): string | null {
+  if (valor === null || valor === undefined) {
+    return null;
+  }
+
+  if (typeof valor !== "string") {
+    throw new Error("Texto de evento no válido");
+  }
+
+  return valor;
+}
+
 export function convertirFilaEvento(fila: unknown): Evento {
   if (!esObjeto(fila)) {
     throw new Error("Evento no válido");
@@ -119,6 +131,7 @@ export function convertirFilaEvento(fila: unknown): Evento {
     notas: textoOVacio(fila.notas),
     estado,
     tecnicoIds: convertirAsignaciones(fila.evento_tecnicos, "tecnico_id"),
+    googleMapsUrl: textoONull(fila.google_maps_url),
   };
 }
 
@@ -133,7 +146,7 @@ export function convertirFilasEventos(filas: unknown): Evento[] {
 
 // Parámetros comunes de crear_evento y actualizar_evento. La hora viaja
 // como texto ("" = sin hora) para no convertirla nunca con zona horaria.
-// Coinciden exactamente con la firma de las RPC de la migración 003.
+// Coinciden exactamente con la firma de las RPC de la migración 010.
 export function convertirDatosEventoAParametros(bandaId: string, datos: DatosEvento) {
   return {
     p_banda_id: bandaId,
@@ -145,5 +158,7 @@ export function convertirDatosEventoAParametros(bandaId: string, datos: DatosEve
     p_notas: datos.notas,
     p_estado: datos.estado,
     p_tecnico_ids: [...datos.tecnicoIds],
+    // Siempre se envía: "" quita el enlace. Sin el parámetro la base lo dejaría como estaba
+    p_google_maps_url: datos.googleMapsUrl ?? "",
   };
 }

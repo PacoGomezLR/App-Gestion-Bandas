@@ -103,6 +103,7 @@ const DATOS_EVENTO = {
   notas: "",
   estado: "pendiente" as const,
   tecnicoIds: ["t1"],
+  googleMapsUrl: null,
 };
 
 beforeEach(() => {
@@ -161,6 +162,7 @@ describe("repositorio de eventos (Supabase)", () => {
         notas: "",
         estado: "confirmado",
         tecnicoIds: ["t1", "t2"],
+        googleMapsUrl: null,
       },
       {
         id: "e2",
@@ -172,6 +174,7 @@ describe("repositorio de eventos (Supabase)", () => {
         notas: "Traer cables",
         estado: "pendiente",
         tecnicoIds: [],
+        googleMapsUrl: null,
       },
     ]);
     // La consulta ya no pide ninguna relación de músicos
@@ -194,8 +197,10 @@ describe("repositorio de eventos (Supabase)", () => {
       p_notas: "",
       p_estado: "pendiente",
       p_tecnico_ids: ["t1"],
+      // Sin enlace se envía "": la base guarda null
+      p_google_maps_url: "",
     });
-    // Firma de 003: ningún parámetro de músicos
+    // Firma de 010: ningún parámetro de músicos
     expect(mockRpc.mock.calls[0][1]).not.toHaveProperty("p_miembro_ids");
     // Ni evento ni asignaciones se insertan por separado desde JS
     expect(mockFrom).not.toHaveBeenCalled();
@@ -225,7 +230,7 @@ describe("repositorio de eventos (Supabase)", () => {
     expect(evento.id).toBe("e1");
   });
 
-  test("editar después de listar envía exactamente los parámetros de actualizar_evento (003)", async () => {
+  test("editar después de listar envía exactamente los parámetros de actualizar_evento (010)", async () => {
     // Ya no hay caché por evento: listar no cambia lo que se envía al editar
     responderConsulta({
       data: [
@@ -254,6 +259,7 @@ describe("repositorio de eventos (Supabase)", () => {
       "p_estado",
       "p_evento_id",
       "p_fecha",
+      "p_google_maps_url",
       "p_hora",
       "p_lugar",
       "p_notas",
@@ -507,5 +513,107 @@ describe("evento y caché en una transacción", () => {
     await expect(repositorio.crearConCache(DATOS_EVENTO, 1)).rejects.toMatchObject({
       motivo: "sin_permiso",
     });
+  });
+});
+
+describe("eventos con enlace de Google Maps", () => {
+  const ENLACE = "https://maps.app.goo.gl/AbCdEf123";
+
+  test("listar lo pide en la misma consulta y lo convierte, con null si no hay", async () => {
+    const consulta = responderConsulta({
+      data: [
+        {
+          id: "e1",
+          titulo: "Boda",
+          tipo: "boda",
+          fecha: "2026-11-14",
+          hora: null,
+          lugar: "Montilla",
+          notas: "",
+          estado: "pendiente",
+          google_maps_url: ENLACE,
+          evento_tecnicos: [],
+        },
+        {
+          id: "e2",
+          titulo: "Ensayo",
+          tipo: "ensayo",
+          fecha: "2026-11-15",
+          hora: null,
+          lugar: "",
+          notas: "",
+          estado: "pendiente",
+          google_maps_url: null,
+          evento_tecnicos: [],
+        },
+      ],
+      error: null,
+    });
+
+    const eventos = await crearRepositorioEventosSupabase("b1").listar();
+
+    expect(eventos.map(({ googleMapsUrl }) => googleMapsUrl)).toEqual([ENLACE, null]);
+    // Una sola consulta para todos los eventos
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+    expect(consulta.llamadas[0].args[0]).toContain("google_maps_url");
+  });
+
+  test("crear lo envía en la misma RPC", async () => {
+    mockRpc.mockResolvedValueOnce({ data: "nuevo", error: null });
+
+    await crearRepositorioEventosSupabase("b1").crear({ ...DATOS_EVENTO, googleMapsUrl: ENLACE });
+
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+    expect(mockRpc).toHaveBeenCalledWith("crear_evento", expect.objectContaining({ p_google_maps_url: ENLACE }));
+  });
+
+  test("editar lo envía en la misma RPC, y sin enlace manda vacío para quitarlo", async () => {
+    mockRpc.mockResolvedValue({ data: null, error: null });
+    const repositorio = crearRepositorioEventosSupabase("b1");
+
+    await repositorio.actualizar({ ...DATOS_EVENTO, id: "e1", googleMapsUrl: ENLACE });
+    expect(mockRpc).toHaveBeenLastCalledWith(
+      "actualizar_evento",
+      expect.objectContaining({ p_google_maps_url: ENLACE })
+    );
+
+    await repositorio.actualizar({ ...DATOS_EVENTO, id: "e1", googleMapsUrl: null });
+    expect(mockRpc).toHaveBeenLastCalledWith(
+      "actualizar_evento",
+      expect.objectContaining({ p_google_maps_url: "" })
+    );
+  });
+
+  test("también viaja con el caché", async () => {
+    mockRpc.mockResolvedValue({ data: "nuevo", error: null });
+    const repositorio = crearRepositorioEventosSupabase("b1");
+
+    await repositorio.crearConCache({ ...DATOS_EVENTO, googleMapsUrl: ENLACE }, 120000);
+    expect(mockRpc).toHaveBeenLastCalledWith(
+      "crear_evento_con_cache",
+      expect.objectContaining({ p_google_maps_url: ENLACE, p_cache_centimos: 120000 })
+    );
+  });
+
+  test("una fila con un enlace que no es texto invalida la carga", async () => {
+    responderConsulta({
+      data: [
+        {
+          id: "e1",
+          titulo: "Boda",
+          tipo: "boda",
+          fecha: "2026-11-14",
+          hora: null,
+          lugar: "",
+          notas: "",
+          estado: "pendiente",
+          google_maps_url: 42,
+          evento_tecnicos: [],
+        },
+      ],
+      error: null,
+    });
+
+    await expect(crearRepositorioEventosSupabase("b1").listar()).rejects.toThrow();
   });
 });

@@ -8,6 +8,7 @@ import { etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { formatearFechaConBarras } from "../utils/fechas";
 import { etiquetaTipoEvento } from "../utils/tiposEvento";
 import { BloqueEvento } from "./BloqueEvento";
+import { BotonGoogleMaps } from "./BotonGoogleMaps";
 import { crearEstilosBloqueEvento } from "./BloqueEvento.styles";
 import { coloresBadge, crearEstilosListaEventos } from "./ListaEventos.styles";
 import { Mensaje } from "./PantallaBase";
@@ -128,6 +129,9 @@ export function ListaEventos({
 
                 {/* Campos opcionales: solo se muestran si tienen valor */}
                 {evento.lugar !== "" && <BloqueEvento etiqueta="Lugar">{evento.lugar}</BloqueEvento>}
+
+                {/* Para toda la banda, como el lugar: sin enlace no queda hueco */}
+                {evento.googleMapsUrl ? <BotonGoogleMaps url={evento.googleMapsUrl} /> : null}
 
                 <BloqueEvento etiqueta="Estado">{etiquetaEstado}</BloqueEvento>
 

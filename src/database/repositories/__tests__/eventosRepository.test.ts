@@ -89,8 +89,8 @@ describe("eventosRepository: conversión de filas", () => {
     );
 
     expect(eventos).toEqual([
-      { ...filaConcierto, tecnicoIds: ["1", "2"], miembroIds: [] },
-      { ...filaEnsayo, tecnicoIds: [], miembroIds: [] },
+      { ...filaConcierto, tecnicoIds: ["1", "2"], miembroIds: [], googleMapsUrl: null },
+      { ...filaEnsayo, tecnicoIds: [], miembroIds: [], googleMapsUrl: null },
     ]);
   });
 
@@ -105,9 +105,9 @@ describe("eventosRepository: conversión de filas", () => {
     );
 
     expect(eventos).toEqual([
-      { ...filaConcierto, tecnicoIds: ["2"], miembroIds: ["1", "3"] },
+      { ...filaConcierto, tecnicoIds: ["2"], miembroIds: ["1", "3"], googleMapsUrl: null },
       // Un evento sin miembros es válido y recibe []
-      { ...filaEnsayo, tecnicoIds: [], miembroIds: [] },
+      { ...filaEnsayo, tecnicoIds: [], miembroIds: [], googleMapsUrl: null },
     ]);
   });
 

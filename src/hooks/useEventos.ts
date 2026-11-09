@@ -8,6 +8,7 @@ import type {
   TipoEvento,
 } from "../types/evento";
 import { importeParaFormulario, parsearImporte } from "../utils/dinero";
+import { esEnlaceGoogleMapsValido, normalizarEnlaceGoogleMaps } from "../utils/googleMaps";
 import { generarTituloEvento } from "../utils/tituloEvento";
 
 // HH:MM de 00:00 a 23:59
@@ -46,6 +47,8 @@ export function useEventos(options: UseEventosOptions = {}) {
   const [hora, setHora] = useState("");
   const [lugar, setLugar] = useState("");
   const [notas, setNotas] = useState("");
+  // Lo que hay escrito en el campo; al guardar, vacío se convierte en null
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [tecnicoIds, setTecnicoIds] = useState<string[]>([]);
   // Se recalcula en cada cambio de tipo, lugar o fecha: no hay campo de título
   const titulo = tipo === null ? "" : generarTituloEvento(tipo, lugar, fecha);
@@ -85,6 +88,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setHora("");
     setLugar("");
     setNotas("");
+    setGoogleMapsUrl("");
     setTipoElegido(null);
     setEstado("pendiente");
     setTecnicoIds([]);
@@ -124,6 +128,11 @@ export function useEventos(options: UseEventosOptions = {}) {
       return false;
     }
 
+    if (!esEnlaceGoogleMapsValido(googleMapsUrl)) {
+      setError("Introduce un enlace válido de Google Maps.");
+      return false;
+    }
+
     let cambioCache: CambioCache = undefined;
 
     if (cacheEscrito !== null) {
@@ -160,6 +169,7 @@ export function useEventos(options: UseEventosOptions = {}) {
         notas: notas.trim(),
         estado: estado,
         tecnicoIds: [...tecnicoIds],
+        googleMapsUrl: normalizarEnlaceGoogleMaps(googleMapsUrl),
       };
 
       // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
@@ -240,6 +250,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setHora(evento.hora);
     setLugar(evento.lugar);
     setNotas(evento.notas);
+    setGoogleMapsUrl(evento.googleMapsUrl ?? "");
     setEstado(evento.estado);
     setTecnicoIds([...evento.tecnicoIds]);
     setCacheEscrito(null);
@@ -254,6 +265,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     hora,
     lugar,
     notas,
+    googleMapsUrl,
     tecnicoIds,
     cache,
     error,
@@ -265,6 +277,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setHora,
     setLugar,
     setNotas,
+    setGoogleMapsUrl,
     setCache: setCacheEscrito,
     alternarTecnico,
     reemplazarEventos,

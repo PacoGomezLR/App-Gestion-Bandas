@@ -131,6 +131,7 @@ function evento(id: string, fecha: string, lugar: string, estado: Evento["estado
     notas: "",
     estado,
     tecnicoIds: [],
+    googleMapsUrl: null,
   };
 }
 
@@ -1056,5 +1057,60 @@ describe("Calendario: ayuda para crear eventos", () => {
 
     expect(screen.queryByText(AYUDA)).toBeNull();
     expect(screen.queryByTestId("ayuda-calendario")).toBeNull();
+  });
+});
+
+describe("Calendario: enlace de Google Maps", () => {
+  async function abrirAlta() {
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await elegirTipo("Boda");
+  }
+
+  test("el admin lo ve al crear y se guarda con el evento", async () => {
+    simular();
+    await abrirAlta();
+
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Caseta Municipal");
+    await fireEvent.changeText(
+      screen.getByLabelText("Enlace de Google Maps"),
+      " https://maps.app.goo.gl/AbCdEf123 "
+    );
+    await fireEvent.press(screen.getByText("Guardar evento"));
+
+    expect(mockPersistirEvento).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lugar: "Caseta Municipal",
+        googleMapsUrl: "https://maps.app.goo.gl/AbCdEf123",
+      }),
+      true,
+      undefined
+    );
+  });
+
+  test("un enlace ajeno no se guarda y se explica junto al formulario", async () => {
+    simular();
+    await abrirAlta();
+
+    await fireEvent.changeText(screen.getByLabelText("Enlace de Google Maps"), "https://ejemplo.com");
+    await fireEvent.press(screen.getByText("Guardar evento"));
+
+    expect(mockPersistirEvento).not.toHaveBeenCalled();
+    expect(screen.getByText("Introduce un enlace válido de Google Maps.")).toBeTruthy();
+  });
+
+  test("un usuario normal no tiene formulario, pero sí el botón del evento", async () => {
+    simular({
+      esAdmin: false,
+      eventos: [{ ...evento("f2", "2027-11-21", "F2"), googleMapsUrl: "https://maps.app.goo.gl/x" }],
+    });
+    await render(<Index />);
+
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
+
+    expect(screen.getByText("Abrir en Google Maps")).toBeTruthy();
+    expect(screen.queryByText("Editar evento")).toBeNull();
+    expect(screen.queryByLabelText("Enlace de Google Maps")).toBeNull();
   });
 });

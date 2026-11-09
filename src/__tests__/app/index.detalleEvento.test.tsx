@@ -99,6 +99,7 @@ const concierto: Evento = {
   notas: "Llevar atriles",
   estado: "confirmado",
   tecnicoIds: ["t1"],
+  googleMapsUrl: null,
 };
 
 function simularPantalla(esAdmin: boolean) {
@@ -125,6 +126,8 @@ function simularPantalla(esAdmin: boolean) {
     lugar: "",
     notas: "",
     tecnicoIds: [],
+    googleMapsUrl: "",
+    setGoogleMapsUrl: jest.fn(),
     error: "",
     eventoEditandoId: null,
     setTipo: jest.fn(),

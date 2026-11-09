@@ -27,6 +27,7 @@ describe("useEventos", () => {
       fecha: "2026-11-15",
       estado: "pendiente",
       tecnicoIds: ["1", "2"],
+      googleMapsUrl: null,
     });
 
     expect(result.current.tecnicoIds).toEqual([]);
@@ -244,6 +245,7 @@ describe("useEventos", () => {
     expect(result.current.eventos[1]).toMatchObject({
       id: "2",
       tecnicoIds: ["2"],
+      googleMapsUrl: null,
     });
     expect(result.current.tecnicoIds).toEqual([]);
   });
@@ -266,6 +268,7 @@ describe("useEventos", () => {
         notas: "",
         estado: "confirmado",
         tecnicoIds: ["1"],
+        googleMapsUrl: null,
       },
     ];
 
@@ -363,6 +366,7 @@ describe("useEventos", () => {
       titulo: "Concierto abierto Sala Principal 15/11/2026",
       fecha: "2026-11-15",
       tecnicoIds: ["2"],
+      googleMapsUrl: null,
     });
   });
 
@@ -518,6 +522,7 @@ describe("useEventos", () => {
       notas: "Prueba de sonido a las 18:00",
       estado: "confirmado",
       tecnicoIds: [],
+      googleMapsUrl: null,
     };
 
     const { result } = await renderHook(() =>
@@ -859,6 +864,7 @@ describe("useEventos", () => {
       notas: "",
       estado: "pendiente",
       tecnicoIds: ["1"],
+      googleMapsUrl: null,
     };
     const persistirEvento = jest.fn(async (guardado: Evento, _esNuevo: boolean) => guardado);
 
@@ -1104,6 +1110,118 @@ describe("useEventos", () => {
 
       expect(guardado).toBe(true);
       expect(result.current.eventos[0].tipo).toBe(evento.tipo);
+    });
+  });
+
+  describe("enlace de Google Maps", () => {
+    const ENLACE = "https://maps.app.goo.gl/AbCdEf123";
+
+    async function alta(enlace: string) {
+      const persistirEvento = jest.fn(async (evento: Evento) => evento);
+      const hook = await renderHook(() => useEventos({ datosIniciales: [], persistirEvento }));
+
+      await act(() => {
+        hook.result.current.setTipo("boda");
+        hook.result.current.setFecha("2026-11-14");
+        hook.result.current.setLugar("Caseta Municipal");
+        hook.result.current.setGoogleMapsUrl(enlace);
+      });
+
+      let guardado = false;
+
+      await act(async () => {
+        guardado = await hook.result.current.guardarEvento();
+      });
+
+      return { ...hook, persistirEvento, guardado };
+    }
+
+    test("sin enlace se guarda con null", async () => {
+      const { guardado, persistirEvento } = await alta("");
+
+      expect(guardado).toBe(true);
+      expect(persistirEvento.mock.calls[0][0].googleMapsUrl).toBeNull();
+    });
+
+    test("un enlace válido se guarda tal cual, recortado", async () => {
+      const { guardado, persistirEvento } = await alta(`  ${ENLACE}  `);
+
+      expect(guardado).toBe(true);
+      expect(persistirEvento.mock.calls[0][0].googleMapsUrl).toBe(ENLACE);
+    });
+
+    test("no toca el lugar: son dos datos distintos", async () => {
+      const { persistirEvento } = await alta(ENLACE);
+
+      expect(persistirEvento.mock.calls[0][0]).toMatchObject({
+        lugar: "Caseta Municipal",
+        googleMapsUrl: ENLACE,
+        titulo: "Boda Caseta Municipal 14/11/2026",
+      });
+    });
+
+    test("un enlace que no es de Google Maps no se guarda y lo explica", async () => {
+      const { guardado, persistirEvento, result } = await alta("https://ejemplo.com");
+
+      expect(guardado).toBe(false);
+      expect(persistirEvento).not.toHaveBeenCalled();
+      expect(result.current.error).toBe("Introduce un enlace válido de Google Maps.");
+      // Lo escrito sigue ahí para corregirlo
+      expect(result.current.googleMapsUrl).toBe("https://ejemplo.com");
+      expect(result.current.lugar).toBe("Caseta Municipal");
+    });
+
+    test("al editar carga el enlace, se puede sustituir y vaciarlo lo quita", async () => {
+      const persistirEvento = jest.fn(async (evento: Evento) => evento);
+      const conEnlace: Evento = {
+        id: "e1",
+        titulo: "Boda 14/11/2026",
+        tipo: "boda",
+        fecha: "2026-11-14",
+        hora: "",
+        lugar: "Montilla",
+        notas: "",
+        estado: "pendiente",
+        tecnicoIds: [],
+        googleMapsUrl: ENLACE,
+      };
+      const { result } = await renderHook(() =>
+        useEventos({ datosIniciales: [conEnlace], persistirEvento })
+      );
+
+      await act(() => {
+        result.current.prepararEdicion(conEnlace);
+      });
+
+      expect(result.current.googleMapsUrl).toBe(ENLACE);
+
+      await act(() => {
+        result.current.setGoogleMapsUrl("https://www.google.com/maps/place/Montilla");
+      });
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(persistirEvento.mock.calls[0][0].googleMapsUrl).toBe(
+        "https://www.google.com/maps/place/Montilla"
+      );
+
+      await act(() => {
+        result.current.prepararEdicion(result.current.eventos[0]);
+        result.current.setGoogleMapsUrl("   ");
+      });
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(persistirEvento.mock.calls[1][0].googleMapsUrl).toBeNull();
+      expect(result.current.eventos[0].googleMapsUrl).toBeNull();
+    });
+
+    test("tras guardar, el siguiente evento empieza sin enlace", async () => {
+      const { result } = await alta(ENLACE);
+
+      expect(result.current.googleMapsUrl).toBe("");
     });
   });
 });

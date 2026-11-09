@@ -13,6 +13,7 @@ function evento(id: string, fecha: string, hora = ""): Evento {
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
+    googleMapsUrl: null,
   };
 }
 

@@ -99,6 +99,8 @@ export function convertirFilaAEvento(
     estado: fila.estado,
     tecnicoIds,
     miembroIds,
+    // SQLite heredado: nunca tuvo enlace de Google Maps
+    googleMapsUrl: null,
   };
 }
 

@@ -17,6 +17,7 @@ describe("FormularioEvento", () => {
         fecha="2026-12-20"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[]}
         tecnicoIds={[]}
@@ -27,6 +28,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -59,6 +61,7 @@ describe("FormularioEvento", () => {
         fecha="2026-12-20"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[]}
         tecnicoIds={[]}
@@ -69,6 +72,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={onCambiarEstado}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={onGuardar}
@@ -101,6 +105,7 @@ describe("FormularioEvento", () => {
         fecha=""
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[]}
         tecnicoIds={[]}
@@ -111,6 +116,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -131,6 +137,7 @@ describe("FormularioEvento", () => {
         fecha="2026-10-02"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[]}
         tecnicoIds={[]}
@@ -141,6 +148,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -162,6 +170,7 @@ describe("FormularioEvento", () => {
         fecha="2026-10-02"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[]}
         tecnicoIds={[]}
@@ -172,6 +181,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -206,6 +216,7 @@ describe("FormularioEvento", () => {
         fecha="2026-10-02"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={tecnicos}
         tecnicoIds={["1"]}
@@ -216,6 +227,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={onAlternarTecnico}
         onGuardar={jest.fn()}
@@ -251,6 +263,7 @@ describe("FormularioEvento", () => {
         fecha="2026-10-02"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
@@ -261,6 +274,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={onCambiarEstado}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={onAlternarTecnico}
         onGuardar={onGuardar}
@@ -307,6 +321,7 @@ describe("FormularioEvento", () => {
         fecha="2026-10-02"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
@@ -317,6 +332,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -342,6 +358,7 @@ describe("FormularioEvento", () => {
         fecha="2026-12-20"
         hora="20:30"
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[]}
         tecnicoIds={[]}
@@ -352,6 +369,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={onCambiarHora}
         onCambiarLugar={onCambiarLugar}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={onCambiarNotas}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -383,6 +401,7 @@ describe("FormularioEvento", () => {
         fecha=""
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[]}
         tecnicoIds={[]}
@@ -393,6 +412,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -433,6 +453,7 @@ describe("FormularioEvento", () => {
         fecha="2026-10-29"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[{ id: "1", nombre: "Carlos" }]}
         tecnicoIds={[]}
@@ -443,6 +464,7 @@ describe("FormularioEvento", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -490,6 +512,7 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
         fecha="2026-10-29"
         hora=""
         lugar=""
+        googleMapsUrl=""
         notas=""
         tecnicos={[
           { id: "1", nombre: "Carlos" },
@@ -504,6 +527,7 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
         onCambiarEstado={jest.fn()}
         onCambiarHora={jest.fn()}
         onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={jest.fn()}
         onCambiarNotas={jest.fn()}
         onAlternarTecnico={jest.fn()}
         onGuardar={jest.fn()}
@@ -621,6 +645,7 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
           fecha="2026-10-29"
           hora=""
           lugar=""
+          googleMapsUrl=""
           notas=""
           tecnicos={[]}
           tecnicoIds={[]}
@@ -631,6 +656,7 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
           onCambiarEstado={jest.fn()}
           onCambiarHora={jest.fn()}
           onCambiarLugar={jest.fn()}
+          onCambiarGoogleMapsUrl={jest.fn()}
           onCambiarNotas={jest.fn()}
           onAlternarTecnico={jest.fn()}
           onGuardar={jest.fn()}
@@ -745,5 +771,81 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
     await pintar({ datosEconomicos: ECONOMICOS, procesando: true });
 
     expect(screen.getByLabelText("Caché acordado").props.editable).toBe(false);
+  });
+});
+
+describe("FormularioEvento: enlace de Google Maps", () => {
+  function pintar(onCambiarGoogleMapsUrl: (url: string) => void = jest.fn(), procesando = false) {
+    return render(
+      <FormularioEvento
+        tipo="boda"
+        estado="pendiente"
+        fecha="2026-11-14"
+        hora=""
+        lugar="Caseta Municipal"
+        googleMapsUrl="https://maps.app.goo.gl/AbCdEf123"
+        notas=""
+        tecnicos={[]}
+        tecnicoIds={[]}
+        error=""
+        editando
+        procesando={procesando}
+        onCambiarTipo={jest.fn()}
+        onCambiarEstado={jest.fn()}
+        onCambiarHora={jest.fn()}
+        onCambiarLugar={jest.fn()}
+        onCambiarGoogleMapsUrl={onCambiarGoogleMapsUrl}
+        onCambiarNotas={jest.fn()}
+        onAlternarTecnico={jest.fn()}
+        onGuardar={jest.fn()}
+        onCancelar={jest.fn()}
+      />
+    );
+  }
+
+  test("tiene su campo con etiqueta, ejemplo y ayuda", async () => {
+    await pintar();
+
+    const campo = screen.getByLabelText("Enlace de Google Maps");
+
+    expect(screen.getByText("Enlace de Google Maps")).toBeTruthy();
+    expect(campo.props.placeholder).toBe("https://maps.app.goo.gl/...");
+    expect(campo.props.value).toBe("https://maps.app.goo.gl/AbCdEf123");
+    expect(screen.getByText("Pega aquí el enlace compartido desde Google Maps.")).toBeTruthy();
+  });
+
+  test("teclado de URL y sin correcciones que cambien el enlace pegado", async () => {
+    await pintar();
+
+    const campo = screen.getByLabelText("Enlace de Google Maps");
+
+    expect(campo.props.keyboardType).toBe("url");
+    expect(campo.props.autoCapitalize).toBe("none");
+    expect(campo.props.autoCorrect).toBe(false);
+  });
+
+  test("va justo después de Lugar, que sigue siendo su propio campo", async () => {
+    await pintar();
+
+    const texto = JSON.stringify(screen.toJSON());
+
+    expect(screen.getByLabelText("Lugar").props.value).toBe("Caseta Municipal");
+    expect(texto.indexOf('"Lugar"')).toBeLessThan(texto.indexOf('"Enlace de Google Maps"'));
+    expect(texto.indexOf('"Enlace de Google Maps"')).toBeLessThan(texto.indexOf('"Técnicos"') >= 0 ? texto.indexOf('"Técnicos"') : texto.indexOf('"Estado"'));
+  });
+
+  test("lo que se escribe llega sin tocar", async () => {
+    const onCambiar = jest.fn();
+
+    await pintar(onCambiar);
+    await fireEvent.changeText(screen.getByLabelText("Enlace de Google Maps"), " https://goo.gl/maps/x ");
+
+    expect(onCambiar).toHaveBeenCalledWith(" https://goo.gl/maps/x ");
+  });
+
+  test("mientras guarda no se puede editar", async () => {
+    await pintar(jest.fn(), true);
+
+    expect(screen.getByLabelText("Enlace de Google Maps").props.editable).toBe(false);
   });
 });

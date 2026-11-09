@@ -11,6 +11,7 @@ export const eventosIniciales: Evento[] = [
     notas: "",
     estado: "confirmado",
     tecnicoIds: [],
+    googleMapsUrl: null,
   },
   {
     id: "2",
@@ -22,6 +23,7 @@ export const eventosIniciales: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
+    googleMapsUrl: null,
   },
   {
     id: "3",
@@ -33,5 +35,6 @@ export const eventosIniciales: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
+    googleMapsUrl: null,
   },
 ];

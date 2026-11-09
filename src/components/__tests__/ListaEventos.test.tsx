@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { StyleSheet } from "react-native";
+import { Linking, StyleSheet } from "react-native";
 import type { Evento } from "../../types/evento";
 import type { Tecnico } from "../../types/tecnico";
+import { Colors } from "../../constants/theme";
 import { ListaEventos } from "../ListaEventos";
 
 // constants/theme importa global.css, que Jest no puede interpretar
@@ -29,6 +30,7 @@ const eventos: Evento[] = [
     notas: "",
     estado: "confirmado",
     tecnicoIds: ["1", "2"],
+    googleMapsUrl: null,
   },
   {
     id: "2",
@@ -40,6 +42,7 @@ const eventos: Evento[] = [
     notas: "",
     estado: "pendiente",
     tecnicoIds: [],
+    googleMapsUrl: null,
   },
 ];
 
@@ -53,6 +56,7 @@ const boda: Evento = {
   notas: "Prueba de sonido a las 18:00",
   estado: "confirmado",
   tecnicoIds: ["1"],
+  googleMapsUrl: null,
 };
 
 const fiesta: Evento = {
@@ -65,6 +69,7 @@ const fiesta: Evento = {
   notas: "",
   estado: "pendiente",
   tecnicoIds: [],
+  googleMapsUrl: null,
 };
 
 async function renderizar(lista: Evento[], procesando = false, puedeEditar = true) {
@@ -584,5 +589,91 @@ describe("ListaEventos: datos económicos", () => {
 
     expect(editar.borderRadius).toBe(999);
     expect(eliminar.backgroundColor).toBeUndefined();
+  });
+});
+
+describe("ListaEventos: enlace de Google Maps", () => {
+  const ENLACE = "https://maps.app.goo.gl/AbCdEf123?g_st=iw";
+  const conEnlace: Evento = { ...eventos[0], lugar: "Caseta Municipal", googleMapsUrl: ENLACE };
+
+  // jest-expo ya trae Linking simulado: cada prueba empieza sin llamadas anteriores
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function pintar(evento: Evento, puedeEditar = true) {
+    await render(
+      <ListaEventos
+        eventos={[evento]}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar={puedeEditar}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de/ }));
+  }
+
+  const boton = () =>
+    screen.getByRole("link", { name: "Abrir ubicación del evento en Google Maps" });
+
+  test("con enlace muestra el botón, sin enseñar la URL", async () => {
+    await pintar(conEnlace);
+
+    expect(boton()).toBeTruthy();
+    expect(screen.getByText("Abrir en Google Maps")).toBeTruthy();
+    expect(screen.queryByText(new RegExp("maps\\.app\\.goo\\.gl"))).toBeNull();
+    // El lugar sigue a la vista, aparte
+    expect(screen.getByText("Lugar")).toBeTruthy();
+  });
+
+  test("sin enlace no hay botón", async () => {
+    await pintar(eventos[0]);
+
+    expect(screen.queryByText("Abrir en Google Maps")).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  test("un usuario normal también lo ve, y sigue sin poder editar", async () => {
+    await pintar(conEnlace, false);
+
+    expect(boton()).toBeTruthy();
+    expect(screen.queryByText("Editar evento")).toBeNull();
+    expect(screen.queryByText("Eliminar evento")).toBeNull();
+  });
+
+  test("pulsarlo abre exactamente el enlace guardado", async () => {
+    const abrir = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+
+    await pintar(conEnlace);
+    await fireEvent.press(boton());
+
+    expect(abrir).toHaveBeenCalledTimes(1);
+    expect(abrir).toHaveBeenCalledWith(ENLACE);
+    expect(screen.queryByText("No se ha podido abrir Google Maps.")).toBeNull();
+  });
+
+  test("si no se puede abrir, lo explica sin romper", async () => {
+    jest.spyOn(Linking, "openURL").mockRejectedValue(new Error("Sin aplicación"));
+
+    await pintar(conEnlace);
+    await fireEvent.press(boton());
+
+    expect(await screen.findByText("No se ha podido abrir Google Maps.")).toBeTruthy();
+    expect(boton()).toBeTruthy();
+  });
+
+  test("es una acción secundaria con zona táctil cómoda, no un botón principal", async () => {
+    await pintar(conEnlace);
+
+    const estilo = StyleSheet.flatten(boton().props.style);
+
+    expect(estilo.minHeight).toBeGreaterThanOrEqual(44);
+    expect(estilo.backgroundColor).not.toBe(Colors.light.primary);
   });
 });
