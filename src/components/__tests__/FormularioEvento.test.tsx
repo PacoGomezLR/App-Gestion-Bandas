@@ -10,9 +10,9 @@ jest.mock("../../global.css", () => ({}));
 
 describe("FormularioEvento", () => {
   test("muestra los valores recibidos por props", async () => {
-    const { getByRole, getByText, queryByPlaceholderText, queryByText } = await render(
+    const { getByLabelText, getByRole, getByText, queryByPlaceholderText, queryByText } = await render(
       <FormularioEvento
-        tipo="concierto_abierto"
+        tipo={null}
         estado="confirmado"
         fecha="2026-12-20"
         hora=""
@@ -36,10 +36,10 @@ describe("FormularioEvento", () => {
 
     // El título se genera solo: no hay campo para escribirlo
     expect(queryByPlaceholderText("Título del evento")).toBeNull();
-    expect(getByRole("radio", { name: "Concierto abierto" }).props.accessibilityState.checked).toBe(true);
+    expect(getByRole("button", { name: "Tipo de evento: Selecciona un tipo" })).toBeTruthy();
     expect(getByRole("radio", { name: "Confirmado" }).props.accessibilityState.checked).toBe(true);
     // La fecha es la del día elegido en el calendario de la pantalla
-    expect(getByText("Fecha: 20-12-2026")).toBeTruthy();
+    expect(getByLabelText("Fecha: 20-12-2026")).toBeTruthy();
 
     expect(getByText("Guardar evento")).toBeTruthy();
     expect(queryByText("Guardar cambios")).toBeNull();
@@ -54,7 +54,7 @@ describe("FormularioEvento", () => {
 
     const { getByText, queryByText } = await render(
       <FormularioEvento
-        tipo="concierto_abierto"
+        tipo={null}
         estado="pendiente"
         fecha="2026-12-20"
         hora=""
@@ -76,6 +76,7 @@ describe("FormularioEvento", () => {
       />
     );
 
+    await fireEvent.press(getByText("Selecciona un tipo"));
     await fireEvent.press(getByText("Ensayo"));
     await fireEvent.press(getByText("Confirmado"));
     await fireEvent.press(getByText("Guardar evento"));
@@ -222,7 +223,7 @@ describe("FormularioEvento", () => {
       />
     );
 
-    expect(getByText("Técnicos asignados")).toBeTruthy();
+    expect(getByText("Técnicos")).toBeTruthy();
     expect(getByText("Carlos ✓")).toBeTruthy();
     expect(getByText("Miguel")).toBeTruthy();
 
@@ -243,7 +244,7 @@ describe("FormularioEvento", () => {
     const onGuardar = jest.fn();
     const onCancelar = jest.fn();
 
-    const { getByLabelText, getByRole, getByText } = await render(
+    const { getByLabelText, getByRole, queryByText } = await render(
       <FormularioEvento
         tipo="ensayo"
         estado="pendiente"
@@ -271,20 +272,21 @@ describe("FormularioEvento", () => {
     expect(getByLabelText("Notas").props.editable).toBe(false);
 
     for (const [rol, nombre] of [
-      ["radio", "Boda"],
-      ["radio", "Fiesta privada"],
-      ["radio", "Concierto abierto"],
-      ["radio", "Ensayo"],
-      ["radio", "Otro"],
+      ["button", "Tipo de evento: Ensayo"],
       ["checkbox", "Carlos"],
       ["button", "Guardar cambios"],
       ["button", "Cancelar"],
       ["radio", "Pendiente"],
       ["radio", "Confirmado"],
     ] as const) {
-      expect(getByRole(rol, { name: nombre, disabled: true })).toBeTruthy();
-      await fireEvent.press(getByText(nombre));
+      const control = getByRole(rol, { name: nombre, disabled: true });
+
+      expect(control).toBeTruthy();
+      await fireEvent.press(control);
     }
+
+    // Bloqueado, el desplegable no llega a abrirse
+    expect(queryByText("Boda")).toBeNull();
 
     // El selector de hora tampoco se puede abrir
     expect(getByRole("button", { name: "Elegir hora", disabled: true })).toBeTruthy();
@@ -376,7 +378,7 @@ describe("FormularioEvento", () => {
 
     const { getByText, queryByText } = await render(
       <FormularioEvento
-        tipo="fiesta_privada"
+        tipo={null}
         estado="pendiente"
         fecha=""
         hora=""
@@ -398,8 +400,10 @@ describe("FormularioEvento", () => {
       />
     );
 
-    // El tipo actual se muestra con su etiqueta, no con el valor interno
-    expect(screen.getByRole("radio", { name: "Fiesta privada" }).props.accessibilityState.checked).toBe(true);
+    // Sin elegir todavía, ninguna opción aparece como elegida
+    await fireEvent.press(getByText("Selecciona un tipo"));
+    expect(screen.getByRole("radio", { name: "Fiesta privada" }).props.accessibilityState.checked).toBe(false);
+    await fireEvent.press(getByText("Selecciona un tipo"));
 
     const opciones = [
       ["Boda", "boda"],
@@ -410,7 +414,8 @@ describe("FormularioEvento", () => {
     ] as const;
 
     for (const [etiqueta, valor] of opciones) {
-      await fireEvent.press(getByText(etiqueta));
+      await fireEvent.press(screen.getByRole("button", { name: /^Tipo de evento:/ }));
+      await fireEvent.press(screen.getByRole("radio", { name: etiqueta }));
       expect(onCambiarTipo).toHaveBeenLastCalledWith(valor);
     }
 
@@ -420,7 +425,7 @@ describe("FormularioEvento", () => {
     expect(queryByText("Reunión")).toBeNull();
   });
 
-  test("muestra los campos en el orden fecha, tipo, lugar, hora, técnico, estado, notas y guardar", async () => {
+  test("muestra los campos en el orden tipo, fecha, hora, lugar, técnicos, estado, notas y guardar", async () => {
     const { toJSON } = await render(
       <FormularioEvento
         tipo="ensayo"
@@ -447,11 +452,11 @@ describe("FormularioEvento", () => {
 
     const texto = JSON.stringify(toJSON());
     const posiciones = [
-      "Fecha: ",
       "Tipo de evento",
-      "Lugar",
+      "Fecha: ",
       "Elegir hora",
-      "Técnicos asignados",
+      "Lugar",
+      '"Técnicos"',
       '"Estado"',
       '"Notas"',
       "Guardar evento",
@@ -540,6 +545,8 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
   test("tipo y estado son selectores de una opción, no botones de acción", async () => {
     await pintar();
 
+    await fireEvent.press(screen.getByRole("button", { name: /^Tipo de evento:/ }));
+
     expect(screen.getByLabelText("Tipo de evento").props.accessibilityRole).toBe("radiogroup");
     expect(screen.getByLabelText("Estado").props.accessibilityRole).toBe("radiogroup");
     expect(screen.getByRole("radio", { name: "Pendiente" }).props.accessibilityState.checked).toBe(true);
@@ -547,15 +554,29 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
     expect(screen.queryByRole("button", { name: "Ensayo" })).toBeNull();
   });
 
-  test("organiza el formulario en bloques con título", async () => {
+  test("es una sola pantalla: sin encabezados de bloque ni mayúsculas decorativas", async () => {
+    await pintar({ datosEconomicos: ECONOMICOS });
+
+    for (const titulo of ["Datos del evento", "Personal", "Datos económicos"]) {
+      expect(screen.queryByText(titulo)).toBeNull();
+    }
+
+    expect(screen.queryByRole("header")).toBeNull();
+    expect(JSON.stringify(screen.toJSON())).not.toContain("uppercase");
+  });
+
+  test("sigue el flujo tipo, fecha y hora, lugar, técnicos, estado, caché, notas y acciones", async () => {
     await pintar({ datosEconomicos: ECONOMICOS });
 
     const texto = JSON.stringify(screen.toJSON());
     const posiciones = [
-      '"Datos del evento"',
-      '"Personal"',
+      '"Tipo de evento"',
+      '"Fecha: 29-10-2026"',
+      '"Elegir hora"',
+      '"Lugar"',
+      '"Técnicos"',
       '"Estado"',
-      '"Datos económicos"',
+      '"Caché acordado"',
       '"Notas"',
       '"Guardar evento"',
       '"Cancelar"',
@@ -565,13 +586,134 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
     expect([...posiciones].sort((a, b) => a - b)).toEqual(posiciones);
   });
 
-  test("con datos económicos pide el caché con teclado decimal y una ayuda neutra", async () => {
+  test.each(["Lugar", "Notas"])("%s va como placeholder y conserva su nombre accesible", async (nombre) => {
+    await pintar();
+
+    expect(screen.getByLabelText(nombre).props.placeholder).toBe(nombre);
+    // Ningún texto visible con ese nombre
+    expect(screen.queryByText(nombre)).toBeNull();
+  });
+
+  test("Tipo, Técnicos y Estado tienen su etiqueta visible", async () => {
+    await pintar();
+
+    expect(screen.getByText("Tipo de evento")).toBeTruthy();
+    expect(screen.getByText("Técnicos")).toBeTruthy();
+    expect(screen.getByText("Estado")).toBeTruthy();
+  });
+
+  test("la opción elegida se distingue con ✓, no solo por el color", async () => {
+    await pintar();
+
+    // Pendiente y Carlos
+    expect(screen.getAllByText("✓")).toHaveLength(1);
+    expect(screen.getByText("Carlos ✓")).toBeTruthy();
+  });
+
+  describe("desplegable de tipo", () => {
+    const abrirTipo = () => fireEvent.press(screen.getByRole("button", { name: /^Tipo de evento:/ }));
+
+    function pintarTipo(tipo: "ensayo" | null, onCambiarTipo: (tipo: string) => void = jest.fn()) {
+      return render(
+        <FormularioEvento
+          tipo={tipo}
+          estado="pendiente"
+          fecha="2026-10-29"
+          hora=""
+          lugar=""
+          notas=""
+          tecnicos={[]}
+          tecnicoIds={[]}
+          error=""
+          editando={tipo !== null}
+          procesando={false}
+          onCambiarTipo={onCambiarTipo}
+          onCambiarEstado={jest.fn()}
+          onCambiarHora={jest.fn()}
+          onCambiarLugar={jest.fn()}
+          onCambiarNotas={jest.fn()}
+          onAlternarTecnico={jest.fn()}
+          onGuardar={jest.fn()}
+          onCancelar={jest.fn()}
+        />
+      );
+    }
+
+    test("sin tipo invita a elegir y las opciones están cerradas", async () => {
+      await pintarTipo(null);
+
+      const campo = screen.getByRole("button", { name: "Tipo de evento: Selecciona un tipo" });
+
+      expect(campo.props.accessibilityState.expanded).toBe(false);
+      expect(screen.getByText("▾")).toBeTruthy();
+      expect(screen.queryByRole("radio", { name: "Boda" })).toBeNull();
+    });
+
+    test("con tipo lo enseña, y nunca el placeholder", async () => {
+      await pintarTipo("ensayo");
+
+      expect(screen.getByRole("button", { name: "Tipo de evento: Ensayo" })).toBeTruthy();
+      expect(screen.queryByText("Selecciona un tipo")).toBeNull();
+    });
+
+    test("al desplegar aparecen los cinco tipos de siempre, ninguno elegido", async () => {
+      await pintarTipo(null);
+      await abrirTipo();
+
+      expect(screen.getByRole("button", { name: /^Tipo de evento:/ }).props.accessibilityState.expanded).toBe(true);
+      expect(screen.getByText("▴")).toBeTruthy();
+
+      for (const nombre of ["Boda", "Fiesta privada", "Concierto abierto", "Ensayo", "Otro"]) {
+        expect(screen.getByRole("radio", { name: nombre })).toBeTruthy();
+      }
+    });
+
+    test("elegir envía el valor interno y cierra", async () => {
+      const onCambiarTipo = jest.fn();
+
+      await pintarTipo(null, onCambiarTipo);
+      await abrirTipo();
+      await fireEvent.press(screen.getByRole("radio", { name: "Ensayo" }));
+
+      expect(onCambiarTipo).toHaveBeenCalledWith("ensayo");
+      expect(screen.queryByRole("radio", { name: "Boda" })).toBeNull();
+    });
+
+    test("la opción elegida lleva ✓ y queda marcada: no depende solo del color", async () => {
+      await pintarTipo("ensayo");
+      await abrirTipo();
+
+      expect(screen.getByText("Ensayo ✓")).toBeTruthy();
+      expect(screen.getByRole("radio", { name: "Ensayo" }).props.accessibilityState.checked).toBe(true);
+      expect(screen.getByRole("radio", { name: "Boda" }).props.accessibilityState.checked).toBe(false);
+    });
+
+    test("el campo mide y se ve como los demás del formulario", async () => {
+      await pintarTipo(null);
+
+      const estilo = StyleSheet.flatten(
+        screen.getByRole("button", { name: /^Tipo de evento:/ }).props.style
+      );
+
+      expect(estilo.minHeight).toBeGreaterThanOrEqual(44);
+      expect(estilo.backgroundColor).toBe(Colors.light.backgroundElement);
+      expect(estilo.borderColor).toBe(Colors.light.backgroundSelected);
+    });
+  });
+
+  test("la fecha se lee con su nombre", async () => {
+    await pintar();
+
+    expect(screen.getByLabelText("Fecha: 29-10-2026")).toBeTruthy();
+  });
+
+  test("con datos económicos pide el caché con teclado decimal y sin texto de ayuda", async () => {
     await pintar({ datosEconomicos: ECONOMICOS });
 
     const campo = screen.getByLabelText("Caché acordado");
 
     expect(campo.props.keyboardType).toBe("decimal-pad");
-    expect(screen.getByText("Importe pactado por la actuación.")).toBeTruthy();
+    expect(screen.queryByText("Importe pactado por la actuación.")).toBeNull();
     expect(screen.queryByText(/bote|finanzas|precio|cobro|sobrante/i)).toBeNull();
 
     await fireEvent.changeText(campo, "1200,50");
@@ -582,7 +724,6 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
   test("sin datos económicos no existe ni el bloque ni el campo", async () => {
     await pintar();
 
-    expect(screen.queryByText("Datos económicos")).toBeNull();
     expect(screen.queryByLabelText("Caché acordado")).toBeNull();
   });
 

@@ -143,6 +143,9 @@ export function crearEstilosFinanzas(colores: ColoresTema) {
     },
     // Elegida sin relleno: para formularios en los que el azul es de la acción principal
     opcionSuave: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.one,
       borderColor: colores.primary,
       backgroundColor: colores.backgroundSelected,
     },
@@ -162,6 +165,10 @@ export function crearEstilosFinanzas(colores: ColoresTema) {
       borderColor: colores.backgroundSelected,
       backgroundColor: colores.background,
     },
+    // Sobre el fondo del formulario de eventos: igual que sus campos de texto
+    campoDesplegable: {
+      backgroundColor: colores.backgroundElement,
+    },
     campoSelectorAbierto: {
       borderColor: colores.primary,
     },
@@ -170,6 +177,9 @@ export function crearEstilosFinanzas(colores: ColoresTema) {
       fontSize: 16,
       lineHeight: 22,
       color: colores.text,
+    },
+    textoSelectorVacio: {
+      color: colores.textSecondary,
     },
     flechaSelector: {
       fontSize: 22,

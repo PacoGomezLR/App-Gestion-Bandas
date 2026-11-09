@@ -95,10 +95,10 @@ describe("ListaEventos", () => {
 
     expect(getByText("Boda Lucena")).toBeTruthy();
     expect(queryByText(/^Título:/)).toBeNull();
-    expect(queryByText("Personal")).toBeNull();
+    expect(queryByText("Técnico")).toBeNull();
     expect(queryByText(/^Nota:/)).toBeNull();
-    expect(queryByText("Editar")).toBeNull();
-    expect(queryByText("Eliminar")).toBeNull();
+    expect(queryByText("Editar evento")).toBeNull();
+    expect(queryByText("Eliminar evento")).toBeNull();
   });
 
   test("la vista previa cerrada muestra tipo + lugar + fecha DD/MM/YYYY + estado, sin hora", async () => {
@@ -178,16 +178,18 @@ describe("ListaEventos", () => {
     expect(screen.queryByText(/15-05-2027/)).toBeNull();
     // En la tarjeta y en el detalle
     expect(screen.getAllByText("Lucena")).toHaveLength(2);
+    expect(getByText("Fecha")).toBeTruthy();
+    expect(getByText("Lugar")).toBeTruthy();
     expect(getByText("Estado")).toBeTruthy();
-    // El badge de la tarjeta y el bloque del detalle
+    // El badge de la tarjeta y el dato del detalle
     expect(screen.getAllByText("Confirmado")).toHaveLength(2);
     expect(screen.queryByText("confirmado")).toBeNull();
-    expect(getByText("Personal")).toBeTruthy();
+    expect(getByText("Técnico")).toBeTruthy();
     expect(getByText("Carlos")).toBeTruthy();
     // Los músicos ya no existen en la app
     expect(queryByText(/Músicos|Miembros/)).toBeNull();
-    expect(getByText("Editar")).toBeTruthy();
-    expect(getByText("Eliminar")).toBeTruthy();
+    expect(getByText("Editar evento")).toBeTruthy();
+    expect(getByText("Eliminar evento")).toBeTruthy();
   });
 
   test("muestra la nota completa y no el antiguo aviso", async () => {
@@ -241,7 +243,7 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Personal")).toBeTruthy();
+    expect(getByText("Técnico")).toBeTruthy();
     expect(queryByText(/^Músicos:/)).toBeNull();
     expect(queryByText(/Músicos|Miembros/)).toBeNull();
   });
@@ -289,12 +291,12 @@ describe("ListaEventos", () => {
     const { getByText, queryByText } = await renderizar([boda]);
 
     await abrir("Boda Lucena");
-    expect(getByText("Personal")).toBeTruthy();
+    expect(getByText("Técnico")).toBeTruthy();
 
     await abrir("Boda Lucena");
 
-    expect(queryByText("Personal")).toBeNull();
-    expect(queryByText("Editar")).toBeNull();
+    expect(queryByText("Técnico")).toBeNull();
+    expect(queryByText("Editar evento")).toBeNull();
     expect(getByText("Boda Lucena")).toBeTruthy();
   });
 
@@ -305,14 +307,14 @@ describe("ListaEventos", () => {
     ]);
 
     await abrir("Boda Lucena");
-    expect(getByText("Personal")).toBeTruthy();
+    expect(getByText("Técnico")).toBeTruthy();
 
     await abrir("Fiesta privada Córdoba");
 
     // getAllByText: exactamente un detalle abierto
-    expect(getAllByText("Personal")).toHaveLength(1);
+    expect(getAllByText("Técnico")).toHaveLength(1);
     expect(queryByText("15/05/2027 · 20:30")).toBeNull();
-    expect(getAllByText("Editar")).toHaveLength(1);
+    expect(getAllByText("Editar evento")).toHaveLength(1);
   });
 
   test("la vista previa es un botón accesible que indica si está desplegado", async () => {
@@ -339,7 +341,7 @@ describe("ListaEventos", () => {
     const { getByText, onEliminar } = await renderizar(eventos);
 
     await abrir("Concierto abierto");
-    await fireEvent.press(getByText("Eliminar"));
+    await fireEvent.press(getByText("Eliminar evento"));
 
     expect(onEliminar).toHaveBeenCalledTimes(1);
     expect(onEliminar).toHaveBeenCalledWith("1");
@@ -349,7 +351,7 @@ describe("ListaEventos", () => {
     const { getByText, onEditar } = await renderizar(eventos);
 
     await abrir("Ensayo");
-    await fireEvent.press(getByText("Editar"));
+    await fireEvent.press(getByText("Editar evento"));
 
     expect(onEditar).toHaveBeenCalledTimes(1);
     expect(onEditar).toHaveBeenCalledWith(eventos[1]);
@@ -363,11 +365,11 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByRole("button", { name: "Editar", disabled: true })).toBeTruthy();
-    expect(getByRole("button", { name: "Eliminar", disabled: true })).toBeTruthy();
+    expect(getByRole("button", { name: "Editar evento", disabled: true })).toBeTruthy();
+    expect(getByRole("button", { name: "Eliminar evento", disabled: true })).toBeTruthy();
 
-    await fireEvent.press(getByText("Editar"));
-    await fireEvent.press(getByText("Eliminar"));
+    await fireEvent.press(getByText("Editar evento"));
+    await fireEvent.press(getByText("Eliminar evento"));
 
     expect(onEditar).not.toHaveBeenCalled();
     expect(onEliminar).not.toHaveBeenCalled();
@@ -378,11 +380,11 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Personal")).toBeTruthy();
+    expect(getByText("Técnico")).toBeTruthy();
     expect(getByText("Carlos, Miguel")).toBeTruthy();
     expect(queryByText(/^Músicos:/)).toBeNull();
-    expect(queryByText("Editar")).toBeNull();
-    expect(queryByText("Eliminar")).toBeNull();
+    expect(queryByText("Editar evento")).toBeNull();
+    expect(queryByText("Eliminar evento")).toBeNull();
     // No se enseña el rol
     expect(queryByText(/admin|usuario|solo lectura/i)).toBeNull();
   });
@@ -482,9 +484,10 @@ describe("ListaEventos: datos económicos", () => {
     await pintar(DATOS);
     await abrirConcierto();
 
-    expect(screen.getByText("Datos económicos")).toBeTruthy();
-    expect(screen.getByText("Caché acordado")).toBeTruthy();
+    expect(screen.getByText("Caché")).toBeTruthy();
     expect(screen.getByText("1.200,00 €")).toBeTruthy();
+    expect(screen.queryByText("Datos económicos")).toBeNull();
+    expect(screen.queryByText("Personal")).toBeNull();
   });
 
   test("un caché de 0 se ve como 0,00 €, no como que falta", async () => {
@@ -522,11 +525,46 @@ describe("ListaEventos: datos económicos", () => {
     await pintar(datos);
     await abrirConcierto();
 
-    expect(screen.queryByText("Datos económicos")).toBeNull();
-    expect(screen.queryByText("Caché acordado")).toBeNull();
+    expect(screen.queryByText("Caché")).toBeNull();
     expect(screen.queryByText(/€/)).toBeNull();
     // Sus datos públicos siguen ahí
-    expect(screen.getByText("Personal")).toBeTruthy();
+    expect(screen.getByText("Técnico")).toBeTruthy();
+    expect(screen.getByText("Carlos, Miguel")).toBeTruthy();
+  });
+
+  test("todas las etiquetas del detalle usan el mismo estilo, más discreto que su valor", async () => {
+    await render(
+      <ListaEventos
+        eventos={[{ ...eventos[0], hora: "20:30", lugar: "Lucena", notas: "Con prueba" }]}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar
+        datosEconomicos={DATOS}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+    await abrirConcierto();
+
+    const estilos = ["Fecha", "Lugar", "Estado", "Técnico", "Caché", "Notas"].map((etiqueta) =>
+      StyleSheet.flatten(screen.getByText(etiqueta).props.style)
+    );
+    const valor = StyleSheet.flatten(screen.getByText("Con prueba").props.style);
+
+    for (const estilo of estilos) {
+      expect(estilo).toEqual(estilos[0]);
+      expect(estilo.textTransform).toBeUndefined();
+    }
+
+    expect(estilos[0].fontSize).toBeLessThan(valor.fontSize ?? 0);
+    expect(estilos[0].color).not.toBe(valor.color);
+  });
+
+  test("con varios técnicos la etiqueta sigue en singular y salen todos", async () => {
+    await pintar(DATOS);
+    await abrirConcierto();
+
+    expect(screen.getByText("Técnico")).toBeTruthy();
     expect(screen.getByText("Carlos, Miguel")).toBeTruthy();
   });
 
@@ -534,8 +572,8 @@ describe("ListaEventos: datos económicos", () => {
     await pintar(DATOS);
     await abrirConcierto();
 
-    const editar = StyleSheet.flatten(screen.getByRole("button", { name: "Editar" }).props.style);
-    const eliminar = StyleSheet.flatten(screen.getByRole("button", { name: "Eliminar" }).props.style);
+    const editar = StyleSheet.flatten(screen.getByRole("button", { name: "Editar evento" }).props.style);
+    const eliminar = StyleSheet.flatten(screen.getByRole("button", { name: "Eliminar evento" }).props.style);
 
     expect(editar.borderRadius).toBe(999);
     expect(eliminar.backgroundColor).toBeUndefined();

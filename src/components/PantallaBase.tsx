@@ -61,17 +61,24 @@ export function PantallaBase({ subtitulo, children }: PantallaBaseProps) {
 interface CampoFormularioProps
   extends Omit<TextInputProps, "style" | "onFocus" | "onBlur" | "accessibilityLabel"> {
   etiqueta: string;
+  // Sin etiqueta visible cuando el placeholder ya la dice; se sigue leyendo en voz alta
+  etiquetaVisible?: boolean;
 }
 
 // Etiqueta visible encima del campo; la misma etiqueta es su nombre accesible
-export function CampoFormulario({ etiqueta, editable = true, ...props }: CampoFormularioProps) {
+export function CampoFormulario({
+  etiqueta,
+  etiquetaVisible = true,
+  editable = true,
+  ...props
+}: CampoFormularioProps) {
   const tema = useTheme();
   const estilos = useEstilos();
   const [enfocado, setEnfocado] = useState(false);
 
   return (
     <View style={estilos.campo}>
-      <Text style={estilos.etiqueta}>{etiqueta}</Text>
+      {etiquetaVisible && <Text style={estilos.etiqueta}>{etiqueta}</Text>}
       <TextInput
         {...props}
         accessibilityLabel={etiqueta}

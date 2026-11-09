@@ -201,6 +201,11 @@ function simular({ esAdmin = true, eventos = [], indisponibilidades = [] }: Esce
 }
 
 // Orden en el que aparecen unos textos en la pantalla
+async function elegirTipo(nombre: string) {
+  await fireEvent.press(screen.getByRole("button", { name: /^Tipo de evento:/ }));
+  await fireEvent.press(screen.getByRole("radio", { name: nombre }));
+}
+
 function estaEnOrden(textos: string[]) {
   const renderizado = JSON.stringify(screen.toJSON());
   const lista = textos.map((texto) => renderizado.indexOf(texto));
@@ -295,7 +300,7 @@ describe("Calendario: próximas fechas, todas e historial", () => {
     // El historial lee la misma lista: al abrir una tarjeta se ve su detalle de siempre
     await fireEvent.press(screen.getByText("Ensayo Ayer"));
     expect(screen.getAllByText("09/11/2026")).toHaveLength(2);
-    expect(screen.getByText("Personal")).toBeTruthy();
+    expect(screen.getByText("Técnico")).toBeTruthy();
   });
 
   test("sin eventos no muestra ni Ver todas las fechas ni Consultar historial", async () => {
@@ -351,13 +356,13 @@ describe("Calendario: próximas fechas, todas e historial", () => {
     await render(<Index />);
 
     await fireEvent.press(screen.getByText("Ensayo F1"));
-    expect(screen.queryByText("Editar")).toBeNull();
-    expect(screen.queryByText("Eliminar")).toBeNull();
+    expect(screen.queryByText("Editar evento")).toBeNull();
+    expect(screen.queryByText("Eliminar evento")).toBeNull();
 
     await fireEvent.press(screen.getByText("Ver todas las fechas"));
     await fireEvent.press(screen.getByText("Consultar historial"));
     await fireEvent.press(screen.getByText("Ensayo Ayer"));
-    expect(screen.queryByText("Editar")).toBeNull();
+    expect(screen.queryByText("Editar evento")).toBeNull();
     // No se enseña el rol
     expect(screen.queryByText(/admin|usuario|solo lectura/i)).toBeNull();
   });
@@ -526,7 +531,7 @@ describe("Calendario: panel del día", () => {
 
     await fireEvent.press(screen.getByText("+ Crear evento"));
 
-    expect(screen.getByText("Fecha: 21-11-2026")).toBeTruthy();
+    expect(screen.getByLabelText("Fecha: 21-11-2026")).toBeTruthy();
     // Las acciones del evento siguen siendo Cancelar y Guardar evento
     expect(screen.getByText("Guardar evento")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeTruthy();
@@ -549,6 +554,7 @@ describe("Calendario: panel del día", () => {
     await tocarDia("2026-11-21");
     await fireEvent.press(screen.getByText("+ Crear evento"));
     await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await elegirTipo("Concierto abierto");
     await fireEvent.press(screen.getByText("Guardar evento"));
 
     expect(mockPersistirEvento).toHaveBeenCalledWith(
@@ -573,6 +579,7 @@ describe("Calendario: panel del día", () => {
 
     await tocarDia("2026-11-21");
     await fireEvent.press(screen.getByText("+ Crear evento"));
+    await elegirTipo("Concierto abierto");
     await fireEvent.press(screen.getByText("Guardar evento"));
 
     expect(alerta).not.toHaveBeenCalled();
@@ -593,6 +600,7 @@ describe("Calendario: panel del día", () => {
     await tocarDia("2026-11-21");
     await fireEvent.press(screen.getByText("+ Crear evento"));
     await fireEvent.press(screen.getByRole("radio", { name: "Confirmado" }));
+    await elegirTipo("Concierto abierto");
     await fireEvent.press(screen.getByText("Guardar evento"));
 
     expect(alerta).toHaveBeenCalledTimes(1);
@@ -625,10 +633,11 @@ describe("Calendario: panel del día", () => {
     await render(<Index />);
 
     await fireEvent.press(screen.getByText("Ensayo F2"));
-    await fireEvent.press(screen.getByText("Editar"));
+    await fireEvent.press(screen.getByText("Editar evento"));
 
-    expect(screen.getByText("21-11-2026")).toBeTruthy();
-    expect(screen.getByText("Fecha: 21-11-2026")).toBeTruthy();
+    // En la cabecera del panel y en el formulario
+    expect(screen.getAllByText("21-11-2026")).toHaveLength(2);
+    expect(screen.getByLabelText("Fecha: 21-11-2026")).toBeTruthy();
     expect(screen.getByText("Guardar cambios")).toBeTruthy();
 
     await fireEvent.press(screen.getByText("Guardar cambios"));
@@ -902,7 +911,7 @@ describe("Calendario: evento con movimientos financieros", () => {
     await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
 
     expect(screen.getByText(MENSAJE)).toBeTruthy();
-    expect(screen.getByText("Eliminar")).toBeTruthy();
+    expect(screen.getByText("Eliminar evento")).toBeTruthy();
   });
 });
 
@@ -917,7 +926,6 @@ describe("Calendario: caché acordado", () => {
     simular();
     await abrirFormulario();
 
-    expect(screen.getByText("Datos económicos")).toBeTruthy();
     expect(screen.getByLabelText("Caché acordado")).toBeTruthy();
   });
 
@@ -926,7 +934,7 @@ describe("Calendario: caché acordado", () => {
     await render(<Index />);
 
     await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
-    await fireEvent.press(screen.getByText("Editar"));
+    await fireEvent.press(screen.getByText("Editar evento"));
 
     expect(screen.getByLabelText("Caché acordado")).toBeTruthy();
   });
@@ -937,7 +945,7 @@ describe("Calendario: caché acordado", () => {
 
     await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
 
-    expect(screen.getByText("Datos económicos")).toBeTruthy();
+    expect(screen.getByText("Caché")).toBeTruthy();
     expect(screen.getByText("Sin caché registrado")).toBeTruthy();
   });
 
@@ -947,10 +955,85 @@ describe("Calendario: caché acordado", () => {
 
     await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
 
-    expect(screen.getByText("Personal")).toBeTruthy();
+    expect(screen.getByText("Técnico")).toBeTruthy();
     expect(screen.getByText("Estado")).toBeTruthy();
-    expect(screen.queryByText("Datos económicos")).toBeNull();
-    expect(screen.queryByText("Caché acordado")).toBeNull();
+    expect(screen.queryByText("Caché")).toBeNull();
     expect(screen.queryByLabelText("Caché acordado")).toBeNull();
+  });
+});
+
+describe("Calendario: tipo de evento obligatorio", () => {
+  async function abrirAlta() {
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+  }
+
+  test("al crear no hay ningún tipo elegido", async () => {
+    simular();
+    await abrirAlta();
+
+    expect(screen.getByRole("button", { name: "Tipo de evento: Selecciona un tipo" })).toBeTruthy();
+  });
+
+  test("guardar sin tipo no persiste, avisa y conserva lo escrito", async () => {
+    simular();
+    await abrirAlta();
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+
+    await fireEvent.press(screen.getByText("Guardar evento"));
+
+    expect(mockPersistirEvento).not.toHaveBeenCalled();
+    expect(screen.getByText("Selecciona un tipo de evento.")).toBeTruthy();
+    expect(screen.getByLabelText("Lugar").props.value).toBe("Montilla");
+  });
+
+  test("elegir tipo quita el aviso y entonces guarda ese tipo", async () => {
+    simular();
+    await abrirAlta();
+    await fireEvent.press(screen.getByText("Guardar evento"));
+
+    await elegirTipo("Boda");
+
+    expect(screen.queryByText("Selecciona un tipo de evento.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Tipo de evento: Boda" })).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("Guardar evento"));
+
+    expect(mockPersistirEvento).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "boda", titulo: "Boda 21/11/2026" }),
+      true,
+      undefined
+    );
+  });
+
+  test("al crear otro después, vuelve a empezar sin tipo", async () => {
+    simular();
+    await abrirAlta();
+    await elegirTipo("Boda");
+    await fireEvent.press(screen.getByText("Guardar evento"));
+
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+
+    expect(screen.getByRole("button", { name: "Tipo de evento: Selecciona un tipo" })).toBeTruthy();
+  });
+
+  test("al editar enseña su tipo y guarda sin volver a elegirlo", async () => {
+    simular({ eventos: [evento("f2", "2027-11-21", "F2")] });
+    await render(<Index />);
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
+    await fireEvent.press(screen.getByText("Editar evento"));
+
+    expect(screen.getByRole("button", { name: "Tipo de evento: Ensayo" })).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("Guardar cambios"));
+
+    expect(mockPersistirEvento).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "f2", tipo: "ensayo" }),
+      false,
+      undefined
+    );
+    expect(screen.queryByText("Selecciona un tipo de evento.")).toBeNull();
   });
 });

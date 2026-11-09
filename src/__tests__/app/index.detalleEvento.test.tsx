@@ -189,11 +189,11 @@ describe("Calendario → detalle del evento", () => {
     expect(getByText("29/10/2026 · 21:00")).toBeTruthy();
     expect(queryByText(/29-10-2026/)).toBeNull();
     // Editar y Eliminar solo para el admin
-    expect(queryByText("Editar") !== null).toBe(esAdmin);
-    expect(queryByText("Eliminar") !== null).toBe(esAdmin);
+    expect(queryByText("Editar evento") !== null).toBe(esAdmin);
+    expect(queryByText("Eliminar evento") !== null).toBe(esAdmin);
   });
 
-  test("el detalle abierto sigue el orden fecha y hora, lugar, estado, personal, económicos y notas, sin Título ni Músicos", async () => {
+  test("el detalle abierto sigue el orden fecha y hora, lugar, estado, técnico, caché y notas, sin Título ni Músicos", async () => {
     simularPantalla(true);
 
     const { getByText, toJSON } = await render(<Index />);
@@ -206,11 +206,13 @@ describe("Calendario → detalle del evento", () => {
     expect(renderizado).not.toContain("Concierto abierto Montilla 29/10/2026");
 
     const posiciones = [
+      '"Fecha"',
       '"29/10/2026 · 21:00"',
+      '"Lugar"',
       '"Montilla"',
       '"Estado"',
-      '"Personal"',
-      '"Datos económicos"',
+      '"Técnico"',
+      '"Caché"',
       '"Notas"',
     ].map((marcador) => renderizado.indexOf(marcador));
 

@@ -16,8 +16,6 @@ interface SelectorOpcionesProps<T extends string> {
   valor: T | null;
   onCambiar: (valor: T) => void;
   disabled?: boolean;
-  // Sin etiqueta visible cuando ya la da el bloque; se sigue leyendo en voz alta
-  etiquetaVisible?: boolean;
   // La opción elegida no compite con el botón principal del formulario
   suave?: boolean;
 }
@@ -29,7 +27,6 @@ export function SelectorOpciones<T extends string>({
   valor,
   onCambiar,
   disabled = false,
-  etiquetaVisible = true,
   suave = false,
 }: SelectorOpcionesProps<T>) {
   const tema = useTheme();
@@ -37,7 +34,7 @@ export function SelectorOpciones<T extends string>({
 
   return (
     <View style={estilos.campo}>
-      {etiquetaVisible && <Text style={estilos.etiquetaCampo}>{etiqueta}</Text>}
+      <Text style={estilos.etiquetaCampo}>{etiqueta}</Text>
 
       <View accessibilityRole="radiogroup" accessibilityLabel={etiqueta} style={estilos.opciones}>
         {opciones.map((opcion) => {
@@ -65,6 +62,8 @@ export function SelectorOpciones<T extends string>({
               >
                 {opcion.etiqueta}
               </Text>
+              {/* Sin relleno, el color no basta para saber cuál está elegida */}
+              {suave && elegida && <Text style={estilos.textoOpcionSuave}>✓</Text>}
             </Pressable>
           );
         })}

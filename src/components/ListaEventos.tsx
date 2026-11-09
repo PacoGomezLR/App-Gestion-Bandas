@@ -122,54 +122,42 @@ export function ListaEventos({
             {abierto && (
               <View style={estilos.detalle}>
                 {/* El título se sigue guardando, pero no se muestra: repite tipo, lugar y fecha */}
-                <View style={estilos.resumenDetalle}>
-                  <Text style={estilos.textoDetalle}>
-                    {/* Campos opcionales: solo se muestran si tienen valor */}
-                    {evento.hora === "" ? fechaVisible : `${fechaVisible} · ${evento.hora}`}
-                  </Text>
-                  {evento.lugar !== "" && <Text style={estilos.textoDetalle}>{evento.lugar}</Text>}
-                </View>
-
-                <BloqueEvento titulo="Estado">
-                  <Text style={estilos.textoDetalle}>{etiquetaEstado}</Text>
+                <BloqueEvento etiqueta="Fecha">
+                  {evento.hora === "" ? fechaVisible : `${fechaVisible} · ${evento.hora}`}
                 </BloqueEvento>
 
-                <BloqueEvento titulo="Personal">
-                  <Text style={estilos.textoDetalle}>
-                    {nombresTecnicos.length > 0 ? nombresTecnicos.join(", ") : "Sin asignar"}
-                  </Text>
+                {/* Campos opcionales: solo se muestran si tienen valor */}
+                {evento.lugar !== "" && <BloqueEvento etiqueta="Lugar">{evento.lugar}</BloqueEvento>}
+
+                <BloqueEvento etiqueta="Estado">{etiquetaEstado}</BloqueEvento>
+
+                <BloqueEvento etiqueta="Técnico">
+                  {nombresTecnicos.length > 0 ? nombresTecnicos.join(", ") : "Sin asignar"}
                 </BloqueEvento>
 
                 {datosEconomicos !== null && (
-                  <BloqueEvento titulo="Datos económicos">
-                    <View style={estilos.resumenDetalle}>
-                      <Text style={estilosBloque.secundario}>Caché acordado</Text>
-                      <Text style={estilosBloque.importe}>
-                        {textoCache(datosEconomicos.caches[evento.id], datosEconomicos)}
-                      </Text>
-                    </View>
+                  <BloqueEvento etiqueta="Caché">
+                    {textoCache(datosEconomicos.caches[evento.id], datosEconomicos)}
                   </BloqueEvento>
                 )}
 
-                {evento.notas !== "" && (
-                  <BloqueEvento titulo="Notas">
-                    <Text style={estilos.textoDetalle}>{evento.notas}</Text>
-                  </BloqueEvento>
-                )}
+                {evento.notas !== "" && <BloqueEvento etiqueta="Notas">{evento.notas}</BloqueEvento>}
 
                 {puedeEditar && (
                   <View style={estilosBloque.acciones}>
-                    <BotonSecundario
-                      titulo="Editar"
-                      onPress={() => onEditar(evento)}
-                      disabled={procesando}
-                    />
+                    <View style={estilosBloque.accionSecundaria}>
+                      <BotonSecundario
+                        titulo="Editar evento"
+                        onPress={() => onEditar(evento)}
+                        disabled={procesando}
+                      />
 
-                    <BotonDestructivo
-                      titulo="Eliminar"
-                      onPress={() => onEliminar(evento.id)}
-                      disabled={procesando}
-                    />
+                      <BotonDestructivo
+                        titulo="Eliminar evento"
+                        onPress={() => onEliminar(evento.id)}
+                        disabled={procesando}
+                      />
+                    </View>
 
                     {errorEliminacion?.eventoId === evento.id && (
                       <Mensaje tipo="error" texto={errorEliminacion.mensaje} />

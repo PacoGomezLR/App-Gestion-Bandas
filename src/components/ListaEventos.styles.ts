@@ -70,14 +70,6 @@ export function crearEstilosListaEventos(colores: ColoresTema) {
       paddingBottom: Spacing.three,
       gap: Spacing.three,
     },
-    resumenDetalle: {
-      gap: Spacing.half,
-    },
-    textoDetalle: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: colores.text,
-    },
     fondoPendiente: {
       backgroundColor: colores.warningBackground,
     },

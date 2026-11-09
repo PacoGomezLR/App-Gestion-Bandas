@@ -9,6 +9,7 @@ describe("useEventos", () => {
     expect(result.current.eventos).toHaveLength(3);
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("1");
       result.current.alternarTecnico("2");
@@ -125,10 +126,10 @@ describe("useEventos", () => {
       result.current.eventos.some((evento) => evento.id === "1")
     ).toBe(false);
     expect(result.current.eventoEditandoId).toBeNull();
-    // Formulario limpio: solo queda el tipo por defecto
-    expect(result.current.titulo).toBe("Concierto abierto");
+    // Formulario limpio: tampoco queda ningún tipo elegido
+    expect(result.current.tipo).toBeNull();
+    expect(result.current.titulo).toBe("");
     expect(result.current.fecha).toBe("");
-    expect(result.current.tipo).toBe("concierto_abierto");
     expect(result.current.estado).toBe("pendiente");
     expect(result.current.error).toBe("");
   });
@@ -174,10 +175,10 @@ describe("useEventos", () => {
 
     expect(result.current.eventos).toEqual(eventosOriginales);
     expect(result.current.eventoEditandoId).toBeNull();
-    // Formulario limpio: solo queda el tipo por defecto
-    expect(result.current.titulo).toBe("Concierto abierto");
+    // Formulario limpio: tampoco queda ningún tipo elegido
+    expect(result.current.tipo).toBeNull();
+    expect(result.current.titulo).toBe("");
     expect(result.current.fecha).toBe("");
-    expect(result.current.tipo).toBe("concierto_abierto");
     expect(result.current.estado).toBe("pendiente");
     expect(result.current.error).toBe("");
   });
@@ -269,6 +270,7 @@ describe("useEventos", () => {
     ];
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setLugar("Montilla");
     });
 
@@ -291,6 +293,7 @@ describe("useEventos", () => {
     const eventosOriginales = [...result.current.eventos];
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("1");
     });
@@ -334,6 +337,7 @@ describe("useEventos", () => {
     );
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-11-15");
       result.current.alternarTecnico("2");
       result.current.setHora("20:30");
@@ -366,6 +370,7 @@ describe("useEventos", () => {
     const { result } = await renderHook(() => useEventos());
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-12-12");
       result.current.setHora("20:30");
       result.current.setLugar("Sala Principal");
@@ -390,6 +395,7 @@ describe("useEventos", () => {
     const { result } = await renderHook(() => useEventos());
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-12-13");
     });
 
@@ -417,6 +423,7 @@ describe("useEventos", () => {
 
     for (const horaInvalida of ["25:30", "9:30", "12:90", "abc"]) {
       await act(() => {
+        result.current.setTipo("concierto_abierto");
         result.current.setFecha("2026-12-14");
         result.current.setHora(horaInvalida);
       });
@@ -450,6 +457,7 @@ describe("useEventos", () => {
 
     for (const tipo of tipos) {
       await act(() => {
+        result.current.setTipo("concierto_abierto");
         result.current.setFecha("2026-12-20");
         result.current.setTipo(tipo);
       });
@@ -461,8 +469,8 @@ describe("useEventos", () => {
       });
 
       expect(guardado).toBe(true);
-      // Tras guardar, el formulario vuelve al tipo por defecto
-      expect(result.current.tipo).toBe("concierto_abierto");
+      // Tras guardar, el formulario vuelve a estar sin tipo
+      expect(result.current.tipo).toBeNull();
     }
 
     expect(result.current.eventos.map((evento) => evento.tipo)).toEqual([
@@ -475,6 +483,7 @@ describe("useEventos", () => {
 
     for (const horaValida of ["09:05", "00:00", "23:59"]) {
       await act(() => {
+        result.current.setTipo("concierto_abierto");
         result.current.setFecha("2026-12-15");
         result.current.setHora(horaValida);
       });
@@ -551,6 +560,7 @@ describe("useEventos", () => {
 
     for (const estado of ["pendiente", "confirmado"] as const) {
       await act(() => {
+        result.current.setTipo("concierto_abierto");
         result.current.setFecha("2026-12-21");
         result.current.setEstado(estado);
       });
@@ -603,6 +613,7 @@ describe("useEventos", () => {
     expect(result.current).not.toHaveProperty("alternarMiembro");
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-11-20");
     });
 
@@ -630,6 +641,7 @@ describe("useEventos", () => {
     );
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-11-15");
     });
 
@@ -764,6 +776,7 @@ describe("useEventos", () => {
     );
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-11-15");
     });
 
@@ -805,6 +818,7 @@ describe("useEventos", () => {
     );
 
     await act(() => {
+      result.current.setTipo("concierto_abierto");
       result.current.setFecha("2026-11-15");
     });
 
@@ -963,6 +977,133 @@ describe("useEventos", () => {
       });
 
       expect(result.current.eventos[0].titulo).toBe("Concierto abierto 30/09/2026");
+    });
+  });
+
+  describe("tipo obligatorio al crear", () => {
+    test("empieza sin ningún tipo elegido", async () => {
+      const { result } = await renderHook(() => useEventos());
+
+      expect(result.current.tipo).toBeNull();
+      expect(result.current.titulo).toBe("");
+    });
+
+    test("guardar sin tipo no persiste y explica qué falta", async () => {
+      const persistirEvento = jest.fn(async (evento: Evento) => evento);
+      const { result } = await renderHook(() => useEventos({ datosIniciales: [], persistirEvento }));
+
+      await act(() => {
+        result.current.setFecha("2026-11-15");
+        result.current.setLugar("Córdoba");
+        result.current.setNotas("Con prueba");
+        result.current.alternarTecnico("1");
+      });
+
+      let guardado = true;
+
+      await act(async () => {
+        guardado = await result.current.guardarEvento();
+      });
+
+      expect(guardado).toBe(false);
+      expect(persistirEvento).not.toHaveBeenCalled();
+      expect(result.current.eventos).toEqual([]);
+      expect(result.current.error).toBe("Selecciona un tipo de evento.");
+      // Lo escrito sigue ahí
+      expect(result.current.lugar).toBe("Córdoba");
+      expect(result.current.notas).toBe("Con prueba");
+      expect(result.current.fecha).toBe("2026-11-15");
+      expect(result.current.tecnicoIds).toEqual(["1"]);
+    });
+
+    test("elegir un tipo quita el error y ya se puede guardar con su valor interno", async () => {
+      const persistirEvento = jest.fn(async (evento: Evento) => evento);
+      const { result } = await renderHook(() => useEventos({ datosIniciales: [], persistirEvento }));
+
+      await act(() => {
+        result.current.setFecha("2026-11-15");
+      });
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+      await act(() => {
+        result.current.setTipo("fiesta_privada");
+      });
+
+      expect(result.current.error).toBe("");
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(persistirEvento).toHaveBeenCalledTimes(1);
+      expect(result.current.eventos[0]).toMatchObject({
+        tipo: "fiesta_privada",
+        titulo: "Fiesta privada 15/11/2026",
+      });
+    });
+
+    test("elegir un tipo no borra un error que no es suyo", async () => {
+      const { result } = await renderHook(() => useEventos());
+
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(result.current.error).toBe("La fecha es obligatoria");
+
+      await act(() => {
+        result.current.setTipo("boda");
+      });
+
+      expect(result.current.error).toBe("La fecha es obligatoria");
+    });
+
+    test("tras guardar, el siguiente evento vuelve a empezar sin tipo", async () => {
+      const { result } = await renderHook(() => useEventos());
+
+      await act(() => {
+        result.current.setTipo("boda");
+        result.current.setFecha("2026-11-15");
+      });
+      await act(async () => {
+        await result.current.guardarEvento();
+      });
+
+      expect(result.current.tipo).toBeNull();
+    });
+
+    test("cancelar también lo deja sin tipo", async () => {
+      const { result } = await renderHook(() => useEventos());
+
+      await act(() => {
+        result.current.setTipo("boda");
+      });
+      await act(() => {
+        result.current.cancelarEdicion();
+      });
+
+      expect(result.current.tipo).toBeNull();
+    });
+
+    test("al editar conserva el tipo del evento y guarda sin volver a elegirlo", async () => {
+      const { result } = await renderHook(() => useEventos());
+      const evento = result.current.eventos[0];
+
+      await act(() => {
+        result.current.prepararEdicion(evento);
+      });
+
+      expect(result.current.tipo).toBe(evento.tipo);
+
+      let guardado = false;
+
+      await act(async () => {
+        guardado = await result.current.guardarEvento();
+      });
+
+      expect(guardado).toBe(true);
+      expect(result.current.eventos[0].tipo).toBe(evento.tipo);
     });
   });
 });

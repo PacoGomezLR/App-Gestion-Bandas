@@ -7,10 +7,10 @@ import type { Tecnico } from "../types/tecnico";
 import { ESTADOS_EVENTO, etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { formatearFecha } from "../utils/fechas";
 import { etiquetaTipoEvento, TIPOS_EVENTO } from "../utils/tiposEvento";
-import { BloqueEvento } from "./BloqueEvento";
 import { crearEstilosBloqueEvento } from "./BloqueEvento.styles";
 import { BotonPrincipal, CampoFormulario, Mensaje } from "./PantallaBase";
 import { BotonSecundario } from "./PantallaInterior";
+import { SelectorDesplegable } from "./SelectorDesplegable";
 import { SelectorHora } from "./SelectorHora";
 import { SelectorOpciones } from "./SelectorOpciones";
 import { SelectorVarios } from "./SelectorVarios";
@@ -28,7 +28,8 @@ const OPCIONES_ESTADO = ESTADOS_EVENTO.map((estado) => ({
 // Sin campo de título: se genera solo a partir de tipo, lugar y fecha.
 // Sin calendario propio: la fecha es el día elegido en el calendario del Calendario.
 interface FormularioEventoProps {
-  tipo: TipoEvento;
+  // null = sin elegir todavía
+  tipo: TipoEvento | null;
   estado: EstadoEvento;
   fecha: string;
   hora: string;
@@ -81,61 +82,73 @@ export function FormularioEvento({
 }: FormularioEventoProps) {
   const tema = useTheme();
   const estilos = useMemo(() => crearEstilosBloqueEvento(tema), [tema]);
+  const fechaVisible = formatearFecha(fecha);
 
   return (
     <View style={estilos.formulario}>
-      <BloqueEvento titulo="Datos del evento">
-        <Text style={estilos.texto}>Fecha: {formatearFecha(fecha)}</Text>
-
-        <SelectorOpciones
+      <View style={estilos.grupo}>
+        <SelectorDesplegable
           etiqueta="Tipo de evento"
+          placeholder="Selecciona un tipo"
           opciones={OPCIONES_TIPO}
           valor={tipo}
           onCambiar={onCambiarTipo}
           disabled={procesando}
-          suave
         />
+
+        <View style={estilos.filaFechaHora}>
+          <View
+            accessible
+            accessibilityLabel={`Fecha: ${fechaVisible}`}
+            style={[estilos.columna, estilos.fecha]}
+          >
+            <Text style={estilos.etiqueta}>Fecha</Text>
+            <Text style={estilos.valor}>{fechaVisible}</Text>
+          </View>
+
+          <View style={estilos.columna}>
+            <SelectorHora hora={hora} onCambiarHora={onCambiarHora} disabled={procesando} />
+          </View>
+        </View>
 
         {/* Lugar, hora y notas son opcionales */}
         <CampoFormulario
           etiqueta="Lugar"
+          etiquetaVisible={false}
+          placeholder="Lugar"
           value={lugar}
           onChangeText={onCambiarLugar}
           editable={!procesando}
           autoCapitalize="words"
         />
+      </View>
 
-        <SelectorHora hora={hora} onCambiarHora={onCambiarHora} disabled={procesando} />
-      </BloqueEvento>
-
-      <BloqueEvento titulo="Personal">
-        {tecnicos.length === 0 ? (
+      {tecnicos.length === 0 ? (
+        <View style={estilos.campo}>
+          <Text style={estilos.etiquetaCampo}>Técnicos</Text>
           <Text style={estilos.secundario}>La banda todavía no tiene técnicos.</Text>
-        ) : (
-          <SelectorVarios
-            etiqueta="Técnicos asignados"
-            opciones={tecnicos.map(({ id, nombre }) => ({ valor: id, etiqueta: nombre }))}
-            elegidos={tecnicoIds}
-            onAlternar={onAlternarTecnico}
-            disabled={procesando}
-          />
-        )}
-      </BloqueEvento>
-
-      <BloqueEvento titulo="Estado">
-        <SelectorOpciones
-          etiqueta="Estado"
-          etiquetaVisible={false}
-          opciones={OPCIONES_ESTADO}
-          valor={estado}
-          onCambiar={onCambiarEstado}
+        </View>
+      ) : (
+        <SelectorVarios
+          etiqueta="Técnicos"
+          opciones={tecnicos.map(({ id, nombre }) => ({ valor: id, etiqueta: nombre }))}
+          elegidos={tecnicoIds}
+          onAlternar={onAlternarTecnico}
           disabled={procesando}
-          suave
         />
-      </BloqueEvento>
+      )}
 
-      {datosEconomicos !== null && (
-        <BloqueEvento titulo="Datos económicos">
+      <SelectorOpciones
+        etiqueta="Estado"
+        opciones={OPCIONES_ESTADO}
+        valor={estado}
+        onCambiar={onCambiarEstado}
+        disabled={procesando}
+        suave
+      />
+
+      <View style={estilos.grupo}>
+        {datosEconomicos !== null && (
           <CampoFormulario
             etiqueta="Caché acordado"
             value={datosEconomicos.cache}
@@ -144,23 +157,22 @@ export function FormularioEvento({
             keyboardType="decimal-pad"
             placeholder="0,00"
           />
-          <Text style={estilos.secundario}>Importe pactado por la actuación.</Text>
-          {datosEconomicos.errorCarga !== "" && (
-            <Mensaje tipo="error" texto={datosEconomicos.errorCarga} />
-          )}
-        </BloqueEvento>
-      )}
+        )}
+        {datosEconomicos !== null && datosEconomicos.errorCarga !== "" && (
+          <Mensaje tipo="error" texto={datosEconomicos.errorCarga} />
+        )}
 
-      <BloqueEvento titulo="Notas">
         <CampoFormulario
           etiqueta="Notas"
+          etiquetaVisible={false}
+          placeholder="Notas"
           value={notas}
           onChangeText={onCambiarNotas}
           editable={!procesando}
           multiline
           textAlignVertical="top"
         />
-      </BloqueEvento>
+      </View>
 
       {error !== "" && <Mensaje tipo="error" texto={error} />}
 
@@ -171,7 +183,9 @@ export function FormularioEvento({
           disabled={procesando}
         />
         {/* Crear o editar: Cancelar siempre descarta y cierra el formulario */}
-        <BotonSecundario titulo="Cancelar" onPress={onCancelar} disabled={procesando} />
+        <View style={estilos.accionSecundaria}>
+          <BotonSecundario titulo="Cancelar" onPress={onCancelar} disabled={procesando} />
+        </View>
       </View>
     </View>
   );

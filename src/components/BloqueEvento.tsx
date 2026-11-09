@@ -5,20 +5,18 @@ import { useTheme } from "@/hooks/use-theme";
 import { crearEstilosBloqueEvento } from "./BloqueEvento.styles";
 
 interface BloqueEventoProps extends PropsWithChildren {
-  titulo: string;
+  etiqueta: string;
 }
 
-// Separa por temas el formulario y el detalle de un evento
-export function BloqueEvento({ titulo, children }: BloqueEventoProps) {
+// Un dato del detalle de un evento: etiqueta discreta y su valor, leídos como uno
+export function BloqueEvento({ etiqueta, children }: BloqueEventoProps) {
   const tema = useTheme();
   const estilos = useMemo(() => crearEstilosBloqueEvento(tema), [tema]);
 
   return (
-    <View style={estilos.bloque}>
-      <Text accessibilityRole="header" style={estilos.titulo}>
-        {titulo}
-      </Text>
-      <View style={estilos.bloqueCampos}>{children}</View>
+    <View accessible style={estilos.bloque}>
+      <Text style={estilos.etiqueta}>{etiqueta}</Text>
+      <Text style={estilos.valor}>{children}</Text>
     </View>
   );
 }

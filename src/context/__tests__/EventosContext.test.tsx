@@ -117,6 +117,7 @@ function ConsumidorA() {
   const {
     eventos,
     titulo,
+    setTipo,
     setLugar,
     setFecha,
     guardarEvento,
@@ -130,6 +131,7 @@ function ConsumidorA() {
       <Button
         title="Rellenar en A"
         onPress={() => {
+          setTipo("concierto_abierto");
           setLugar("Compartido");
           setFecha("2026-12-31");
         }}

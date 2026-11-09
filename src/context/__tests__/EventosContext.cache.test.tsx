@@ -109,6 +109,7 @@ async function guardar(): Promise<boolean> {
 
 async function prepararAlta() {
   await act(async () => {
+    valor().setTipo("boda");
     valor().setFecha("2026-12-01");
   });
 }

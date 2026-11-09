@@ -15,6 +15,8 @@ const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const SIN_CACHES: CachesPorEvento = {};
 
+const ERROR_SIN_TIPO = "Selecciona un tipo de evento.";
+
 interface UseEventosOptions {
   datosIniciales?: Evento[];
   // Devuelve el evento tal como quedó guardado (con el id definitivo) o null si falla
@@ -37,7 +39,8 @@ export function useEventos(options: UseEventosOptions = {}) {
   } = options;
 
   const [eventos, setEventos] = useState<Evento[]>(datosIniciales);
-  const [tipo, setTipo] = useState<TipoEvento>("concierto_abierto");
+  // null = sin elegir todavía: un evento nuevo nunca se guarda con un tipo supuesto
+  const [tipo, setTipoElegido] = useState<TipoEvento | null>(null);
   const [estado, setEstado] = useState<EstadoEvento>("pendiente");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
@@ -45,7 +48,7 @@ export function useEventos(options: UseEventosOptions = {}) {
   const [notas, setNotas] = useState("");
   const [tecnicoIds, setTecnicoIds] = useState<string[]>([]);
   // Se recalcula en cada cambio de tipo, lugar o fecha: no hay campo de título
-  const titulo = generarTituloEvento(tipo, lugar, fecha);
+  const titulo = tipo === null ? "" : generarTituloEvento(tipo, lugar, fecha);
   const [error, setError] = useState("");
   const [eventoEditandoId, setEventoEditandoId] = useState<string | null>(null);
   // null = sin tocar: el campo enseña el caché guardado y al enviar no se cambia
@@ -82,11 +85,17 @@ export function useEventos(options: UseEventosOptions = {}) {
     setHora("");
     setLugar("");
     setNotas("");
-    setTipo("concierto_abierto");
+    setTipoElegido(null);
     setEstado("pendiente");
     setTecnicoIds([]);
     setCacheEscrito(null);
     setError("");
+  }
+
+  // Elegir un tipo resuelve su error; cualquier otro sigue a la vista
+  function setTipo(nuevoTipo: TipoEvento) {
+    setTipoElegido(nuevoTipo);
+    setError((actual) => (actual === ERROR_SIN_TIPO ? "" : actual));
   }
 
   function alternarTecnico(tecnicoId: string) {
@@ -98,9 +107,14 @@ export function useEventos(options: UseEventosOptions = {}) {
   }
 
   async function guardarEvento(): Promise<boolean> {
-    // El título se genera solo, así que lo único obligatorio es la fecha
+    // El título se genera solo: lo obligatorio es la fecha y el tipo
     if (fecha.trim() === "") {
       setError("La fecha es obligatoria");
+      return false;
+    }
+
+    if (tipo === null) {
+      setError(ERROR_SIN_TIPO);
       return false;
     }
 
@@ -220,7 +234,8 @@ export function useEventos(options: UseEventosOptions = {}) {
     }
 
     setEventoEditandoId(evento.id);
-    setTipo(evento.tipo);
+    setTipoElegido(evento.tipo);
+    setError("");
     setFecha(evento.fecha);
     setHora(evento.hora);
     setLugar(evento.lugar);
