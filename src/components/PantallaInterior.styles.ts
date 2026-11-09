@@ -6,6 +6,8 @@ import type { useTheme } from "@/hooks/use-theme";
 type ColoresTema = ReturnType<typeof useTheme>;
 
 const RADIO_TARJETA = 16;
+// Misma altura para todas las filas de lista, se puedan pulsar o no
+const ALTURA_FILA = 56;
 
 // Piezas comunes de las pantallas interiores (Calendario y Banda)
 export function crearEstilosPantallaInterior(colores: ColoresTema) {
@@ -105,17 +107,34 @@ export function crearEstilosPantallaInterior(colores: ColoresTema) {
     grupoFilas: {
       borderRadius: RADIO_TARJETA,
       overflow: "hidden",
-      gap: StyleSheet.hairlineWidth,
-      backgroundColor: colores.backgroundSelected,
+      backgroundColor: colores.backgroundElement,
+    },
+    // Línea dibujada como borde: siempre de un píxel físico, igual en todas las filas
+    separadorFila: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colores.backgroundSelected,
     },
     fila: {
-      minHeight: 56,
+      minHeight: ALTURA_FILA,
       flexDirection: "row",
       alignItems: "center",
       gap: Spacing.two,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
       backgroundColor: colores.backgroundElement,
+    },
+    // Solo lectura: un texto que ocupa todo el ancho, centrado en vertical
+    filaLectura: {
+      minHeight: ALTURA_FILA,
+      justifyContent: "center",
+      paddingHorizontal: Spacing.three,
+      paddingVertical: Spacing.two,
+      backgroundColor: colores.backgroundElement,
+    },
+    textoFila: {
+      fontSize: 16,
+      lineHeight: 22,
+      color: colores.text,
     },
     tituloFila: {
       flex: 1,

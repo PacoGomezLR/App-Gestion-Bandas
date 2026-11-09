@@ -43,11 +43,21 @@ describe("ListaTecnicos", () => {
     );
 
     for (const { nombre } of tecnicos) {
-      const estilo = StyleSheet.flatten(screen.getByText(nombre).props.style);
+      const texto = screen.getByText(nombre);
+      const fila = StyleSheet.flatten(texto.parent?.props.style);
 
-      expect(estilo.textAlign).toBe("center");
-      // Ocupa todo el ancho de la fila: se centra respecto a ella, no a su propio texto
-      expect(estilo.flex).toBe(1);
+      expect(StyleSheet.flatten(texto.props.style).textAlign).toBe("center");
+      // Ocupa todo el ancho de la fila: se centra respecto a ella, no a su propio texto.
+      // En la fila pulsable lo estira flex; en la de lectura, la columna (stretch)
+      if (puedeGestionar) {
+        expect(StyleSheet.flatten(texto.props.style).flex).toBe(1);
+      } else {
+        expect(fila.flexDirection).toBeUndefined();
+        expect(fila.alignItems).toBeUndefined();
+      }
+
+      // Altura compacta y la misma para las dos variantes
+      expect(fila.minHeight).toBe(56);
     }
 
     expect(screen.queryByText("›")).toBeNull();
@@ -94,5 +104,25 @@ describe("ListaTecnicos", () => {
     expect(screen.getByText("Miguel")).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByText(/admin|usuario|solo lectura/i)).toBeNull();
+  });
+
+  test.each([true, false])("una línea entre cada dos filas, ninguna encima de la primera (admin: %s)", async (puedeGestionar) => {
+    await render(
+      <ListaTecnicos
+        tecnicos={[...tecnicos, { id: "3", nombre: "Félix" }]}
+        procesando={false}
+        puedeGestionar={puedeGestionar}
+        onElegir={jest.fn()}
+      />
+    );
+
+    const separadores = ["Carlos", "Miguel", "Félix"].map((nombre) => {
+      // Texto → fila → contenedor que pone el separador
+      const contenedor = screen.getByText(nombre).parent?.parent;
+
+      return StyleSheet.flatten(contenedor?.props.style)?.borderTopWidth;
+    });
+
+    expect(separadores).toEqual([undefined, StyleSheet.hairlineWidth, StyleSheet.hairlineWidth]);
   });
 });

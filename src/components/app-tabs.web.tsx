@@ -15,8 +15,11 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useBandaContext } from '@/context/BandaContext';
 
 export default function AppTabs() {
+  const { esAdmin } = useBandaContext();
+
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -28,9 +31,12 @@ export default function AppTabs() {
           <TabTrigger name="repertorio" href="/repertorio" asChild>
             <TabButton>Repertorio</TabButton>
           </TabTrigger>
-          <TabTrigger name="banda" href="/banda" asChild>
-            <TabButton>Banda</TabButton>
-          </TabTrigger>
+          {/* Solo para el admin (en web /banda además vuelve al inicio) */}
+          {esAdmin && (
+            <TabTrigger name="banda" href="/banda" asChild>
+              <TabButton>Banda</TabButton>
+            </TabTrigger>
+          )}
         </CustomTabList>
       </TabList>
     </Tabs>

@@ -1,4 +1,4 @@
-import { useIsFocused } from "expo-router";
+import { Redirect, useIsFocused } from "expo-router";
 import { useState } from "react";
 
 import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
@@ -29,7 +29,6 @@ import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 type Vista = "principal" | "integrantes" | "tecnicos" | "invitar" | "finanzas";
 
 export default function BandaScreen() {
-  // Sin rol visible: a quien no es admin simplemente no se le ofrecen las acciones
   const { esAdmin, bandaActual } = useBandaContext();
   const {
     integrantes,
@@ -46,8 +45,8 @@ export default function BandaScreen() {
 
   const enFoco = useIsFocused();
   const [vista, setVista] = useState<Vista>("principal");
-  const soloAdmin = vista === "invitar" || vista === "finanzas";
-  const vistaVisible: Vista = soloAdmin && !esAdmin ? "principal" : vista;
+  // Si pierde el rol, no se intercepta Atrás para una vista que ya no se pinta
+  const vistaVisible: Vista = esAdmin ? vista : "principal";
 
   function volver() {
     setVista("principal");
@@ -58,6 +57,13 @@ export default function BandaScreen() {
     enFoco && (vistaVisible === "integrantes" || vistaVisible === "invitar");
   useAtrasAndroid(interceptarAtras ? volver : null);
 
+  // Solo para el admin: la pestaña no se ve, y si se llega por un enlace a
+  // /banda (o se pierde el rol con la pantalla abierta) se vuelve al Calendario
+  // sin pintar nada de la banda
+  if (!esAdmin) {
+    return <Redirect href="/" />;
+  }
+
   if (cargandoIntegrantes || cargandoTecnicos || cargandoEventos) {
     return <CargandoInterior texto="Cargando datos..." />;
   }
@@ -66,7 +72,7 @@ export default function BandaScreen() {
     return <PantallaTecnicos enFoco={enFoco} puedeGestionar={esAdmin} onVolver={volver} />;
   }
 
-  // Solo un admin entra, y la base vuelve a comprobarlo en cada consulta
+  // La base vuelve a comprobar el rol en cada consulta
   if (vistaVisible === "finanzas" && bandaActual !== null) {
     return (
       // Otra banda, otras cuentas: nada de la anterior se queda a medias
@@ -88,7 +94,7 @@ export default function BandaScreen() {
     );
   }
 
-  // Solo un admin invita (la base vuelve a comprobarlo al crear la invitación)
+  // La base vuelve a comprobar el rol al crear la invitación
   if (vistaVisible === "invitar" && bandaActual !== null) {
     return (
       <PantallaInterior>
@@ -133,14 +139,12 @@ export default function BandaScreen() {
         </GrupoFilas>
       </Seccion>
 
-      {esAdmin && (
-        <Seccion titulo="Administración">
-          <GrupoFilas>
-            <FilaNavegable titulo="Invitar usuario" onPress={() => setVista("invitar")} />
-            <FilaNavegable titulo="Finanzas" onPress={() => setVista("finanzas")} />
-          </GrupoFilas>
-        </Seccion>
-      )}
+      <Seccion titulo="Administración">
+        <GrupoFilas>
+          <FilaNavegable titulo="Invitar usuario" onPress={() => setVista("invitar")} />
+          <FilaNavegable titulo="Finanzas" onPress={() => setVista("finanzas")} />
+        </GrupoFilas>
+      </Seccion>
     </PantallaInterior>
   );
 }

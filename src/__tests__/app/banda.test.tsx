@@ -15,7 +15,15 @@ import BandaScreen from "../../app/banda";
 
 let mockEnFoco = true;
 
-jest.mock("expo-router", () => ({ useIsFocused: () => mockEnFoco }));
+// Redirect se pinta como texto: así se ve adónde mandaría sin un router real
+jest.mock("expo-router", () => {
+  const { Text } = jest.requireActual<typeof import("react-native")>("react-native");
+
+  return {
+    useIsFocused: () => mockEnFoco,
+    Redirect: ({ href }: { href: string }) => <Text>{`Redirigido a ${href}`}</Text>,
+  };
+});
 
 jest.mock("../../global.css", () => ({}));
 jest.mock("../../lib/supabase", () => ({ supabase: {} }));
@@ -175,14 +183,27 @@ describe("Banda: pantalla principal", () => {
     expect(screen.getByRole("button", { name: "Invitar usuario" })).toBeTruthy();
   });
 
-  test("un usuario normal no ve acciones de administración", async () => {
+  test("un usuario normal no entra: vuelve al Calendario sin ver nada de la banda", async () => {
     simular({ esAdmin: false });
-    await abrirBanda();
+    await render(pantalla());
 
-    expect(screen.queryByText("Administración")).toBeNull();
-    expect(screen.queryByText("Invitar usuario")).toBeNull();
-    expect(screen.getByRole("button", { name: "Integrantes: 3" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Técnicos: 1" })).toBeTruthy();
+    expect(await screen.findByText("Redirigido a /")).toBeTruthy();
+    expect(screen.queryByText("Equipo")).toBeNull();
+    expect(screen.queryByText(/Integrantes|Técnicos|Finanzas|Invitar usuario|Administración/)).toBeNull();
+    expect(screen.queryByText("Paco Gómez")).toBeNull();
+    expect(screen.queryByText("Pablo")).toBeNull();
+  });
+
+  test("si pierde el rol con Técnicos abierto, vuelve al Calendario", async () => {
+    simular();
+    const { rerender } = await abrirBanda();
+    await fireEvent.press(screen.getByRole("button", { name: /^Técnicos/ }));
+
+    simular({ esAdmin: false });
+    await rerender(pantalla());
+
+    expect(screen.getByText("Redirigido a /")).toBeTruthy();
+    expect(screen.queryByText("Pablo")).toBeNull();
   });
 
   test("las filas del índice conservan la flecha y el título sin centrar", async () => {
@@ -205,8 +226,8 @@ describe("Banda: pantalla principal", () => {
 });
 
 describe("Banda: Integrantes", () => {
-  test.each([true, false])("lista los nombres sin correos, ids ni roles (admin: %s)", async (esAdmin) => {
-    simular({ esAdmin });
+  test("lista los nombres sin correos, ids ni roles", async () => {
+    simular();
     await abrirBanda();
 
     await fireEvent.press(screen.getByRole("button", { name: /^Integrantes/ }));
@@ -260,19 +281,6 @@ describe("Banda: Técnicos", () => {
 
     expect(screen.getByRole("button", { name: "Editar técnico" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Eliminar técnico" })).toBeTruthy();
-  });
-
-  test("un usuario normal ve el nombre centrado, pero no puede abrir el detalle", async () => {
-    simular({ esAdmin: false });
-    await abrirTecnicos();
-
-    expect(StyleSheet.flatten(screen.getByText("Pablo").props.style).textAlign).toBe("center");
-    expect(screen.queryByRole("button", { name: "Pablo" })).toBeNull();
-
-    await fireEvent.press(screen.getByText("Pablo"));
-
-    expect(screen.queryByText("Editar técnico")).toBeNull();
-    expect(screen.queryByText("Eliminar técnico")).toBeNull();
   });
 
   test("no hay Editar ni Eliminar en la lista", async () => {
@@ -415,28 +423,12 @@ describe("Banda: Técnicos", () => {
     expect(editar.backgroundColor).toBeDefined();
   });
 
-  test("un usuario normal consulta la lista, sin añadir ni abrir técnicos", async () => {
-    simular({ esAdmin: false });
-    await abrirTecnicos();
-
-    expect(screen.getByText("Pablo")).toBeTruthy();
-    expect(screen.queryByText("+ Añadir técnico")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Pablo" })).toBeNull();
-
-    await fireEvent.press(screen.getByText("Pablo"));
-    expect(screen.queryByText("Editar técnico")).toBeNull();
-    expect(screen.queryByText("Eliminar técnico")).toBeNull();
-  });
-
-  test.each([
-    [true, "Añade a las personas que ayudan a la banda en los conciertos."],
-    [false, "Cuando se añadan técnicos a la banda, aparecerán aquí."],
-  ])("estado vacío (admin: %s)", async (esAdmin, detalle) => {
-    simular({ esAdmin, tecnicos: [] });
+  test("estado vacío", async () => {
+    simular({ tecnicos: [] });
     await abrirTecnicos();
 
     expect(screen.getByText("Todavía no hay técnicos")).toBeTruthy();
-    expect(screen.getByText(detalle)).toBeTruthy();
+    expect(screen.getByText("Añade a las personas que ayudan a la banda en los conciertos.")).toBeTruthy();
   });
 
   test("segunda barrera: aunque se llame a las acciones, sin ser admin no llegan a la base", async () => {
@@ -537,7 +529,7 @@ describe("Banda: Invitar usuario", () => {
     expect(screen.getByText("Equipo")).toBeTruthy();
   });
 
-  test("si deja de ser admin con la vista abierta, vuelve al índice sin el flujo", async () => {
+  test("si deja de ser admin con la vista abierta, vuelve al Calendario sin el flujo", async () => {
     simular();
     const { rerender } = await render(pantalla());
     await screen.findByText("Equipo");
@@ -547,7 +539,7 @@ describe("Banda: Invitar usuario", () => {
     await rerender(pantalla());
 
     expect(screen.queryByText("Generar invitación")).toBeNull();
-    expect(screen.getByText("Equipo")).toBeTruthy();
+    expect(screen.getByText("Redirigido a /")).toBeTruthy();
   });
 });
 

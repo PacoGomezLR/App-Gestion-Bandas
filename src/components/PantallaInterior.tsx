@@ -1,4 +1,4 @@
-import { type PropsWithChildren, type ReactNode, useMemo } from "react";
+import { Children, isValidElement, type PropsWithChildren, type ReactNode, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -180,11 +180,23 @@ export function Tarjeta({ titulo, children }: TarjetaProps) {
   );
 }
 
-// Filas de una lista: el fondo del grupo hace de separador entre ellas
+// Filas de una lista, con una línea fina entre cada dos
 export function GrupoFilas({ children }: PropsWithChildren) {
   const estilos = useEstilos();
 
-  return <View style={estilos.grupoFilas}>{children}</View>;
+  return (
+    <View style={estilos.grupoFilas}>
+      {/* toArray descarta las filas condicionales que no se pintan y da a cada una su key */}
+      {Children.toArray(children).map((fila, indice) => (
+        <View
+          key={isValidElement(fila) && fila.key !== null ? fila.key : indice}
+          style={indice > 0 ? estilos.separadorFila : undefined}
+        >
+          {fila}
+        </View>
+      ))}
+    </View>
+  );
 }
 
 interface FilaTextoProps {
@@ -194,15 +206,15 @@ interface FilaTextoProps {
   centrado?: boolean;
 }
 
-// Fila de solo lectura
+// Fila de solo lectura: no es un botón, el lector de pantalla solo lee el texto
 export function FilaTexto({ titulo, secundario = false, centrado = false }: FilaTextoProps) {
   const estilos = useEstilos();
 
   return (
-    <View style={estilos.fila}>
+    <View style={estilos.filaLectura}>
       <Text
         style={[
-          estilos.tituloFila,
+          estilos.textoFila,
           secundario && estilos.tituloFilaSecundario,
           centrado && estilos.tituloFilaCentrado,
         ]}

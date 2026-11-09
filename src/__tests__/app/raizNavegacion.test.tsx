@@ -101,6 +101,22 @@ describe("un solo árbol de navegación", () => {
     expect(avisosDeContenedor(espia)).toEqual([]);
   });
 
+  test("un usuario normal que abre /banda acaba en el Calendario", async () => {
+    mockUseBandaContext.mockReturnValue({
+      bandaActual: { id: "b1", nombre: "IndiesPensables" },
+      pertenenciaActual: { bandaId: "b1", usuarioId: "u1", rol: "usuario", creadaEn: "2026-01-01" },
+      esAdmin: false,
+    } as unknown as ReturnType<typeof useBandaContext>);
+
+    await renderRouter(APP, { initialUrl: "/banda" });
+
+    await act(async () => {});
+
+    expect(screen).toHavePathname("/");
+    expect(screen.queryByText("Equipo")).toBeNull();
+    expect(screen.queryByText(/Finanzas|Invitar usuario|Integrantes|Técnicos/)).toBeNull();
+  });
+
   // Android relanza la Activity en el mismo proceso: la raíz nueva se monta
   // antes de que se desmonte la vieja, y Expo Router avisa de dos contenedores
   test("tras un relanzamiento de Android la raíz nueva sigue pintando la app", async () => {

@@ -14,7 +14,15 @@ import type { DatosMovimiento, MovimientoFinanciero } from "../../types/finanzas
 
 let mockEnFoco = true;
 
-jest.mock("expo-router", () => ({ useIsFocused: () => mockEnFoco }));
+// Redirect se pinta como texto: así se ve adónde mandaría sin un router real
+jest.mock("expo-router", () => {
+  const { Text } = jest.requireActual<typeof import("react-native")>("react-native");
+
+  return {
+    useIsFocused: () => mockEnFoco,
+    Redirect: ({ href }: { href: string }) => <Text>{`Redirigido a ${href}`}</Text>,
+  };
+});
 
 jest.mock("../../global.css", () => ({}));
 jest.mock("../../lib/supabase", () => ({ supabase: {} }));
@@ -258,6 +266,7 @@ describe("Finanzas: permisos", () => {
     simular({ esAdmin: false });
     await render(<BandaScreen />);
 
+    expect(screen.getByText("Redirigido a /")).toBeTruthy();
     expect(screen.queryByText("Finanzas")).toBeNull();
     expect(screen.queryByText("Administración")).toBeNull();
     expect(screen.queryByText(/€/)).toBeNull();
@@ -272,7 +281,7 @@ describe("Finanzas: permisos", () => {
     expect(mockListar).not.toHaveBeenCalled();
   });
 
-  test("si pierde el rol con Finanzas abierta vuelve a Banda sin ningún importe", async () => {
+  test("si pierde el rol con Finanzas abierta vuelve al Calendario sin ningún importe", async () => {
     simular();
     const { rerender } = await abrirFinanzas();
 
@@ -281,7 +290,8 @@ describe("Finanzas: permisos", () => {
     simular({ esAdmin: false });
     await rerender(<BandaScreen />);
 
-    expect(screen.getByText("Equipo")).toBeTruthy();
+    expect(screen.getByText("Redirigido a /")).toBeTruthy();
+    expect(screen.queryByText("Equipo")).toBeNull();
     expect(screen.queryByText("Bote actual")).toBeNull();
     expect(screen.queryByText(/€/)).toBeNull();
   });
