@@ -25,28 +25,28 @@ export function crearEstilosListaEventos(colores: ColoresTema) {
     vistaPreviaPulsada: {
       backgroundColor: colores.backgroundSelected,
     },
-    // flexWrap: en pantallas estrechas el estado pasa debajo del título
-    filaVistaPrevia: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: Spacing.two,
-    },
-    // Tipo y lugar arriba, fecha debajo; el bloque cede espacio al estado
+    // Tipo, lugar y fecha, uno debajo de otro
     textosVistaPrevia: {
-      flexShrink: 1,
       gap: Spacing.half,
     },
+    // Primera línea: tipo a la izquierda y estado a la derecha, sin saltar de fila
+    filaVistaPrevia: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: Spacing.two,
+    },
+    // Ocupa lo que deja el badge; si no cabe, el tipo baja de línea
     tipo: {
+      flex: 1,
       fontSize: 17,
       lineHeight: 24,
       fontWeight: "600",
       color: colores.text,
     },
-    // El lugar va en la misma línea, en segundo plano
+    // Segunda línea, en segundo plano
     lugar: {
-      fontWeight: "400",
+      fontSize: 15,
+      lineHeight: 20,
       color: colores.textSecondary,
     },
     fechaVistaPrevia: {
@@ -55,7 +55,9 @@ export function crearEstilosListaEventos(colores: ColoresTema) {
       fontWeight: "500",
       color: colores.textSecondary,
     },
+    // Nunca se encoge: el texto largo es el tipo, no el estado
     badge: {
+      flexShrink: 0,
       paddingHorizontal: Spacing.two + Spacing.half,
       paddingVertical: Spacing.half,
       borderRadius: 999,

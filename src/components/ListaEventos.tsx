@@ -101,43 +101,39 @@ export function ListaEventos({
                 pressed && estilos.vistaPreviaPulsada,
               ]}
             >
-              <View style={estilos.filaVistaPrevia}>
-                <View style={estilos.textosVistaPrevia}>
-                  {/* Tipo destacado y lugar en segundo plano; el texto completo sigue siendo "Tipo Lugar" */}
-                  <Text style={estilos.tipo}>
-                    {tipo}
-                    {lugar !== "" && <Text style={estilos.lugar}>{` ${lugar}`}</Text>}
-                  </Text>
-                  {/* Solo la fecha: la hora se queda en el detalle */}
-                  <Text style={estilos.fechaVistaPrevia}>{fechaVisible}</Text>
+              <View style={estilos.textosVistaPrevia}>
+                {/* Tipo a la izquierda y estado a la derecha: el tipo ocupa el espacio
+                    que queda y, si es largo, baja de línea sin mover el badge */}
+                <View style={estilos.filaVistaPrevia}>
+                  <Text style={estilos.tipo}>{tipo}</Text>
+                  {/* El estado siempre se muestra con texto, no solo con color */}
+                  <View style={[estilos.badge, badges[evento.estado].fondo]}>
+                    <Text style={[estilos.textoBadge, badges[evento.estado].texto]}>
+                      {etiquetaEstado}
+                    </Text>
+                  </View>
                 </View>
-                {/* El estado siempre se muestra con texto, no solo con color */}
-                <View style={[estilos.badge, badges[evento.estado].fondo]}>
-                  <Text style={[estilos.textoBadge, badges[evento.estado].texto]}>
-                    {etiquetaEstado}
-                  </Text>
-                </View>
+                {/* Sin lugar no queda línea vacía */}
+                {lugar !== "" && <Text style={estilos.lugar}>{lugar}</Text>}
+                {/* Solo la fecha: la hora se queda en el detalle */}
+                <Text style={estilos.fechaVistaPrevia}>{fechaVisible}</Text>
               </View>
             </Pressable>
 
             {abierto && (
               <View style={estilos.detalle}>
-                {/* El título se sigue guardando, pero no se muestra: repite tipo, lugar y fecha */}
-                <BloqueEvento etiqueta="Fecha">
-                  {evento.hora === "" ? fechaVisible : `${fechaVisible} · ${evento.hora}`}
-                </BloqueEvento>
+                {/* El título se sigue guardando, pero no se muestra: repite tipo, lugar y fecha.
+                    La fecha tampoco: ya está en la tarjeta. Solo la hora, si se escribió
+                    ("" = sin hora; nunca se calcula a partir de la fecha) */}
+                {evento.hora !== "" && <BloqueEvento etiqueta="Hora">{evento.hora}</BloqueEvento>}
 
-                {/* Campos opcionales: solo se muestran si tienen valor */}
-                {evento.lugar !== "" && <BloqueEvento etiqueta="Lugar">{evento.lugar}</BloqueEvento>}
-
-                {/* Para toda la banda, como el lugar: sin enlace no queda hueco */}
-                {evento.googleMapsUrl ? <BotonGoogleMaps url={evento.googleMapsUrl} /> : null}
-
-                <BloqueEvento etiqueta="Estado">{etiquetaEstado}</BloqueEvento>
-
+                {/* Lugar, fecha y estado ya están en la tarjeta: el detalle no los repite */}
                 <BloqueEvento etiqueta="Técnico">
                   {nombresTecnicos.length > 0 ? nombresTecnicos.join(", ") : "Sin asignar"}
                 </BloqueEvento>
+
+                {/* Para toda la banda: sin enlace no queda hueco */}
+                {evento.googleMapsUrl ? <BotonGoogleMaps url={evento.googleMapsUrl} /> : null}
 
                 {datosEconomicos !== null && (
                   <BloqueEvento etiqueta="Caché">

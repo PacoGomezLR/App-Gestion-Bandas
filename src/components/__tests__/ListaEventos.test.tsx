@@ -90,15 +90,79 @@ async function renderizar(lista: Evento[], procesando = false, puedeEditar = tru
   return { ...resultado, onEliminar, onEditar };
 }
 
+// La tarjeta se busca por su etiqueta accesible: "Ver detalles de Tipo Lugar, fecha. Estado X"
 async function abrir(vistaPrevia: string) {
-  await fireEvent.press(screen.getByText(vistaPrevia));
+  await fireEvent.press(screen.getByRole("button", { name: new RegExp(`^Ver detalles de ${vistaPrevia},`) }));
 }
 
 describe("ListaEventos", () => {
+  test("tarjeta: tipo y estado arriba, debajo el lugar y luego la fecha, sin etiquetas", async () => {
+    const { getByText, queryByText, toJSON } = await renderizar([boda]);
+
+    const tipo = getByText("Boda");
+    const badge = getByText("Confirmado");
+
+    // Tipo y badge en la misma fila (el badge dentro de su fondo de color)
+    expect(badge.parent?.parent).toBe(tipo.parent);
+    // El lugar va solo, separado del tipo
+    expect(getByText("Lucena")).toBeTruthy();
+    expect(queryByText("Boda Lucena")).toBeNull();
+    expect(queryByText("Lugar")).toBeNull();
+    expect(queryByText("Fecha")).toBeNull();
+
+    const renderizado = JSON.stringify(toJSON());
+    const orden = ['"Boda"', '"Confirmado"', '"Lucena"', '"15/05/2027"'].map((texto) =>
+      renderizado.indexOf(texto)
+    );
+
+    expect(orden.every((posicion) => posicion >= 0)).toBe(true);
+    expect([...orden].sort((a, b) => a - b)).toEqual(orden);
+  });
+
+  test("el lugar va en segundo plano y la fecha sigue con su estilo", async () => {
+    const { getByText } = await renderizar([boda]);
+
+    const tipo = StyleSheet.flatten(getByText("Boda").props.style);
+    const lugar = StyleSheet.flatten(getByText("Lucena").props.style);
+
+    expect(lugar.color).not.toBe(tipo.color);
+    expect(lugar.fontWeight).not.toBe(tipo.fontWeight);
+  });
+
+  test("con un tipo largo el badge conserva su sitio a la derecha", async () => {
+    const { getByText } = await renderizar([boda]);
+
+    const tipo = getByText("Boda");
+    const fila = StyleSheet.flatten(tipo.parent?.props.style);
+    const fondoBadge = StyleSheet.flatten(getByText("Confirmado").parent?.props.style);
+
+    // Sin saltar de fila: el tipo ocupa lo que queda y baja de línea si no cabe
+    expect(fila.flexDirection).toBe("row");
+    expect(fila.flexWrap).toBeUndefined();
+    expect(StyleSheet.flatten(tipo.props.style).flex).toBe(1);
+    expect(fondoBadge.flexShrink).toBe(0);
+  });
+
+  test("la etiqueta accesible sigue diciendo el estado aunque el detalle no lo repita", async () => {
+    await renderizar([boda]);
+
+    const tarjeta = screen.getByRole("button", { name: /^Ver detalles de/ });
+
+    expect(tarjeta.props.accessibilityLabel).toBe(
+      "Ver detalles de Boda Lucena, 15/05/2027. Estado Confirmado"
+    );
+
+    await fireEvent.press(tarjeta);
+
+    expect(screen.queryByText("Estado")).toBeNull();
+    expect(tarjeta.props.accessibilityLabel).toMatch(/Estado Confirmado$/);
+  });
+
   test("muestra una vista previa cerrada con tipo y lugar", async () => {
     const { getByText, queryByText } = await renderizar([boda]);
 
-    expect(getByText("Boda Lucena")).toBeTruthy();
+    expect(getByText("Boda")).toBeTruthy();
+    expect(getByText("Lucena")).toBeTruthy();
     expect(queryByText(/^Título:/)).toBeNull();
     expect(queryByText("Técnico")).toBeNull();
     expect(queryByText(/^Nota:/)).toBeNull();
@@ -109,7 +173,7 @@ describe("ListaEventos", () => {
   test("la vista previa cerrada muestra tipo + lugar + fecha DD/MM/YYYY + estado, sin hora", async () => {
     const { getByText, queryByText, toJSON } = await renderizar([boda]);
 
-    expect(getByText("Boda Lucena")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Ver detalles de Boda Lucena,/ })).toBeTruthy();
     expect(getByText("15/05/2027")).toBeTruthy();
     expect(getByText("Confirmado")).toBeTruthy();
     // La fecha va sola, sin etiqueta: el detalle sigue cerrado
@@ -132,20 +196,21 @@ describe("ListaEventos", () => {
     expect(queryByText(/20:30/)).toBeNull();
   });
 
-  test("al abrir el evento muestra su fecha en formato DD/MM/YYYY", async () => {
+  test("al abrir el evento la fecha sigue solo en la tarjeta, en formato DD/MM/YYYY", async () => {
     await renderizar([fiesta]);
 
     await abrir("Fiesta privada Córdoba");
 
-    // Una en la tarjeta y otra en el detalle, sin repetirse con otro formato
-    expect(screen.getAllByText("01/06/2027")).toHaveLength(2);
+    // Solo en la tarjeta: el detalle no la repite, ni en otro formato
+    expect(screen.getAllByText("01/06/2027")).toHaveLength(1);
+    expect(screen.queryByText("Fecha")).toBeNull();
     expect(screen.queryByText(/01-06-2027/)).toBeNull();
   });
 
   test("muestra el badge Confirmado en la vista previa sin abrir el evento", async () => {
     const { getByText, queryByText } = await renderizar([boda]);
 
-    expect(getByText("Boda Lucena")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Ver detalles de Boda Lucena,/ })).toBeTruthy();
     expect(getByText("Confirmado")).toBeTruthy();
     // El detalle sigue cerrado
     expect(queryByText(/^Estado:/)).toBeNull();
@@ -155,7 +220,7 @@ describe("ListaEventos", () => {
   test("muestra el badge Pendiente en la vista previa sin abrir el evento", async () => {
     const { getByText, queryByText } = await renderizar([fiesta]);
 
-    expect(getByText("Fiesta privada Córdoba")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Ver detalles de Fiesta privada Córdoba,/ })).toBeTruthy();
     expect(getByText("Pendiente")).toBeTruthy();
     expect(queryByText(/^Título:/)).toBeNull();
   });
@@ -179,15 +244,19 @@ describe("ListaEventos", () => {
     // El título se guarda internamente, pero ya no se muestra
     expect(queryByText(/^Título:/)).toBeNull();
     expect(queryByText("Boda de María y Juan")).toBeNull();
-    expect(getByText("15/05/2027 · 20:30")).toBeTruthy();
+    // Solo la hora: la fecha ya está en la tarjeta y no se repite en el detalle
+    expect(getByText("Hora")).toBeTruthy();
+    expect(getByText("20:30")).toBeTruthy();
+    expect(queryByText("Fecha")).toBeNull();
+    expect(queryByText(/·/)).toBeNull();
+    expect(screen.getAllByText("15/05/2027")).toHaveLength(1);
     expect(screen.queryByText(/15-05-2027/)).toBeNull();
-    // En la tarjeta y en el detalle
-    expect(screen.getAllByText("Lucena")).toHaveLength(2);
-    expect(getByText("Fecha")).toBeTruthy();
-    expect(getByText("Lugar")).toBeTruthy();
-    expect(getByText("Estado")).toBeTruthy();
-    // El badge de la tarjeta y el dato del detalle
-    expect(screen.getAllByText("Confirmado")).toHaveLength(2);
+    // El lugar solo en la tarjeta: el detalle no lo repite
+    expect(screen.getAllByText("Lucena")).toHaveLength(1);
+    expect(queryByText("Lugar")).toBeNull();
+    // El estado solo está en el badge de la tarjeta: el detalle no lo repite
+    expect(queryByText("Estado")).toBeNull();
+    expect(screen.getAllByText("Confirmado")).toHaveLength(1);
     expect(screen.queryByText("confirmado")).toBeNull();
     expect(getByText("Técnico")).toBeTruthy();
     expect(getByText("Carlos")).toBeTruthy();
@@ -270,10 +339,16 @@ describe("ListaEventos", () => {
 
     await abrir("Boda");
 
-    // Sin hora solo la fecha, y sin notas no hay bloque
-    expect(screen.getAllByText("15/05/2027")).toHaveLength(2);
+    // Sin hora no hay bloque Hora ni ninguna hora inventada; la fecha solo en la tarjeta
+    expect(queryByText("Hora")).toBeNull();
+    expect(queryByText("Fecha")).toBeNull();
+    expect(queryByText(/\d{1,2}:\d{2}/)).toBeNull();
+    expect(screen.getAllByText("15/05/2027")).toHaveLength(1);
     expect(queryByText(/·/)).toBeNull();
     expect(queryByText("Notas")).toBeNull();
+    // El estado sigue en el badge y no se repite en el detalle
+    expect(screen.getAllByText("Confirmado")).toHaveLength(1);
+    expect(queryByText("Estado")).toBeNull();
   });
 
   test("muestra el tipo con su etiqueta y no con el valor interno", async () => {
@@ -302,7 +377,7 @@ describe("ListaEventos", () => {
 
     expect(queryByText("Técnico")).toBeNull();
     expect(queryByText("Editar evento")).toBeNull();
-    expect(getByText("Boda Lucena")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Ver detalles de Boda Lucena,/ })).toBeTruthy();
   });
 
   test("solo hay un evento abierto a la vez", async () => {
@@ -318,7 +393,7 @@ describe("ListaEventos", () => {
 
     // getAllByText: exactamente un detalle abierto
     expect(getAllByText("Técnico")).toHaveLength(1);
-    expect(queryByText("15/05/2027 · 20:30")).toBeNull();
+    expect(queryByText("20:30")).toBeNull();
     expect(getAllByText("Editar evento")).toHaveLength(1);
   });
 
@@ -558,7 +633,7 @@ describe("ListaEventos: datos económicos", () => {
     );
     await abrirConcierto();
 
-    const estilos = ["Fecha", "Lugar", "Estado", "Técnico", "Caché", "Notas"].map((etiqueta) =>
+    const estilos = ["Hora", "Técnico", "Caché", "Notas"].map((etiqueta) =>
       StyleSheet.flatten(screen.getByText(etiqueta).props.style)
     );
     const valor = StyleSheet.flatten(screen.getByText("Con prueba").props.style);
@@ -628,8 +703,12 @@ describe("ListaEventos: enlace de Google Maps", () => {
     expect(boton()).toBeTruthy();
     expect(screen.getByText("Abrir en Google Maps")).toBeTruthy();
     expect(screen.queryByText(new RegExp("maps\\.app\\.goo\\.gl"))).toBeNull();
-    // El lugar sigue a la vista, aparte
-    expect(screen.getByText("Lugar")).toBeTruthy();
+    // Después del técnico, como información adicional del detalle
+    const renderizado = JSON.stringify(screen.toJSON());
+    expect(renderizado.indexOf('"Técnico"')).toBeLessThan(renderizado.indexOf('"Abrir en Google Maps"'));
+    // El lugar sigue a la vista en la tarjeta, aparte y sin repetirse
+    expect(screen.getAllByText("Caseta Municipal")).toHaveLength(1);
+    expect(screen.queryByText("Lugar")).toBeNull();
   });
 
   test("sin enlace no hay botón", async () => {

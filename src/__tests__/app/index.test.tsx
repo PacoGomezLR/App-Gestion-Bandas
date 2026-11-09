@@ -240,8 +240,8 @@ describe("Calendario: próximas fechas, todas e historial", () => {
     expect(screen.getByText("Próximas fechas")).toBeTruthy();
     // Hoy cuenta como próxima; después, de la más próxima a la más lejana
     estaEnOrden(["Ensayo Hoy", "Ensayo F1", "Ensayo F2", "Ensayo F3", "Ensayo F4"]);
-    expect(screen.queryByText("Ensayo F5")).toBeNull();
-    expect(screen.queryByText("Ensayo F6")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Ver detalles de Ensayo F5,/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Ver detalles de Ensayo F6,/ })).toBeNull();
     // Nada del pasado en el inicio
     for (const pasado of ["Ensayo Ayer", "Ensayo Pasado1", "Ensayo Pasado2"]) {
       expect(screen.queryByText(pasado)).toBeNull();
@@ -265,8 +265,8 @@ describe("Calendario: próximas fechas, todas e historial", () => {
       "Ensayo F6",
       "Ensayo F7",
     ]);
-    expect(screen.queryByText("Ensayo Ayer")).toBeNull();
-    expect(screen.queryByText("Ensayo Pasado1")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Ver detalles de Ensayo Ayer,/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Ver detalles de Ensayo Pasado1,/ })).toBeNull();
     // El historial no se ve por defecto: es un acceso secundario
     expect(screen.getByText("Consultar historial")).toBeTruthy();
   });
@@ -280,8 +280,8 @@ describe("Calendario: próximas fechas, todas e historial", () => {
 
     expect(screen.getByText("Historial")).toBeTruthy();
     estaEnOrden(["Ensayo Ayer", "Ensayo Pasado1", "Ensayo Pasado2"]);
-    expect(screen.queryByText("Ensayo Hoy")).toBeNull();
-    expect(screen.queryByText("Ensayo F1")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Ver detalles de Ensayo Hoy,/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Ver detalles de Ensayo F1,/ })).toBeNull();
 
     // Se vuelve atrás sin perder nada
     await fireEvent.press(screen.getByText("Volver a todas las fechas"));
@@ -299,8 +299,8 @@ describe("Calendario: próximas fechas, todas e historial", () => {
 
     expect(mockPersistirEvento).not.toHaveBeenCalled();
     // El historial lee la misma lista: al abrir una tarjeta se ve su detalle de siempre
-    await fireEvent.press(screen.getByText("Ensayo Ayer"));
-    expect(screen.getAllByText("09/11/2026")).toHaveLength(2);
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo Ayer,/ }));
+    expect(screen.getAllByText("09/11/2026")).toHaveLength(1);
     expect(screen.getByText("Técnico")).toBeTruthy();
   });
 
@@ -346,7 +346,7 @@ describe("Calendario: próximas fechas, todas e historial", () => {
     await fireEvent.press(screen.getByText("Consultar historial"));
 
     expect(screen.getByText("Historial")).toBeTruthy();
-    expect(screen.getByText("Ensayo Pasado1")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Ver detalles de Ensayo Pasado1,/ })).toBeTruthy();
     // Volver regresa al calendario, que es de donde se vino
     await fireEvent.press(screen.getByText("Volver al calendario"));
     expect(screen.getByText("Próximas fechas")).toBeTruthy();
@@ -356,13 +356,13 @@ describe("Calendario: próximas fechas, todas e historial", () => {
     simular({ esAdmin: false, eventos: AGENDA });
     await render(<Index />);
 
-    await fireEvent.press(screen.getByText("Ensayo F1"));
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F1,/ }));
     expect(screen.queryByText("Editar evento")).toBeNull();
     expect(screen.queryByText("Eliminar evento")).toBeNull();
 
     await fireEvent.press(screen.getByText("Ver todas las fechas"));
     await fireEvent.press(screen.getByText("Consultar historial"));
-    await fireEvent.press(screen.getByText("Ensayo Ayer"));
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo Ayer,/ }));
     expect(screen.queryByText("Editar evento")).toBeNull();
     // No se enseña el rol
     expect(screen.queryByText(/admin|usuario|solo lectura/i)).toBeNull();
@@ -512,7 +512,7 @@ describe("Calendario: panel del día", () => {
 
     expect(screen.getByText("Eventos de este día")).toBeTruthy();
     // En el panel y en las próximas fechas
-    expect(screen.getAllByText("Ensayo Lucena")).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Ver detalles de Ensayo Lucena,/ })).toHaveLength(2);
     expect(screen.getByText("⚠ 1 no disponible")).toBeTruthy();
   });
 
@@ -570,7 +570,7 @@ describe("Calendario: panel del día", () => {
     );
     expect(screen.queryByText("Tu disponibilidad")).toBeNull();
     // Ya aparece en las próximas fechas
-    expect(screen.getByText("Concierto abierto Montilla")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Ver detalles de Concierto abierto Montilla,/ })).toBeTruthy();
   });
 
   test("un evento pendiente con conflictos se guarda sin aviso", async () => {
@@ -633,7 +633,7 @@ describe("Calendario: panel del día", () => {
     simular({ eventos: AGENDA });
     await render(<Index />);
 
-    await fireEvent.press(screen.getByText("Ensayo F2"));
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2,/ }));
     await fireEvent.press(screen.getByText("Editar evento"));
 
     // En la cabecera del panel y en el formulario
@@ -957,7 +957,6 @@ describe("Calendario: caché acordado", () => {
     await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
 
     expect(screen.getByText("Técnico")).toBeTruthy();
-    expect(screen.getByText("Estado")).toBeTruthy();
     expect(screen.queryByText("Caché")).toBeNull();
     expect(screen.queryByLabelText("Caché acordado")).toBeNull();
   });

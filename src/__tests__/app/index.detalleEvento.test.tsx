@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import Index from "../../app/index";
 import { useBandaContext } from "../../context/BandaContext";
 import { useEventosContext } from "../../context/EventosContext";
@@ -180,40 +180,51 @@ describe("Calendario → detalle del evento", () => {
 
     const { getByText, queryByText, toJSON } = await render(<Index />);
 
-    // Cerrada: tipo + lugar, fecha DD/MM/YYYY y estado; nunca la hora
-    expect(getByText("Concierto abierto Montilla")).toBeTruthy();
+    // Cerrada: tipo, lugar aparte, fecha DD/MM/YYYY y estado; nunca la hora
+    expect(getByText("Concierto abierto")).toBeTruthy();
+    expect(getByText("Montilla")).toBeTruthy();
     expect(getByText("29/10/2026")).toBeTruthy();
     expect(getByText("Confirmado")).toBeTruthy();
     expect(queryByText(/^Fecha:/)).toBeNull();
     expect(JSON.stringify(toJSON())).not.toMatch(/29-10-2026|2026-10-29|21:00/);
 
-    await fireEvent.press(getByText("Concierto abierto Montilla"));
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Concierto abierto Montilla,/ }));
 
-    expect(getByText("29/10/2026 · 21:00")).toBeTruthy();
+    expect(getByText("Hora")).toBeTruthy();
+    expect(getByText("21:00")).toBeTruthy();
+    expect(queryByText("Fecha")).toBeNull();
+    expect(queryByText("Lugar")).toBeNull();
     expect(queryByText(/29-10-2026/)).toBeNull();
     // Editar y Eliminar solo para el admin
     expect(queryByText("Editar evento") !== null).toBe(esAdmin);
     expect(queryByText("Eliminar evento") !== null).toBe(esAdmin);
   });
 
-  test("el detalle abierto sigue el orden fecha y hora, lugar, estado, técnico, caché y notas, sin Título ni Músicos", async () => {
+  test("el detalle abierto sigue el orden hora, técnico, caché y notas, sin Título ni Músicos", async () => {
     simularPantalla(true);
 
     const { getByText, toJSON } = await render(<Index />);
 
-    await fireEvent.press(getByText("Concierto abierto Montilla"));
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Concierto abierto Montilla,/ }));
 
     const renderizado = JSON.stringify(toJSON());
     expect(renderizado).not.toContain("Título");
     expect(renderizado).not.toMatch(/Músicos|Miembros/);
     expect(renderizado).not.toContain("Concierto abierto Montilla 29/10/2026");
+    // El estado ya está en el badge de la tarjeta: el detalle no lo repite
+    expect(renderizado).not.toContain('"Estado"');
+
+    // Lugar y fecha ya están en la tarjeta: el detalle no los repite
+    expect(renderizado).not.toContain('"Fecha"');
+    expect(renderizado).not.toContain('"Lugar"');
+    expect(renderizado.split('"Montilla"')).toHaveLength(2);
+    expect(renderizado.split('"29/10/2026"')).toHaveLength(2);
 
     const posiciones = [
-      '"Fecha"',
-      '"29/10/2026 · 21:00"',
-      '"Lugar"',
       '"Montilla"',
-      '"Estado"',
+      '"29/10/2026"',
+      '"Hora"',
+      '"21:00"',
       '"Técnico"',
       '"Caché"',
       '"Notas"',
