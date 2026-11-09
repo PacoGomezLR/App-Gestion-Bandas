@@ -1,8 +1,11 @@
 import {
   fireEvent,
   render,
+  within,
 } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
+import { Colors } from "../../constants/theme";
 import { CalendarioEventos } from "../CalendarioEventos";
 import { crearMarcaNoDisponible } from "../CalendarioEventos.styles";
 
@@ -238,5 +241,67 @@ describe("CalendarioEventos", () => {
     expect(crearMarcaNoDisponible(Colors.light, false).container.borderColor).toBe(Colors.light.conflict);
     expect(crearMarcaNoDisponible(Colors.dark, false).container.borderColor).toBe(Colors.dark.conflict);
     expect(Colors.light.conflict).not.toBe(Colors.dark.conflict);
+  });
+});
+
+describe("CalendarioEventos: texto de ayuda", () => {
+  const AYUDA = "Para crear un evento, pulsa un día del calendario.";
+
+  async function pintarConAyuda() {
+    return render(
+      <CalendarioEventos
+        fecha=""
+        fechasConEventos={[]}
+        ayuda={AYUDA}
+        onSeleccionarFecha={jest.fn()}
+      />
+    );
+  }
+
+  test("va dentro de una píldora con los colores de información del tema", async () => {
+    const { getByTestId, getByText } = await pintarConAyuda();
+
+    const pildora = getByTestId("ayuda-calendario");
+    const estilo = StyleSheet.flatten(pildora.props.style);
+
+    // El texto está dentro de la píldora
+    expect(within(pildora).getByText(AYUDA)).toBeTruthy();
+    expect(estilo.borderRadius).toBe(999);
+    expect(estilo.paddingVertical).toBeGreaterThan(0);
+    expect(estilo.paddingHorizontal).toBeGreaterThan(0);
+    // Información, no error ni advertencia
+    expect(estilo.backgroundColor).toBe(Colors.light.infoBackground);
+    expect(StyleSheet.flatten(getByText(AYUDA).props.style).color).toBe(Colors.light.info);
+  });
+
+  test("el texto va centrado", async () => {
+    const { getByText } = await pintarConAyuda();
+
+    expect(StyleSheet.flatten(getByText(AYUDA).props.style).textAlign).toBe("center");
+  });
+
+  test("la píldora se centra en el bloque y solo ocupa lo que necesita", async () => {
+    const { getByTestId } = await pintarConAyuda();
+
+    const estilo = StyleSheet.flatten(getByTestId("ayuda-calendario").props.style);
+
+    expect(estilo.alignSelf).toBe("center");
+    expect(estilo.width).toBeUndefined();
+    expect(estilo.maxWidth).toBe("100%");
+  });
+
+  test("es más pequeña que un título", async () => {
+    const { getByText } = await pintarConAyuda();
+
+    expect(StyleSheet.flatten(getByText(AYUDA).props.style).fontSize).toBeLessThan(18);
+  });
+
+  test("sin ayuda no deja ningún texto vacío", async () => {
+    const { queryByTestId, queryByText } = await render(
+      <CalendarioEventos fecha="" fechasConEventos={[]} onSeleccionarFecha={jest.fn()} />
+    );
+
+    expect(queryByText(/Para crear un evento/)).toBeNull();
+    expect(queryByTestId("ayuda-calendario")).toBeNull();
   });
 });

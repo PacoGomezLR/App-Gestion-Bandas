@@ -1037,3 +1037,24 @@ describe("Calendario: tipo de evento obligatorio", () => {
     expect(screen.queryByText("Selecciona un tipo de evento.")).toBeNull();
   });
 });
+
+describe("Calendario: ayuda para crear eventos", () => {
+  const AYUDA = "Para crear un evento, pulsa un día del calendario.";
+
+  test("un admin ve la ayuda justo encima del calendario, después del título", async () => {
+    simular();
+    await render(<Index />);
+
+    expect(screen.getByText(AYUDA)).toBeTruthy();
+    expect(screen.getByTestId("ayuda-calendario")).toBeTruthy();
+    estaEnOrden(["Calendario", "Cathaline", AYUDA, "marked-dates"]);
+  });
+
+  test("un usuario normal no la ve", async () => {
+    simular({ esAdmin: false });
+    await render(<Index />);
+
+    expect(screen.queryByText(AYUDA)).toBeNull();
+    expect(screen.queryByTestId("ayuda-calendario")).toBeNull();
+  });
+});

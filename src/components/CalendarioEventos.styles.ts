@@ -11,6 +11,23 @@ export function crearEstilosCalendarioEventos(colores: ColoresTema) {
     contenedor: {
       gap: Spacing.two,
     },
+    // Ayuda breve en forma de píldora: con los colores de información del tema, que
+    // no se confunden con un error ni con un aviso. Mide lo que su texto
+    pildoraAyuda: {
+      alignSelf: "center",
+      maxWidth: "100%",
+      paddingVertical: Spacing.two,
+      paddingHorizontal: Spacing.three,
+      borderRadius: 999,
+      backgroundColor: colores.infoBackground,
+    },
+    textoAyuda: {
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "500",
+      textAlign: "center",
+      color: colores.info,
+    },
     fechaSeleccionada: {
       fontSize: 15,
       fontWeight: "600",

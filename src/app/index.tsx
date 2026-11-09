@@ -336,6 +336,8 @@ export default function Index() {
         fecha={fecha}
         fechasConEventos={eventos.map((evento) => evento.fecha)}
         noDisponiblesPorFecha={noDisponiblesPorFecha}
+        // Solo un admin crea eventos: al resto no se le explica una acción que no tiene
+        ayuda={esAdmin ? "Para crear un evento, pulsa un día del calendario." : undefined}
         onSeleccionarFecha={seleccionarDia}
       />
 

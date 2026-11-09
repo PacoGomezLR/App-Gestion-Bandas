@@ -20,6 +20,8 @@ interface CalendarioEventosProps {
   // Cuántos integrantes no están disponibles cada día; sin entrada = todos disponibles.
   // Los nombres nunca van en la celda: se muestran en el contenido del día.
   noDisponiblesPorFecha?: Record<string, number>;
+  // Explicación breve encima del calendario; sin ella no se muestra nada
+  ayuda?: string;
   onSeleccionarFecha: (fecha: string) => void;
 }
 
@@ -27,6 +29,7 @@ export function CalendarioEventos({
   fecha,
   fechasConEventos,
   noDisponiblesPorFecha = {},
+  ayuda,
   onSeleccionarFecha,
 }: CalendarioEventosProps) {
   const tema = useTheme();
@@ -81,6 +84,12 @@ export function CalendarioEventos({
 
   return (
     <View style={estilos.contenedor}>
+      {ayuda !== undefined && (
+        <View testID="ayuda-calendario" style={estilos.pildoraAyuda}>
+          <Text style={estilos.textoAyuda}>{ayuda}</Text>
+        </View>
+      )}
+
       {/* Sin fecha elegida no se muestra una etiqueta vacía */}
       {fecha !== "" && (
         <Text style={estilos.fechaSeleccionada}>
