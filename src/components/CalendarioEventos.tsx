@@ -1,16 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import { Calendar } from "react-native-calendars";
 import type { MarkingProps } from "react-native-calendars/src/calendar/day/marking";
 import "../config/calendario";
 import { useTheme } from "@/hooks/use-theme";
 import { tituloNoDisponibles } from "../utils/disponibilidad";
-import { formatearFecha } from "../utils/fechas";
+import { fechaDeHoy, formatearFecha } from "../utils/fechas";
+import { crearCabeceraCalendario } from "./CabeceraCalendario";
 import {
   crearEstilosCalendarioEventos,
   crearMarcaNoDisponible,
-  crearTemaCalendario,
+  crearTemaCalendarioFijo,
 } from "./CalendarioEventos.styles";
+import { SelectorMesAnio } from "./SelectorMesAnio";
 
 interface CalendarioEventosProps {
   fecha: string;
@@ -29,7 +31,18 @@ export function CalendarioEventos({
 }: CalendarioEventosProps) {
   const tema = useTheme();
   const estilos = useMemo(() => crearEstilosCalendarioEventos(tema), [tema]);
-  const temaCalendario = useMemo(() => crearTemaCalendario(tema), [tema]);
+  const temaCalendario = useMemo(() => crearTemaCalendarioFijo(tema), [tema]);
+  // Mes visible al abrir el selector de mes y año; null = cerrado
+  const [selectorMes, setSelectorMes] = useState<string | null>(null);
+  // El mes lo lleva la librería: un salto la vuelve a montar en el mes pedido.
+  // vez cambia en cada salto, para que pedir dos veces el mismo mes también funcione
+  const [salto, setSalto] = useState<{ mes: string; vez: number } | null>(null);
+  const Cabecera = useMemo(() => crearCabeceraCalendario(setSelectorMes), []);
+
+  function saltarAMes(mes: string) {
+    setSelectorMes(null);
+    setSalto((anterior) => ({ mes, vez: (anterior?.vez ?? 0) + 1 }));
+  }
 
   const fechasMarcadas = fechasConEventos.reduce<Record<string, MarkingProps>>(
     (resultado, fechaEvento) => {
@@ -77,7 +90,9 @@ export function CalendarioEventos({
 
       <Calendar
         // react-native-calendars fija su tema al montarse: se vuelve a montar al cambiar claro/oscuro
-        key={tema.background}
+        key={`${tema.background}-${salto?.vez ?? 0}`}
+        current={salto === null ? undefined : `${salto.mes}-01`}
+        testID="calendario"
         firstDay={1}
         // custom permite el anillo de no disponibles sin perder el punto de los eventos
         markingType="custom"
@@ -87,7 +102,17 @@ export function CalendarioEventos({
         markedDates={fechasMarcadas}
         theme={temaCalendario}
         style={estilos.calendario}
+        customHeader={Cabecera}
       />
+
+      {selectorMes !== null && (
+        <SelectorMesAnio
+          mes={selectorMes}
+          mesHoy={fechaDeHoy().slice(0, 7)}
+          onElegir={saltarAMes}
+          onCerrar={() => setSelectorMes(null)}
+        />
+      )}
     </View>
   );
 }

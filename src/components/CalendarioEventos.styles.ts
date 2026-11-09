@@ -22,6 +22,55 @@ export function crearEstilosCalendarioEventos(colores: ColoresTema) {
       overflow: "hidden",
       backgroundColor: colores.backgroundElement,
     },
+    // Cabecera propia: los mismos tamaños que la de la librería
+    filaCabecera: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 6,
+    },
+    flecha: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    imagenFlecha: {
+      tintColor: colores.primary,
+    },
+    diasSemana: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      marginTop: Spacing.half,
+    },
+    diaSemana: {
+      width: 32,
+      marginBottom: 7,
+      textAlign: "center",
+      fontSize: 13,
+      fontWeight: "600",
+      color: colores.textSecondary,
+    },
+    // Se ve como el título de la librería, con zona táctil de 44 px
+    tituloMes: {
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.one,
+      paddingHorizontal: Spacing.two,
+    },
+    tituloMesPulsado: {
+      opacity: 0.6,
+    },
+    textoTituloMes: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colores.text,
+    },
+    flechaTituloMes: {
+      fontSize: 18,
+      color: colores.textSecondary,
+    },
   });
 }
 
@@ -49,6 +98,28 @@ export function crearMarcaNoDisponible(
       ? { fontWeight: "700" }
       : { fontWeight: "700", color: colores.conflict },
   };
+}
+
+// Una fila de días: 32 px del día y 7 px de margen arriba y abajo. La librería
+// no escala ese texto, así que el alto no depende de la fuente del móvil
+const ALTO_SEMANA = 46;
+export const SEMANAS_RESERVADAS = 6;
+
+// Reserva siempre 6 semanas: el mes no cambia el alto ni mueve lo de debajo.
+// showSixWeeks no sirve: su cálculo supone semanas en domingo y, empezando en
+// lunes, da entre 5 y 7 filas. Esta clave de la librería no está en su tipo Theme
+export function crearTemaCalendarioFijo(colores: ColoresTema): Theme {
+  const tema = {
+    ...crearTemaCalendario(colores),
+    "stylesheet.calendar.main": {
+      monthView: {
+        minHeight: ALTO_SEMANA * SEMANAS_RESERVADAS,
+        backgroundColor: colores.backgroundElement,
+      },
+    },
+  };
+
+  return tema;
 }
 
 // Colores y tipografía de react-native-calendars a partir del tema de la app
