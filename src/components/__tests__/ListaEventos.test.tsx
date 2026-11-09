@@ -95,7 +95,7 @@ describe("ListaEventos", () => {
 
     expect(getByText("Boda Lucena")).toBeTruthy();
     expect(queryByText(/^Título:/)).toBeNull();
-    expect(queryByText(/^Tipo de evento:/)).toBeNull();
+    expect(queryByText("Personal")).toBeNull();
     expect(queryByText(/^Nota:/)).toBeNull();
     expect(queryByText("Editar")).toBeNull();
     expect(queryByText("Eliminar")).toBeNull();
@@ -128,13 +128,13 @@ describe("ListaEventos", () => {
   });
 
   test("al abrir el evento muestra su fecha en formato DD/MM/YYYY", async () => {
-    const { getByText } = await renderizar([fiesta]);
+    await renderizar([fiesta]);
 
     await abrir("Fiesta privada Córdoba");
 
-    expect(getByText("Fecha: 01/06/2027")).toBeTruthy();
-    // La fecha de la cabecera sigue a la vista, sin repetirse con otro formato
-    expect(getByText("01/06/2027")).toBeTruthy();
+    // Una en la tarjeta y otra en el detalle, sin repetirse con otro formato
+    expect(screen.getAllByText("01/06/2027")).toHaveLength(2);
+    expect(screen.queryByText(/01-06-2027/)).toBeNull();
   });
 
   test("muestra el badge Confirmado en la vista previa sin abrir el evento", async () => {
@@ -174,14 +174,16 @@ describe("ListaEventos", () => {
     // El título se guarda internamente, pero ya no se muestra
     expect(queryByText(/^Título:/)).toBeNull();
     expect(queryByText("Boda de María y Juan")).toBeNull();
-    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
-    expect(getByText("Fecha: 15/05/2027")).toBeTruthy();
-    expect(screen.queryByText("Fecha: 15-05-2027")).toBeNull();
-    expect(getByText("Hora: 20:30")).toBeTruthy();
-    expect(getByText("Lugar: Lucena")).toBeTruthy();
-    expect(getByText("Estado: Confirmado")).toBeTruthy();
-    expect(screen.queryByText("Estado: confirmado")).toBeNull();
-    expect(getByText("Técnico: Carlos")).toBeTruthy();
+    expect(getByText("15/05/2027 · 20:30")).toBeTruthy();
+    expect(screen.queryByText(/15-05-2027/)).toBeNull();
+    // En la tarjeta y en el detalle
+    expect(screen.getAllByText("Lucena")).toHaveLength(2);
+    expect(getByText("Estado")).toBeTruthy();
+    // El badge de la tarjeta y el bloque del detalle
+    expect(screen.getAllByText("Confirmado")).toHaveLength(2);
+    expect(screen.queryByText("confirmado")).toBeNull();
+    expect(getByText("Personal")).toBeTruthy();
+    expect(getByText("Carlos")).toBeTruthy();
     // Los músicos ya no existen en la app
     expect(queryByText(/Músicos|Miembros/)).toBeNull();
     expect(getByText("Editar")).toBeTruthy();
@@ -193,34 +195,35 @@ describe("ListaEventos", () => {
 
     await abrir("Boda Lucena");
 
-    expect(getByText("Nota: Prueba de sonido a las 18:00")).toBeTruthy();
+    expect(getByText("Notas")).toBeTruthy();
+    expect(getByText("Prueba de sonido a las 18:00")).toBeTruthy();
     expect(queryByText("Tiene notas")).toBeNull();
   });
 
-  test("usa la etiqueta Técnico en singular", async () => {
+  test("enseña el técnico bajo Personal", async () => {
     const { getByText, queryByText } = await renderizar([boda]);
 
     await abrir("Boda Lucena");
 
-    expect(getByText("Técnico: Carlos")).toBeTruthy();
+    expect(getByText("Carlos")).toBeTruthy();
     expect(queryByText(/Técnicos:/)).toBeNull();
   });
 
-  test("usa Técnico en singular también con varios técnicos", async () => {
+  test("enseña varios técnicos en una línea", async () => {
     const { getByText, queryByText } = await renderizar(eventos);
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Técnico: Carlos, Miguel")).toBeTruthy();
+    expect(getByText("Carlos, Miguel")).toBeTruthy();
     expect(queryByText(/Técnicos:/)).toBeNull();
   });
 
-  test("muestra Técnico: Sin asignar si no hay técnicos", async () => {
+  test("muestra Sin asignar si no hay técnicos", async () => {
     const { getByText } = await renderizar(eventos);
 
     await abrir("Ensayo");
 
-    expect(getByText("Técnico: Sin asignar")).toBeTruthy();
+    expect(getByText("Sin asignar")).toBeTruthy();
   });
 
   test("ignora los ids que no corresponden a ningún técnico", async () => {
@@ -230,7 +233,7 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Técnico: Carlos")).toBeTruthy();
+    expect(getByText("Carlos")).toBeTruthy();
   });
 
   test("el detalle no tiene ninguna línea de músicos", async () => {
@@ -238,7 +241,7 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
+    expect(getByText("Personal")).toBeTruthy();
     expect(queryByText(/^Músicos:/)).toBeNull();
     expect(queryByText(/Músicos|Miembros/)).toBeNull();
   });
@@ -260,10 +263,10 @@ describe("ListaEventos", () => {
 
     await abrir("Boda");
 
-    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
-    expect(queryByText(/^Hora:/)).toBeNull();
-    expect(queryByText(/^Lugar:/)).toBeNull();
-    expect(queryByText(/^Nota:/)).toBeNull();
+    // Sin hora solo la fecha, y sin notas no hay bloque
+    expect(screen.getAllByText("15/05/2027")).toHaveLength(2);
+    expect(queryByText(/·/)).toBeNull();
+    expect(queryByText("Notas")).toBeNull();
   });
 
   test("muestra el tipo con su etiqueta y no con el valor interno", async () => {
@@ -277,7 +280,8 @@ describe("ListaEventos", () => {
 
     await abrir("Fiesta privada");
 
-    expect(getByText("Tipo de evento: Fiesta privada")).toBeTruthy();
+    expect(getByText(/^Fiesta privada/)).toBeTruthy();
+    expect(queryByText(/fiesta_privada/)).toBeNull();
     expect(queryByText(/_/)).toBeNull();
   });
 
@@ -285,11 +289,11 @@ describe("ListaEventos", () => {
     const { getByText, queryByText } = await renderizar([boda]);
 
     await abrir("Boda Lucena");
-    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
+    expect(getByText("Personal")).toBeTruthy();
 
     await abrir("Boda Lucena");
 
-    expect(queryByText(/^Tipo de evento:/)).toBeNull();
+    expect(queryByText("Personal")).toBeNull();
     expect(queryByText("Editar")).toBeNull();
     expect(getByText("Boda Lucena")).toBeTruthy();
   });
@@ -301,13 +305,13 @@ describe("ListaEventos", () => {
     ]);
 
     await abrir("Boda Lucena");
-    expect(getByText("Tipo de evento: Boda")).toBeTruthy();
+    expect(getByText("Personal")).toBeTruthy();
 
     await abrir("Fiesta privada Córdoba");
 
-    expect(getByText("Tipo de evento: Fiesta privada")).toBeTruthy();
-    expect(queryByText("Tipo de evento: Boda")).toBeNull();
-    expect(getAllByText(/^Tipo de evento:/)).toHaveLength(1);
+    // getAllByText: exactamente un detalle abierto
+    expect(getAllByText("Personal")).toHaveLength(1);
+    expect(queryByText("15/05/2027 · 20:30")).toBeNull();
     expect(getAllByText("Editar")).toHaveLength(1);
   });
 
@@ -374,12 +378,166 @@ describe("ListaEventos", () => {
 
     await abrir("Concierto abierto");
 
-    expect(getByText("Tipo de evento: Concierto abierto")).toBeTruthy();
-    expect(getByText("Técnico: Carlos, Miguel")).toBeTruthy();
+    expect(getByText("Personal")).toBeTruthy();
+    expect(getByText("Carlos, Miguel")).toBeTruthy();
     expect(queryByText(/^Músicos:/)).toBeNull();
     expect(queryByText("Editar")).toBeNull();
     expect(queryByText("Eliminar")).toBeNull();
     // No se enseña el rol
     expect(queryByText(/admin|usuario|solo lectura/i)).toBeNull();
+  });
+});
+
+describe("ListaEventos: evento que no se puede eliminar", () => {
+  const AVISO = {
+    eventoId: "1",
+    mensaje: "No se puede eliminar este evento porque tiene movimientos financieros asociados.",
+  };
+
+  async function abrir(nombre: RegExp) {
+    await fireEvent.press(screen.getByRole("button", { name: nombre }));
+  }
+
+  test("el motivo sale junto a los botones de ese evento", async () => {
+    await render(
+      <ListaEventos
+        eventos={eventos}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar
+        errorEliminacion={AVISO}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    await abrir(/^Ver detalles de Concierto abierto/);
+
+    expect(screen.getByText(AVISO.mensaje)).toBeTruthy();
+  });
+
+  test("no sale en otro evento", async () => {
+    await render(
+      <ListaEventos
+        eventos={eventos}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar
+        errorEliminacion={AVISO}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    await abrir(/^Ver detalles de Ensayo/);
+
+    expect(screen.queryByText(AVISO.mensaje)).toBeNull();
+  });
+
+  test("sin error la tarjeta sigue igual", async () => {
+    await render(
+      <ListaEventos
+        eventos={eventos}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+
+    await abrir(/^Ver detalles de Concierto abierto/);
+
+    expect(screen.queryByText(/movimientos financieros/)).toBeNull();
+  });
+});
+
+describe("ListaEventos: datos económicos", () => {
+  const DATOS = { caches: { "1": 120000, "2": 0 }, cargando: false, error: "" };
+
+  async function pintar(datosEconomicos?: {
+    caches: Record<string, number>;
+    cargando: boolean;
+    error: string;
+  } | null) {
+    await render(
+      <ListaEventos
+        eventos={eventos}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar={datosEconomicos !== undefined && datosEconomicos !== null}
+        datosEconomicos={datosEconomicos}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+  }
+
+  const abrirConcierto = () =>
+    fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Concierto abierto/ }));
+  const abrirEnsayo = () =>
+    fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo/ }));
+
+  test("el admin ve el bloque con el importe en formato español", async () => {
+    await pintar(DATOS);
+    await abrirConcierto();
+
+    expect(screen.getByText("Datos económicos")).toBeTruthy();
+    expect(screen.getByText("Caché acordado")).toBeTruthy();
+    expect(screen.getByText("1.200,00 €")).toBeTruthy();
+  });
+
+  test("un caché de 0 se ve como 0,00 €, no como que falta", async () => {
+    await pintar(DATOS);
+    await abrirEnsayo();
+
+    expect(screen.getByText("0,00 €")).toBeTruthy();
+    expect(screen.queryByText("Sin caché registrado")).toBeNull();
+  });
+
+  test("sin caché lo dice claramente", async () => {
+    await pintar({ ...DATOS, caches: {} });
+    await abrirConcierto();
+
+    expect(screen.getByText("Sin caché registrado")).toBeTruthy();
+  });
+
+  test("si no se pudo cargar no afirma que no haya caché", async () => {
+    await pintar({ ...DATOS, caches: {}, error: "No se ha podido cargar el caché" });
+    await abrirConcierto();
+
+    expect(screen.getByText("No disponible")).toBeTruthy();
+    expect(screen.queryByText("Sin caché registrado")).toBeNull();
+  });
+
+  test("mientras carga tampoco", async () => {
+    await pintar({ ...DATOS, caches: {}, cargando: true });
+    await abrirConcierto();
+
+    expect(screen.getByText("Cargando...")).toBeTruthy();
+    expect(screen.queryByText("Sin caché registrado")).toBeNull();
+  });
+
+  test.each([[undefined], [null]])("un usuario normal no tiene el bloque (%s)", async (datos) => {
+    await pintar(datos);
+    await abrirConcierto();
+
+    expect(screen.queryByText("Datos económicos")).toBeNull();
+    expect(screen.queryByText("Caché acordado")).toBeNull();
+    expect(screen.queryByText(/€/)).toBeNull();
+    // Sus datos públicos siguen ahí
+    expect(screen.getByText("Personal")).toBeTruthy();
+    expect(screen.getByText("Carlos, Miguel")).toBeTruthy();
+  });
+
+  test("Editar es secundario y Eliminar queda como destructivo, sin relleno", async () => {
+    await pintar(DATOS);
+    await abrirConcierto();
+
+    const editar = StyleSheet.flatten(screen.getByRole("button", { name: "Editar" }).props.style);
+    const eliminar = StyleSheet.flatten(screen.getByRole("button", { name: "Eliminar" }).props.style);
+
+    expect(editar.borderRadius).toBe(999);
+    expect(eliminar.backgroundColor).toBeUndefined();
   });
 });

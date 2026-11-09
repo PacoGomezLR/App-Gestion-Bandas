@@ -180,7 +180,7 @@ describe("migración 006: consultar y aceptar", () => {
   });
 });
 
-// 006 ya está ejecutada en Supabase: su contenido queda fijado y no hay 007
+// 006 ya está ejecutada en Supabase: su contenido queda fijado
 describe("migraciones ejecutadas", () => {
   test("006 no ha cambiado desde que se ejecutó", () => {
     const sql = fs.readFileSync("supabase/migrations/006_invitaciones_banda.sql", "utf8").replace(/\r\n/g, "\n");
@@ -190,7 +190,7 @@ describe("migraciones ejecutadas", () => {
     );
   });
 
-  test("no hay migraciones posteriores a 006", () => {
+  test("después de 006 solo están 007, 008 y 009", () => {
     expect(fs.readdirSync("supabase/migrations").sort()).toEqual([
       "001_usuarios_roles.sql",
       "002_datos_banda.sql",
@@ -198,6 +198,9 @@ describe("migraciones ejecutadas", () => {
       "004_disponibilidad_usuarios.sql",
       "005_nombre_visible_registro.sql",
       "006_invitaciones_banda.sql",
+      "007_finanzas_banda.sql",
+      "008_categorias_finanzas.sql",
+      "009_cache_eventos.sql",
     ]);
   });
 });

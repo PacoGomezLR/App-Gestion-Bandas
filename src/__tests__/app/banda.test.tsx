@@ -189,8 +189,8 @@ describe("Banda: pantalla principal", () => {
     simular();
     await abrirBanda();
 
-    // Integrantes, Técnicos e Invitar usuario
-    expect(screen.getAllByText("›")).toHaveLength(3);
+    // Integrantes, Técnicos, Invitar usuario y Finanzas
+    expect(screen.getAllByText("›")).toHaveLength(4);
     expect(StyleSheet.flatten(screen.getByText("Integrantes").props.style).textAlign).toBeUndefined();
   });
 

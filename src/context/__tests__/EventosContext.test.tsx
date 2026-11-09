@@ -9,6 +9,7 @@ import {
   crearRepositorioEventosSupabase,
   type RepositorioEventos,
 } from "../../services/supabase/eventos";
+import { convertirErrorSupabase } from "../../services/supabase/errores";
 import type { DatosEvento } from "../../services/supabase/mapeoEventos";
 import type { Evento } from "../../types/evento";
 import { useBandaContext } from "../BandaContext";
@@ -37,6 +38,10 @@ jest.mock("../BandaContext", () => ({
   useBandaContext: jest.fn(),
 }));
 
+jest.mock("../../services/supabase/eventoFinanzas", () => ({
+  crearRepositorioEventoFinanzasSupabase: () => ({ listar: async () => ({}) }),
+}));
+
 const mockInicializarBaseDeDatos = jest.mocked(inicializarBaseDeDatos);
 const mockListarEventosSqlite = jest.mocked(listarEventos);
 const mockCrearRepositorio = jest.mocked(crearRepositorioEventosSupabase);
@@ -53,7 +58,12 @@ function crearRepositorioSimulado(eventos: Evento[]): RepositorioSimulado {
   return {
     listar: jest.fn(async () => eventos),
     crear: jest.fn(async (datos: DatosEvento) => ({ ...datos, id: "uuid-nuevo" })),
+    crearConCache: jest.fn(async (datos: DatosEvento, _cache: number) => ({
+      ...datos,
+      id: "uuid-nuevo",
+    })),
     actualizar: jest.fn(async (evento: Evento) => evento),
+    actualizarConCache: jest.fn(async (evento: Evento, _cache: number | null) => evento),
     eliminar: jest.fn(async (_id: string) => undefined),
   };
 }
@@ -177,6 +187,28 @@ function ConsumidorSinProvider() {
 
   return null;
 }
+
+function ConsumidorEliminacion() {
+  const { eventos, eliminarEvento, errorEliminacion, errorPersistencia } = useEventosContext();
+
+  return (
+    <View>
+      <Text>Eventos: {eventos.length}</Text>
+      <Text>Aviso general: [{errorPersistencia}]</Text>
+      <Text>Evento bloqueado: {errorEliminacion?.eventoId ?? "ninguno"}</Text>
+      <Text>Motivo: {errorEliminacion?.mensaje ?? "ninguno"}</Text>
+      <Button title="Eliminar 1" onPress={() => void eliminarEvento("1")} />
+    </View>
+  );
+}
+
+const ERROR_CLAVE_FORANEA = {
+  code: "23503",
+  message: 'update or delete on table "eventos" violates foreign key constraint',
+};
+
+const MOTIVO_MOVIMIENTOS =
+  "Motivo: No se puede eliminar este evento porque tiene movimientos financieros asociados.";
 
 describe("EventosContext", () => {
   beforeEach(() => {
@@ -325,6 +357,61 @@ describe("EventosContext", () => {
     expect(queryByText(/Compartido 31\/12\/2026 \(/)).toBeNull();
     // El formulario no se limpia
     expect(getByText("Título en A: Concierto abierto Compartido 31/12/2026")).toBeTruthy();
+  });
+
+  test("un evento sin movimientos se elimina como siempre, sin ningún aviso", async () => {
+    await renderizarConProvider(<ConsumidorEliminacion />);
+
+    await fireEvent.press(screen.getByText("Eliminar 1"));
+
+    expect(await screen.findByText("Eventos: 2")).toBeTruthy();
+    expect(screen.getByText("Evento bloqueado: ninguno")).toBeTruthy();
+    expect(screen.getByText("Aviso general: []")).toBeTruthy();
+  });
+
+  test("un evento con movimientos no se elimina y se explica el motivo", async () => {
+    repositorio.eliminar.mockRejectedValueOnce(convertirErrorSupabase(ERROR_CLAVE_FORANEA));
+    await renderizarConProvider(<ConsumidorEliminacion />);
+
+    await fireEvent.press(screen.getByText("Eliminar 1"));
+
+    expect(await screen.findByText(MOTIVO_MOVIMIENTOS)).toBeTruthy();
+    expect(screen.getByText("Evento bloqueado: 1")).toBeTruthy();
+    expect(screen.getByText("Eventos: 3")).toBeTruthy();
+    // Nada de texto de PostgreSQL en ningún sitio
+    expect(screen.queryByText(/23503|foreign key|violates/)).toBeNull();
+  });
+
+  test("el motivo no va al aviso general, que también ve Finanzas", async () => {
+    repositorio.eliminar.mockRejectedValueOnce(convertirErrorSupabase(ERROR_CLAVE_FORANEA));
+    await renderizarConProvider(<ConsumidorEliminacion />);
+
+    await fireEvent.press(screen.getByText("Eliminar 1"));
+    await screen.findByText(MOTIVO_MOVIMIENTOS);
+
+    expect(screen.getByText("Aviso general: []")).toBeTruthy();
+  });
+
+  test("resueltos los movimientos, el mismo evento ya se elimina y el aviso desaparece", async () => {
+    repositorio.eliminar.mockRejectedValueOnce(convertirErrorSupabase(ERROR_CLAVE_FORANEA));
+    await renderizarConProvider(<ConsumidorEliminacion />);
+
+    await fireEvent.press(screen.getByText("Eliminar 1"));
+    await screen.findByText(MOTIVO_MOVIMIENTOS);
+    await fireEvent.press(screen.getByText("Eliminar 1"));
+
+    expect(await screen.findByText("Eventos: 2")).toBeTruthy();
+    expect(screen.getByText("Evento bloqueado: ninguno")).toBeTruthy();
+  });
+
+  test("cualquier otro fallo mantiene el mensaje de siempre", async () => {
+    repositorio.eliminar.mockRejectedValueOnce(new Error("sin conexión"));
+    await renderizarConProvider(<ConsumidorEliminacion />);
+
+    await fireEvent.press(screen.getByText("Eliminar 1"));
+
+    expect(await screen.findByText("Aviso general: [No se ha podido eliminar el evento]")).toBeTruthy();
+    expect(screen.getByText("Evento bloqueado: ninguno")).toBeTruthy();
   });
 
   test("no elimina localmente si Supabase falla", async () => {

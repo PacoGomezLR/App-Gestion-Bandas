@@ -68,6 +68,7 @@ jest.mock("../../context/DisponibilidadContext", () => ({
 }));
 
 let mockEventosIniciales: Evento[] = [];
+let mockErrorEliminacion: { eventoId: string; mensaje: string } | null = null;
 let mockIndisponibilidadesIniciales: IndisponibilidadUsuario[] = [];
 const mockPersistirEvento = jest.fn(async (evento: Evento, _esNuevo: boolean) => evento);
 const mockMarcarNoDisponible = jest.fn((_fecha: string) => {});
@@ -81,7 +82,15 @@ function mockUsarEventos() {
     eliminarEventoPersistido: async () => true,
   });
 
-  return { ...estado, cargando: false, errorPersistencia: "" };
+  return {
+    ...estado,
+    cargando: false,
+    errorPersistencia: "",
+    errorEliminacion: mockErrorEliminacion,
+    cachesEvento: {},
+    cargandoCaches: false,
+    errorCaches: "",
+  };
 }
 
 // Disponibilidad en memoria con la misma interfaz que DisponibilidadContext
@@ -285,7 +294,8 @@ describe("Calendario: próximas fechas, todas e historial", () => {
     expect(mockPersistirEvento).not.toHaveBeenCalled();
     // El historial lee la misma lista: al abrir una tarjeta se ve su detalle de siempre
     await fireEvent.press(screen.getByText("Ensayo Ayer"));
-    expect(screen.getByText("Fecha: 09/11/2026")).toBeTruthy();
+    expect(screen.getAllByText("09/11/2026")).toHaveLength(2);
+    expect(screen.getByText("Personal")).toBeTruthy();
   });
 
   test("sin eventos no muestra ni Ver todas las fechas ni Consultar historial", async () => {
@@ -538,7 +548,7 @@ describe("Calendario: panel del día", () => {
 
     await tocarDia("2026-11-21");
     await fireEvent.press(screen.getByText("+ Crear evento"));
-    await fireEvent.changeText(screen.getByPlaceholderText("Lugar"), "Montilla");
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
     await fireEvent.press(screen.getByText("Guardar evento"));
 
     expect(mockPersistirEvento).toHaveBeenCalledWith(
@@ -548,7 +558,8 @@ describe("Calendario: panel del día", () => {
         estado: "pendiente",
         titulo: "Concierto abierto Montilla 21/11/2026",
       }),
-      true
+      true,
+      undefined
     );
     expect(screen.queryByText("Tu disponibilidad")).toBeNull();
     // Ya aparece en las próximas fechas
@@ -581,7 +592,7 @@ describe("Calendario: panel del día", () => {
 
     await tocarDia("2026-11-21");
     await fireEvent.press(screen.getByText("+ Crear evento"));
-    await fireEvent.press(screen.getByRole("button", { name: "Confirmado" }));
+    await fireEvent.press(screen.getByRole("radio", { name: "Confirmado" }));
     await fireEvent.press(screen.getByText("Guardar evento"));
 
     expect(alerta).toHaveBeenCalledTimes(1);
@@ -601,7 +612,11 @@ describe("Calendario: panel del día", () => {
       segundo.find(({ text }) => text === "Confirmar igualmente")?.onPress?.();
     });
 
-    expect(mockPersistirEvento).toHaveBeenCalledWith(expect.objectContaining({ estado: "confirmado" }), true);
+    expect(mockPersistirEvento).toHaveBeenCalledWith(
+      expect.objectContaining({ estado: "confirmado" }),
+      true,
+      undefined
+    );
     alerta.mockRestore();
   });
 
@@ -617,7 +632,11 @@ describe("Calendario: panel del día", () => {
     expect(screen.getByText("Guardar cambios")).toBeTruthy();
 
     await fireEvent.press(screen.getByText("Guardar cambios"));
-    expect(mockPersistirEvento).toHaveBeenCalledWith(expect.objectContaining({ id: "f2" }), false);
+    expect(mockPersistirEvento).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "f2" }),
+      false,
+      undefined
+    );
   });
 });
 
@@ -719,7 +738,7 @@ describe("Calendario: botón Atrás de Android", () => {
 
     await tocarDia("2026-11-21");
     await fireEvent.press(screen.getByText("+ Crear evento"));
-    await fireEvent.changeText(screen.getByPlaceholderText("Lugar"), "Montilla");
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
 
     expect(await pulsarAtras()).toBe(true);
     // Vuelve al panel del mismo día, sin guardar nada
@@ -863,5 +882,75 @@ describe("Calendario: la gestión de la banda vive en la pestaña Banda", () => 
     await render(<Index />);
 
     expect(screen.queryByText("Gestionar banda")).toBeNull();
+  });
+});
+
+describe("Calendario: evento con movimientos financieros", () => {
+  const MENSAJE = "No se puede eliminar este evento porque tiene movimientos financieros asociados.";
+
+  afterEach(() => {
+    mockErrorEliminacion = null;
+  });
+
+  test("el motivo se ve junto al evento y no arriba de la pantalla", async () => {
+    mockErrorEliminacion = { eventoId: "f2", mensaje: MENSAJE };
+    simular({ eventos: [evento("f2", "2027-11-21", "F2")] });
+    await render(<Index />);
+
+    expect(screen.queryByText(MENSAJE)).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
+
+    expect(screen.getByText(MENSAJE)).toBeTruthy();
+    expect(screen.getByText("Eliminar")).toBeTruthy();
+  });
+});
+
+describe("Calendario: caché acordado", () => {
+  async function abrirFormulario() {
+    await render(<Index />);
+    await fireEvent.press(screen.getByText("Día 2026-11-21"));
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+  }
+
+  test("el admin ve el campo al crear", async () => {
+    simular();
+    await abrirFormulario();
+
+    expect(screen.getByText("Datos económicos")).toBeTruthy();
+    expect(screen.getByLabelText("Caché acordado")).toBeTruthy();
+  });
+
+  test("el admin ve el campo al editar", async () => {
+    simular({ eventos: [evento("f2", "2027-11-21", "F2")] });
+    await render(<Index />);
+
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
+    await fireEvent.press(screen.getByText("Editar"));
+
+    expect(screen.getByLabelText("Caché acordado")).toBeTruthy();
+  });
+
+  test("el admin ve el bloque económico en el detalle", async () => {
+    simular({ eventos: [evento("f2", "2027-11-21", "F2")] });
+    await render(<Index />);
+
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
+
+    expect(screen.getByText("Datos económicos")).toBeTruthy();
+    expect(screen.getByText("Sin caché registrado")).toBeTruthy();
+  });
+
+  test("un usuario normal consulta el evento sin ningún dato económico", async () => {
+    simular({ esAdmin: false, eventos: [evento("f2", "2027-11-21", "F2")] });
+    await render(<Index />);
+
+    await fireEvent.press(screen.getByRole("button", { name: /^Ver detalles de Ensayo F2/ }));
+
+    expect(screen.getByText("Personal")).toBeTruthy();
+    expect(screen.getByText("Estado")).toBeTruthy();
+    expect(screen.queryByText("Datos económicos")).toBeNull();
+    expect(screen.queryByText("Caché acordado")).toBeNull();
+    expect(screen.queryByLabelText("Caché acordado")).toBeNull();
   });
 });

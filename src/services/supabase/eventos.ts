@@ -11,7 +11,11 @@ import {
 export interface RepositorioEventos {
   listar: () => Promise<Evento[]>;
   crear: (datos: DatosEvento) => Promise<Evento>;
+  // Evento y caché en una sola transacción: se guardan los dos o ninguno
+  crearConCache: (datos: DatosEvento, cacheCentimos: number) => Promise<Evento>;
   actualizar: (evento: Evento) => Promise<Evento>;
+  // null quita el caché
+  actualizarConCache: (evento: Evento, cacheCentimos: number | null) => Promise<Evento>;
   eliminar: (id: string) => Promise<void>;
 }
 
@@ -52,12 +56,45 @@ export function crearRepositorioEventosSupabase(bandaId: string): RepositorioEve
       return { ...datos, id: data };
     },
 
+    async crearConCache(datos, cacheCentimos) {
+      const { data, error } = await supabase.rpc("crear_evento_con_cache", {
+        ...convertirDatosEventoAParametros(bandaId, datos),
+        p_cache_centimos: cacheCentimos,
+      });
+
+      if (error) {
+        throw convertirErrorSupabase(error);
+      }
+
+      if (typeof data !== "string") {
+        throw new ErrorRepositorio("desconocido");
+      }
+
+      return { ...datos, id: data };
+    },
+
     async actualizar(evento) {
       const { id, ...datos } = evento;
 
       const { error } = await supabase.rpc("actualizar_evento", {
         p_evento_id: id,
         ...convertirDatosEventoAParametros(bandaId, datos),
+      });
+
+      if (error) {
+        throw convertirErrorSupabase(error);
+      }
+
+      return evento;
+    },
+
+    async actualizarConCache(evento, cacheCentimos) {
+      const { id, ...datos } = evento;
+
+      const { error } = await supabase.rpc("actualizar_evento_con_cache", {
+        p_evento_id: id,
+        ...convertirDatosEventoAParametros(bandaId, datos),
+        p_cache_centimos: cacheCentimos,
       });
 
       if (error) {

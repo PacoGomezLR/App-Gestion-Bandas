@@ -5,6 +5,7 @@ import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
 import { InvitarUsuario } from "../components/InvitarUsuario";
 import { ListaIntegrantes } from "../components/ListaIntegrantes";
 import { Mensaje } from "../components/PantallaBase";
+import { PantallaFinanzas } from "../components/PantallaFinanzas";
 import {
   BotonSecundario,
   CabeceraPantalla,
@@ -17,6 +18,7 @@ import {
 import { PantallaTecnicos } from "../components/PantallaTecnicos";
 import { useBandaContext } from "../context/BandaContext";
 import { useEventosContext } from "../context/EventosContext";
+import { FinanzasProvider } from "../context/FinanzasContext";
 import { useIntegrantesContext } from "../context/IntegrantesContext";
 import { useTecnicosContext } from "../context/TecnicosContext";
 import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
@@ -24,7 +26,7 @@ import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 // Índice de la banda y sus apartados. Son vistas de la misma pantalla, no rutas
 // (igual que Todas las fechas o Historial en el Calendario): el botón Atrás de
 // Android las recorre con useAtrasAndroid.
-type Vista = "principal" | "integrantes" | "tecnicos" | "invitar";
+type Vista = "principal" | "integrantes" | "tecnicos" | "invitar" | "finanzas";
 
 export default function BandaScreen() {
   // Sin rol visible: a quien no es admin simplemente no se le ofrecen las acciones
@@ -44,13 +46,14 @@ export default function BandaScreen() {
 
   const enFoco = useIsFocused();
   const [vista, setVista] = useState<Vista>("principal");
-  const vistaVisible: Vista = vista === "invitar" && !esAdmin ? "principal" : vista;
+  const soloAdmin = vista === "invitar" || vista === "finanzas";
+  const vistaVisible: Vista = soloAdmin && !esAdmin ? "principal" : vista;
 
   function volver() {
     setVista("principal");
   }
 
-  // Técnicos gestiona su propio Atrás. En el índice no se intercepta
+  // Técnicos y Finanzas gestionan su propio Atrás. En el índice no se intercepta
   const interceptarAtras =
     enFoco && (vistaVisible === "integrantes" || vistaVisible === "invitar");
   useAtrasAndroid(interceptarAtras ? volver : null);
@@ -61,6 +64,16 @@ export default function BandaScreen() {
 
   if (vistaVisible === "tecnicos") {
     return <PantallaTecnicos enFoco={enFoco} puedeGestionar={esAdmin} onVolver={volver} />;
+  }
+
+  // Solo un admin entra, y la base vuelve a comprobarlo en cada consulta
+  if (vistaVisible === "finanzas" && bandaActual !== null) {
+    return (
+      // Otra banda, otras cuentas: nada de la anterior se queda a medias
+      <FinanzasProvider key={bandaActual.id}>
+        <PantallaFinanzas enFoco={enFoco} onVolver={volver} />
+      </FinanzasProvider>
+    );
   }
 
   if (vistaVisible === "integrantes") {
@@ -124,6 +137,7 @@ export default function BandaScreen() {
         <Seccion titulo="Administración">
           <GrupoFilas>
             <FilaNavegable titulo="Invitar usuario" onPress={() => setVista("invitar")} />
+            <FilaNavegable titulo="Finanzas" onPress={() => setVista("finanzas")} />
           </GrupoFilas>
         </Seccion>
       )}

@@ -63,6 +63,10 @@ jest.mock("../../services/supabase/personas", () => ({
   },
 }));
 
+jest.mock("../../services/supabase/eventoFinanzas", () => ({
+  crearRepositorioEventoFinanzasSupabase: () => ({ listar: async () => ({}) }),
+}));
+
 // Solo se simula el hook: el BandaContext real cargaría el cliente Supabase
 jest.mock("../BandaContext", () => ({
   useBandaContext: jest.fn(),

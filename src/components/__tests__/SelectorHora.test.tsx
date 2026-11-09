@@ -1,3 +1,6 @@
+// constants/theme importa global.css, que Jest no puede interpretar
+jest.mock("../../global.css", () => ({}));
+
 import type { DateTimePickerProps } from "@expo/ui/community/datetime-picker";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import {

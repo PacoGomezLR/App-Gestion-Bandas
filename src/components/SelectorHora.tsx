@@ -1,6 +1,10 @@
 import DateTimePicker from "@expo/ui/community/datetime-picker";
-import { useState } from "react";
-import { Button, Pressable, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+
+import { useTheme } from "@/hooks/use-theme";
+import { BotonSecundario } from "./PantallaInterior";
+import { crearEstilosSelectorHora } from "./SelectorHora.styles";
 
 interface SelectorHoraProps {
   hora: string;
@@ -34,6 +38,8 @@ export function convertirDateAHora(fecha: Date): string {
 }
 
 export function SelectorHora({ hora, onCambiarHora, disabled = false }: SelectorHoraProps) {
+  const tema = useTheme();
+  const styles = useMemo(() => crearEstilosSelectorHora(tema), [tema]);
   // Solo estado de interfaz: la hora sigue viniendo por props
   const [selectorAbierto, setSelectorAbierto] = useState(false);
 
@@ -48,16 +54,16 @@ export function SelectorHora({ hora, onCambiarHora, disabled = false }: Selector
         onPress={() => setSelectorAbierto(true)}
         style={[styles.campo, disabled && styles.campoDeshabilitado]}
       >
-        <Text>Hora</Text>
+        <Text style={styles.texto}>Hora</Text>
         <View style={styles.valor}>
-          {hora !== "" && <Text>{hora}</Text>}
-          <Text>›</Text>
+          {hora !== "" && <Text style={styles.texto}>{hora}</Text>}
+          <Text style={styles.texto}>›</Text>
         </View>
       </Pressable>
 
       {hora !== "" && (
-        <Button
-          title="Quitar hora"
+        <BotonSecundario
+          titulo="Quitar hora"
           onPress={() => onCambiarHora("")}
           disabled={disabled}
         />
@@ -80,27 +86,3 @@ export function SelectorHora({ hora, onCambiarHora, disabled = false }: Selector
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  contenedor: {
-    gap: 4,
-  },
-  campo: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    // Valores de Colors.light y Spacing en constants/theme
-    backgroundColor: "#F0F0F3",
-    borderRadius: 16,
-  },
-  valor: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  campoDeshabilitado: {
-    opacity: 0.5,
-  },
-});

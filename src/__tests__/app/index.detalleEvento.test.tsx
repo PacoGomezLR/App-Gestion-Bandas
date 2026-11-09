@@ -137,6 +137,12 @@ function simularPantalla(esAdmin: boolean) {
     reemplazarEventos: jest.fn(),
     guardarEvento: jest.fn(),
     eliminarEvento: jest.fn(),
+    errorEliminacion: null,
+    cache: "",
+    setCache: jest.fn(),
+    cachesEvento: {},
+    cargandoCaches: false,
+    errorCaches: "",
     prepararEdicion: jest.fn(),
     cancelarEdicion: jest.fn(),
     procesando: false,
@@ -180,15 +186,14 @@ describe("Calendario → detalle del evento", () => {
 
     await fireEvent.press(getByText("Concierto abierto Montilla"));
 
-    expect(getByText("Fecha: 29/10/2026")).toBeTruthy();
-    expect(getByText("Hora: 21:00")).toBeTruthy();
-    expect(queryByText("Fecha: 29-10-2026")).toBeNull();
+    expect(getByText("29/10/2026 · 21:00")).toBeTruthy();
+    expect(queryByText(/29-10-2026/)).toBeNull();
     // Editar y Eliminar solo para el admin
     expect(queryByText("Editar") !== null).toBe(esAdmin);
     expect(queryByText("Eliminar") !== null).toBe(esAdmin);
   });
 
-  test("el detalle abierto sigue el orden Tipo, Fecha, Hora, Lugar, Estado, Técnico, Nota sin Título ni Músicos", async () => {
+  test("el detalle abierto sigue el orden fecha y hora, lugar, estado, personal, económicos y notas, sin Título ni Músicos", async () => {
     simularPantalla(true);
 
     const { getByText, toJSON } = await render(<Index />);
@@ -201,13 +206,12 @@ describe("Calendario → detalle del evento", () => {
     expect(renderizado).not.toContain("Concierto abierto Montilla 29/10/2026");
 
     const posiciones = [
-      "Tipo de evento: ",
-      "Fecha: ",
-      "Hora: ",
-      "Lugar: ",
-      "Estado: ",
-      "Técnico: ",
-      "Nota: ",
+      '"29/10/2026 · 21:00"',
+      '"Montilla"',
+      '"Estado"',
+      '"Personal"',
+      '"Datos económicos"',
+      '"Notas"',
     ].map((marcador) => renderizado.indexOf(marcador));
 
     expect(posiciones.every((posicion) => posicion >= 0)).toBe(true);

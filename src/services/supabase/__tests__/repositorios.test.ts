@@ -1,3 +1,4 @@
+import type { Evento } from "../../../types/evento";
 import { ErrorRepositorio } from "../errores";
 import { crearRepositorioEventosSupabase } from "../eventos";
 import { COLUMNAS_EVENTO } from "../mapeoEventos";
@@ -85,6 +86,12 @@ const ERROR_RLS = {
 const ERROR_FK = {
   code: "23503",
   message: 'update or delete on table "tecnicos" violates foreign key constraint',
+};
+
+const ERROR_FK_EVENTO = {
+  code: "23503",
+  message:
+    'update or delete on table "eventos" violates foreign key constraint on table "movimientos_financieros"',
 };
 
 const DATOS_EVENTO = {
@@ -444,5 +451,61 @@ describe("aislamiento por banda", () => {
     for (const [, parametros] of mockRpc.mock.calls) {
       expect(parametros.p_banda_id).toBe("cathaline");
     }
+  });
+});
+
+describe("evento con movimientos financieros", () => {
+  test("la clave foránea llega como en_uso, sin el texto de PostgreSQL", async () => {
+    responderConsulta({ data: null, error: ERROR_FK_EVENTO });
+
+    const fallo = await crearRepositorioEventosSupabase("b1")
+      .eliminar("e1")
+      .catch((error: unknown) => error);
+
+    expect(fallo).toEqual(new ErrorRepositorio("en_uso"));
+    expect(String(fallo)).not.toMatch(/23503|foreign key|movimientos_financieros/);
+  });
+});
+
+describe("evento y caché en una transacción", () => {
+  const EVENTO: Evento = { id: "e1", ...DATOS_EVENTO };
+  const repositorio = crearRepositorioEventosSupabase("b1");
+
+  test("crear usa la RPC con el caché en céntimos", async () => {
+    mockRpc.mockResolvedValueOnce({ data: "e-nuevo", error: null });
+
+    await expect(repositorio.crearConCache(DATOS_EVENTO, 120000)).resolves.toEqual({
+      ...DATOS_EVENTO,
+      id: "e-nuevo",
+    });
+
+    expect(mockRpc).toHaveBeenLastCalledWith(
+      "crear_evento_con_cache",
+      expect.objectContaining({ p_banda_id: "b1", p_cache_centimos: 120000 })
+    );
+  });
+
+  test("editar manda 0 como 0 y null como quitar el caché", async () => {
+    mockRpc.mockResolvedValue({ data: null, error: null });
+
+    await repositorio.actualizarConCache(EVENTO, 0);
+    expect(mockRpc).toHaveBeenLastCalledWith(
+      "actualizar_evento_con_cache",
+      expect.objectContaining({ p_evento_id: "e1", p_cache_centimos: 0 })
+    );
+
+    await repositorio.actualizarConCache(EVENTO, null);
+    expect(mockRpc).toHaveBeenLastCalledWith(
+      "actualizar_evento_con_cache",
+      expect.objectContaining({ p_cache_centimos: null })
+    );
+  });
+
+  test("un fallo de la transacción llega como error", async () => {
+    mockRpc.mockResolvedValueOnce({ data: null, error: ERROR_RLS });
+
+    await expect(repositorio.crearConCache(DATOS_EVENTO, 1)).rejects.toMatchObject({
+      motivo: "sin_permiso",
+    });
   });
 });

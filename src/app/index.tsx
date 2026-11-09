@@ -53,6 +53,7 @@ export default function Index() {
     lugar,
     notas,
     tecnicoIds,
+    cache,
     error,
     eventoEditandoId,
     setTipo,
@@ -61,6 +62,7 @@ export default function Index() {
     setHora,
     setLugar,
     setNotas,
+    setCache,
     alternarTecnico,
     guardarEvento,
     eliminarEvento,
@@ -69,6 +71,10 @@ export default function Index() {
     procesando,
     cargando: cargandoEventos,
     errorPersistencia: errorPersistenciaEventos,
+    errorEliminacion,
+    cachesEvento,
+    cargandoCaches,
+    errorCaches,
   } = useEventosContext();
 
   const {
@@ -248,6 +254,10 @@ export default function Index() {
         tecnicos={tecnicos}
         procesando={procesando}
         puedeEditar={esAdmin}
+        errorEliminacion={errorEliminacion}
+        datosEconomicos={
+          esAdmin ? { caches: cachesEvento, cargando: cargandoCaches, error: errorCaches } : null
+        }
         onEliminar={eliminarEvento}
         onEditar={editar}
       />
@@ -312,7 +322,7 @@ export default function Index() {
       : resumirNoDisponibles(indisponibilidades, diaElegido, usuarioActualId, nombresPorUsuario);
 
   return (
-    <PantallaInterior>
+    <PantallaInterior keyboardShouldPersistTaps="handled">
       {/* Respeta la barra de estado (SafeAreaView propio) y queda arriba a la derecha */}
       <BotonCerrarSesion />
 
@@ -343,7 +353,14 @@ export default function Index() {
                 notas={notas}
                 tecnicos={tecnicos}
                 tecnicoIds={tecnicoIds}
-                error={error}
+                datosEconomicos={{
+                  cache,
+                  errorCarga: errorCaches,
+                  cargando: cargandoCaches,
+                  onCambiarCache: setCache,
+                }}
+                // Junto a Guardar: si la base lo rechaza, arriba podría no verse
+                error={error !== "" ? error : errorPersistenciaEventos}
                 editando={eventoEditandoId !== null}
                 procesando={procesando}
                 onCambiarTipo={setTipo}

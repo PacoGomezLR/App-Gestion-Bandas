@@ -1,16 +1,31 @@
 import { useCallback, useRef, useState } from "react";
 import { eventosIniciales } from "../data/eventosIniciales";
-import type { EstadoEvento, Evento, TipoEvento } from "../types/evento";
+import type {
+  CachesPorEvento,
+  CambioCache,
+  EstadoEvento,
+  Evento,
+  TipoEvento,
+} from "../types/evento";
+import { importeParaFormulario, parsearImporte } from "../utils/dinero";
 import { generarTituloEvento } from "../utils/tituloEvento";
 
 // HH:MM de 00:00 a 23:59
 const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+const SIN_CACHES: CachesPorEvento = {};
+
 interface UseEventosOptions {
   datosIniciales?: Evento[];
   // Devuelve el evento tal como quedó guardado (con el id definitivo) o null si falla
-  persistirEvento?: (evento: Evento, esNuevo: boolean) => Promise<Evento | null>;
+  persistirEvento?: (
+    evento: Evento,
+    esNuevo: boolean,
+    cache?: CambioCache
+  ) => Promise<Evento | null>;
   eliminarEventoPersistido?: (id: string) => Promise<boolean>;
+  // Los cachés ya cargados: rellenan el campo al editar
+  cachesEvento?: CachesPorEvento;
 }
 
 export function useEventos(options: UseEventosOptions = {}) {
@@ -18,6 +33,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     datosIniciales = eventosIniciales,
     persistirEvento,
     eliminarEventoPersistido,
+    cachesEvento = SIN_CACHES,
   } = options;
 
   const [eventos, setEventos] = useState<Evento[]>(datosIniciales);
@@ -32,6 +48,11 @@ export function useEventos(options: UseEventosOptions = {}) {
   const titulo = generarTituloEvento(tipo, lugar, fecha);
   const [error, setError] = useState("");
   const [eventoEditandoId, setEventoEditandoId] = useState<string | null>(null);
+  // null = sin tocar: el campo enseña el caché guardado y al enviar no se cambia
+  const [cacheEscrito, setCacheEscrito] = useState<string | null>(null);
+  const cacheGuardado = eventoEditandoId === null ? undefined : cachesEvento[eventoEditandoId];
+  const cache =
+    cacheEscrito ?? (cacheGuardado === undefined ? "" : importeParaFormulario(cacheGuardado));
   const [procesando, setProcesando] = useState(false);
   // La ref bloquea de inmediato; el estado solo sirve para que la interfaz se actualice
   const operacionEnCursoRef = useRef(false);
@@ -64,6 +85,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setTipo("concierto_abierto");
     setEstado("pendiente");
     setTecnicoIds([]);
+    setCacheEscrito(null);
     setError("");
   }
 
@@ -88,6 +110,24 @@ export function useEventos(options: UseEventosOptions = {}) {
       return false;
     }
 
+    let cambioCache: CambioCache = undefined;
+
+    if (cacheEscrito !== null) {
+      // Vaciar el campo quita el caché; escribir 0 lo registra como 0
+      if (cacheEscrito.trim() === "") {
+        cambioCache = null;
+      } else {
+        const importe = parsearImporte(cacheEscrito, { permitirCero: true });
+
+        if (!importe.valido) {
+          setError(importe.error);
+          return false;
+        }
+
+        cambioCache = importe.centimos;
+      }
+    }
+
     if (!iniciarOperacion()) {
       return false;
     }
@@ -110,7 +150,7 @@ export function useEventos(options: UseEventosOptions = {}) {
 
       // Primero se persiste; el estado local solo cambia si la persistencia lo confirma
       const persistido = persistirEvento
-        ? await persistirEvento(eventoGuardado, !editando)
+        ? await persistirEvento(eventoGuardado, !editando, cambioCache)
         : eventoGuardado;
 
       if (persistido === null) {
@@ -187,6 +227,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setNotas(evento.notas);
     setEstado(evento.estado);
     setTecnicoIds([...evento.tecnicoIds]);
+    setCacheEscrito(null);
   }
 
   return {
@@ -199,6 +240,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     lugar,
     notas,
     tecnicoIds,
+    cache,
     error,
     eventoEditandoId,
     procesando,
@@ -208,6 +250,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setHora,
     setLugar,
     setNotas,
+    setCache: setCacheEscrito,
     alternarTecnico,
     reemplazarEventos,
     guardarEvento,
