@@ -14,12 +14,13 @@ function pestanas(archivo: string): string[] {
 }
 
 describe("navegación principal", () => {
-  test("las pestañas nativas son solo Calendario y Banda: sin Técnicos, Disponibilidad ni Músicos", () => {
+  test("las pestañas nativas son Calendario, Repertorio y Banda: sin Técnicos, Disponibilidad ni Músicos", () => {
     const codigo = fs.readFileSync("src/components/app-tabs.tsx", "utf8");
 
     // El orden importa: la primera pestaña es el destino inicial
-    expect(pestanas("src/components/app-tabs.tsx")).toEqual(["index", "banda"]);
+    expect(pestanas("src/components/app-tabs.tsx")).toEqual(["index", "repertorio", "banda"]);
     expect(codigo).toContain("Calendario");
+    expect(codigo).toContain("<NativeTabs.Trigger.Label>Repertorio</NativeTabs.Trigger.Label>");
     expect(codigo).toContain("<NativeTabs.Trigger.Label>Banda</NativeTabs.Trigger.Label>");
     expect(codigo).not.toMatch(/Técnicos|tecnicos/);
     // La disponibilidad vive dentro del Calendario
@@ -30,7 +31,7 @@ describe("navegación principal", () => {
   test("la versión web tampoco tiene pestaña de Músicos", () => {
     const codigo = fs.readFileSync("src/components/app-tabs.web.tsx", "utf8");
 
-    expect(pestanas("src/components/app-tabs.web.tsx")).toEqual(["home", "banda"]);
+    expect(pestanas("src/components/app-tabs.web.tsx")).toEqual(["home", "repertorio", "banda"]);
     expect(codigo).not.toMatch(/Disponibilidad|disponibilidad/);
     expect(codigo).not.toMatch(/Músicos|miembros/i);
   });
@@ -41,7 +42,15 @@ describe("navegación principal", () => {
 
     expect(rutas.filter((archivo) => /miembro|m[uú]sico/i.test(archivo))).toEqual([]);
     expect(rutas).toEqual(
-      expect.arrayContaining(["_layout.tsx", "index.tsx", "banda.tsx", "banda.web.tsx", "invitacion.web.tsx"])
+      expect.arrayContaining([
+        "_layout.tsx",
+        "index.tsx",
+        "repertorio.tsx",
+        "repertorio.web.tsx",
+        "banda.tsx",
+        "banda.web.tsx",
+        "invitacion.web.tsx",
+      ])
     );
     // Técnicos ya no es una ruta propia: vive dentro de Banda
     expect(rutas.filter((archivo) => /tecnicos/i.test(archivo))).toEqual([]);
@@ -57,6 +66,7 @@ describe("navegación principal", () => {
     expect(codigo).toContain("<TecnicosProvider>");
     expect(codigo).toContain("<IntegrantesProvider>");
     expect(codigo).toContain("<DisponibilidadProvider>");
+    expect(codigo).toContain("<RepertorioProvider>");
     expect(codigo).not.toMatch(/Miembros/);
   });
 });

@@ -20,6 +20,12 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
+      {/* Iconos del sistema: no hay imagen propia para el repertorio */}
+      <NativeTabs.Trigger name="repertorio">
+        <NativeTabs.Trigger.Label>Repertorio</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="music.note.list" md="queue_music" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="banda">
         <NativeTabs.Trigger.Label>Banda</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

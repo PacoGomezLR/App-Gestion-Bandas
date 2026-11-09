@@ -10,6 +10,7 @@ import { DisponibilidadProvider } from '@/context/DisponibilidadContext';
 import { EventosProvider } from '@/context/EventosContext';
 import { IntegrantesProvider } from '@/context/IntegrantesContext';
 import { InvitacionPendienteProvider } from '@/context/InvitacionPendienteContext';
+import { RepertorioProvider } from '@/context/RepertorioContext';
 import { TecnicosProvider } from '@/context/TecnicosContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -28,7 +29,9 @@ export default function TabLayout() {
               <TecnicosProvider>
                 <IntegrantesProvider>
                   <DisponibilidadProvider>
-                    <AppTabs />
+                    <RepertorioProvider>
+                      <AppTabs />
+                    </RepertorioProvider>
                   </DisponibilidadProvider>
                 </IntegrantesProvider>
               </TecnicosProvider>

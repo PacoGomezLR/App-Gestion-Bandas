@@ -25,6 +25,9 @@ export default function AppTabs() {
           <TabTrigger name="home" href="/" asChild>
             <TabButton>Calendario</TabButton>
           </TabTrigger>
+          <TabTrigger name="repertorio" href="/repertorio" asChild>
+            <TabButton>Repertorio</TabButton>
+          </TabTrigger>
           <TabTrigger name="banda" href="/banda" asChild>
             <TabButton>Banda</TabButton>
           </TabTrigger>
