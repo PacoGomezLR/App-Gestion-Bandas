@@ -130,6 +130,7 @@ function simularPantalla(esAdmin: boolean) {
     setGoogleMapsUrl: jest.fn(),
     error: "",
     eventoEditandoId: null,
+    hayCambios: false,
     setTipo: jest.fn(),
     setEstado: jest.fn(),
     setFecha: jest.fn(),

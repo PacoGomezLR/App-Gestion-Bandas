@@ -749,8 +749,14 @@ describe("Calendario: botón Atrás de Android", () => {
     await tocarDia("2026-11-21");
     await fireEvent.press(screen.getByText("+ Crear evento"));
     await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    const alerta = jest.spyOn(Alert, "alert").mockImplementation(() => {});
 
     expect(await pulsarAtras()).toBe(true);
+    // Hay algo escrito: antes de salir pregunta, y Descartar sale sin guardar
+    expect(alerta.mock.calls[0][0]).toBe("Tienes cambios sin guardar");
+    await act(async () => {
+      (alerta.mock.calls[0][2] as AlertButton[]).find(({ text }) => text === "Descartar")?.onPress?.();
+    });
     // Vuelve al panel del mismo día, sin guardar nada
     expect(screen.queryByText(/^Guardar evento$/i)).toBeNull();
     expect(screen.getByText("Tu disponibilidad")).toBeTruthy();
@@ -1111,5 +1117,158 @@ describe("Calendario: enlace de Google Maps", () => {
     expect(screen.getByText("Abrir en Google Maps")).toBeTruthy();
     expect(screen.queryByText("Editar evento")).toBeNull();
     expect(screen.queryByLabelText("Enlace de Google Maps")).toBeNull();
+  });
+});
+
+describe("Calendario: cambios sin guardar", () => {
+  let alerta: jest.SpyInstance;
+
+  function botonAviso(texto: string): AlertButton {
+    const boton = (alerta.mock.calls[0][2] as AlertButton[]).find((actual) => actual.text === texto);
+
+    if (boton === undefined) {
+      throw new Error(`Falta el botón ${texto}`);
+    }
+
+    return boton;
+  }
+
+  async function pulsarAviso(texto: string) {
+    await act(async () => {
+      botonAviso(texto).onPress?.();
+    });
+  }
+
+  async function abrirAlta() {
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+  }
+
+  beforeEach(() => {
+    alerta = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    alerta.mockRestore();
+  });
+
+  test("sin cambios, Cancelar sale sin preguntar", async () => {
+    simular();
+    await abrirAlta();
+
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    expect(alerta).not.toHaveBeenCalled();
+    expect(screen.queryByText("Guardar evento")).toBeNull();
+  });
+
+  test("con cambios, Cancelar pregunta con Guardar, Descartar y Cancelar", async () => {
+    simular();
+    await abrirAlta();
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    expect(alerta).toHaveBeenCalledTimes(1);
+    expect(alerta.mock.calls[0][0]).toBe("Tienes cambios sin guardar");
+    expect(botonAviso("Cancelar").style).toBe("cancel");
+    expect(botonAviso("Descartar").style).toBe("destructive");
+    expect(botonAviso("Guardar")).toBeTruthy();
+    // Mientras no elige, el formulario sigue ahí
+    expect(screen.getByText("Guardar evento")).toBeTruthy();
+  });
+
+  test("Cancelar en el aviso se queda en el formulario con lo escrito", async () => {
+    simular();
+    await abrirAlta();
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    expect(botonAviso("Cancelar").onPress).toBeUndefined();
+    expect(screen.getByLabelText("Lugar").props.value).toBe("Montilla");
+    expect(mockPersistirEvento).not.toHaveBeenCalled();
+  });
+
+  test("Descartar sale sin guardar", async () => {
+    simular();
+    await abrirAlta();
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    await pulsarAviso("Descartar");
+
+    expect(screen.queryByText("Guardar evento")).toBeNull();
+    expect(screen.getByText("Tu disponibilidad")).toBeTruthy();
+    expect(mockPersistirEvento).not.toHaveBeenCalled();
+  });
+
+  test("Guardar intenta guardar y, si se guarda, sale", async () => {
+    simular();
+    await abrirAlta();
+    await elegirTipo("Concierto abierto");
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    await pulsarAviso("Guardar");
+
+    expect(mockPersistirEvento).toHaveBeenCalledTimes(1);
+    expect(mockPersistirEvento.mock.calls[0][0]).toMatchObject({ lugar: "Montilla", tipo: "concierto_abierto" });
+    expect(screen.queryByText("Guardar evento")).toBeNull();
+  });
+
+  test("Guardar con datos no válidos no sale: se queda con el error a la vista", async () => {
+    simular();
+    await abrirAlta();
+    // Sin tipo no se puede guardar
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    await pulsarAviso("Guardar");
+
+    expect(mockPersistirEvento).not.toHaveBeenCalled();
+    expect(screen.getByText("Guardar evento")).toBeTruthy();
+    expect(screen.getByText("Selecciona un tipo de evento.")).toBeTruthy();
+  });
+
+  test("editar sin tocar nada y cancelar no pregunta", async () => {
+    simular({ eventos: [evento("e1", "2026-11-21", "Lucena")] });
+    await render(<Index />);
+    await fireEvent.press(screen.getAllByRole("button", { name: /^Ver detalles de Ensayo Lucena,/ })[0]);
+    await fireEvent.press(screen.getByText("Editar evento"));
+
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    expect(alerta).not.toHaveBeenCalled();
+  });
+
+  test("editar y cambiar algo sí pregunta; volver al valor original no cuenta como cambio", async () => {
+    simular({ eventos: [evento("e1", "2026-11-21", "Lucena")] });
+    await render(<Index />);
+    await fireEvent.press(screen.getAllByRole("button", { name: /^Ver detalles de Ensayo Lucena,/ })[0]);
+    await fireEvent.press(screen.getByText("Editar evento"));
+
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Lucena ");
+    await fireEvent.press(screen.getByText("Cancelar"));
+    expect(alerta).not.toHaveBeenCalled();
+
+    // El panel sigue abierto: la tarjeta sale en el panel y en las próximas fechas
+    await fireEvent.press(screen.getAllByRole("button", { name: /^Ver detalles de Ensayo Lucena,/ })[0]);
+    await fireEvent.press(screen.getAllByText("Editar evento")[0]);
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await fireEvent.press(screen.getByText("Cancelar"));
+
+    expect(alerta).toHaveBeenCalledTimes(1);
+  });
+
+  test("cerrar el panel desde Tu disponibilidad con un evento a medio escribir también pregunta", async () => {
+    simular();
+    await abrirAlta();
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+
+    await fireEvent.press(screen.getByText("Descartar cambios"));
+
+    expect(alerta.mock.calls[0][0]).toBe("Tienes cambios sin guardar");
+    expect(screen.getByText("Guardar evento")).toBeTruthy();
   });
 });

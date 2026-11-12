@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Linking, StyleSheet } from "react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
+import { Alert, type AlertButton, Linking, StyleSheet } from "react-native";
 import type { Evento } from "../../types/evento";
 import type { Tecnico } from "../../types/tecnico";
 import { Colores } from "../../constants/theme";
@@ -417,14 +417,22 @@ describe("ListaEventos", () => {
     ).toBeTruthy();
   });
 
-  test("llama a onEliminar con el id correcto", async () => {
+  test("tras confirmar, llama a onEliminar con el id correcto", async () => {
+    const alerta = jest.spyOn(Alert, "alert").mockImplementation(() => {});
     const { getByText, onEliminar } = await renderizar(eventos);
 
     await abrir("Concierto abierto");
     await fireEvent.press(getByText("Eliminar evento"));
 
+    expect(onEliminar).not.toHaveBeenCalled();
+
+    await act(async () => {
+      (alerta.mock.calls[0][2] as AlertButton[]).find(({ text }) => text === "Eliminar")?.onPress?.();
+    });
+
     expect(onEliminar).toHaveBeenCalledTimes(1);
     expect(onEliminar).toHaveBeenCalledWith("1");
+    alerta.mockRestore();
   });
 
   test("llama a onEditar con el evento correcto", async () => {
@@ -655,14 +663,14 @@ describe("ListaEventos: datos económicos", () => {
     expect(screen.getByText("Carlos, Miguel")).toBeTruthy();
   });
 
-  test("Editar es secundario y Eliminar queda como destructivo, sin relleno", async () => {
+  test("Editar es una acción normal y Eliminar queda como destructiva, sin relleno", async () => {
     await pintar(DATOS);
     await abrirConcierto();
 
-    const editar = StyleSheet.flatten(screen.getByRole("button", { name: "Editar evento" }).props.style);
     const eliminar = StyleSheet.flatten(screen.getByRole("button", { name: "Eliminar evento" }).props.style);
 
-    expect(editar.borderRadius).toBe(999);
+    expect(StyleSheet.flatten(screen.getByText("Editar evento").props.style).color).toBe(Colores.text);
+    expect(StyleSheet.flatten(screen.getByText("Eliminar evento").props.style).color).toBe(Colores.error);
     expect(eliminar.backgroundColor).toBeUndefined();
   });
 });
@@ -754,5 +762,241 @@ describe("ListaEventos: enlace de Google Maps", () => {
 
     expect(estilo.minHeight).toBeGreaterThanOrEqual(44);
     expect(estilo.backgroundColor).not.toBe(Colores.primary);
+  });
+});
+
+describe("ListaEventos: tarjeta y botón de cierre", () => {
+  const cerrar = (nombre: string) =>
+    screen.queryByRole("button", { name: `Cerrar detalles de ${nombre}` });
+
+  test("la tarjeta se despega del fondo: superficie elevada y borde marcado", async () => {
+    await renderizar([boda]);
+
+    // Cabecera pulsable → tarjeta
+    const tarjeta = StyleSheet.flatten(
+      screen.getByRole("button", { name: /^Ver detalles de Boda Lucena,/ }).parent?.props.style
+    );
+
+    expect(tarjeta).toMatchObject({
+      backgroundColor: Colores.backgroundSelected,
+      borderColor: Colores.borderStrong,
+      borderWidth: 1,
+    });
+    expect(tarjeta.backgroundColor).not.toBe(Colores.background);
+  });
+
+  test("cerrada no tiene botón de cierre", async () => {
+    await renderizar([boda, fiesta]);
+
+    expect(cerrar("Boda Lucena")).toBeNull();
+    expect(cerrar("Fiesta privada Córdoba")).toBeNull();
+    expect(screen.queryByText("✕")).toBeNull();
+  });
+
+  test("abierta muestra el cierre solo en esa tarjeta, discreto y con zona táctil de 44 px", async () => {
+    await renderizar([boda, fiesta]);
+
+    await abrir("Boda Lucena");
+
+    const boton = cerrar("Boda Lucena");
+    const estilo = StyleSheet.flatten(boton?.props.style);
+
+    expect(boton).not.toBeNull();
+    expect(cerrar("Fiesta privada Córdoba")).toBeNull();
+    expect(screen.getAllByText("✕")).toHaveLength(1);
+    // Arriba a la derecha, sin relleno de color
+    expect(estilo).toMatchObject({ position: "absolute", width: 44, height: 44 });
+    expect(estilo.right).toBeDefined();
+    expect(estilo.top).toBeDefined();
+    expect(estilo.backgroundColor).toBeUndefined();
+    expect(StyleSheet.flatten(screen.getByText("✕").props.style).color).toBe(Colores.textSecondary);
+  });
+
+  test("abierta, la cabecera deja sitio al cierre para que no tape el estado", async () => {
+    await renderizar([boda]);
+
+    const cabecera = () => screen.getByRole("button", { name: /^Ver detalles de Boda Lucena,/ });
+    const relleno = () => StyleSheet.flatten(cabecera().props.style).paddingRight ?? 0;
+    const cerrada = relleno();
+
+    await abrir("Boda Lucena");
+
+    expect(relleno()).toBeGreaterThanOrEqual(cerrada + 44);
+    expect(screen.getByText("Confirmado")).toBeTruthy();
+  });
+
+  test("el cierre cierra la tarjeta explícitamente", async () => {
+    await renderizar([boda]);
+    await abrir("Boda Lucena");
+
+    expect(screen.getByText("Técnico")).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Cerrar detalles de Boda Lucena" }));
+
+    expect(screen.queryByText("Técnico")).toBeNull();
+    expect(screen.queryByText("Editar evento")).toBeNull();
+    expect(cerrar("Boda Lucena")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /^Ver detalles de Boda Lucena,/ }).props.accessibilityState.expanded
+    ).toBe(false);
+  });
+
+  test("tras cerrar se puede volver a abrir pulsando la tarjeta, como siempre", async () => {
+    await renderizar([boda, fiesta]);
+    await abrir("Boda Lucena");
+    await fireEvent.press(screen.getByRole("button", { name: "Cerrar detalles de Boda Lucena" }));
+
+    await abrir("Fiesta privada Córdoba");
+
+    expect(cerrar("Fiesta privada Córdoba")).not.toBeNull();
+    expect(screen.getAllByText("Técnico")).toHaveLength(1);
+
+    // Pulsar la cabecera también sigue cerrando
+    await abrir("Fiesta privada Córdoba");
+
+    expect(screen.queryByText("Técnico")).toBeNull();
+    expect(cerrar("Fiesta privada Córdoba")).toBeNull();
+  });
+});
+
+describe("ListaEventos: orden del detalle, acciones y confirmación de borrado", () => {
+  const completo: Evento = {
+    ...boda,
+    googleMapsUrl: "https://maps.app.goo.gl/AbCdEf123",
+  };
+
+  async function pintarCompleto(evento: Evento = completo, puedeEditar = true) {
+    const onEliminar = jest.fn();
+
+    await render(
+      <ListaEventos
+        eventos={[evento]}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar={puedeEditar}
+        datosEconomicos={puedeEditar ? { caches: { [evento.id]: 120000 }, cargando: false, error: "" } : null}
+        onEliminar={onEliminar}
+        onEditar={jest.fn()}
+      />
+    );
+    await abrir("Boda Lucena");
+
+    return onEliminar;
+  }
+
+  test("orden: hora, técnico, caché, notas, Google Maps y al final las acciones", async () => {
+    await pintarCompleto();
+
+    const renderizado = JSON.stringify(screen.toJSON());
+    const orden = [
+      '"Hora"',
+      '"Técnico"',
+      '"Caché"',
+      '"Notas"',
+      '"Abrir en Google Maps"',
+      '"Editar evento"',
+      '"Eliminar evento"',
+    ].map((texto) => renderizado.indexOf(texto));
+
+    expect(orden.every((posicion) => posicion >= 0)).toBe(true);
+    expect([...orden].sort((a, b) => a - b)).toEqual(orden);
+  });
+
+  test("Google Maps sigue apareciendo solo con enlace, también para quien no edita", async () => {
+    await pintarCompleto(completo, false);
+
+    expect(screen.getByRole("link", { name: "Abrir ubicación del evento en Google Maps" })).toBeTruthy();
+  });
+
+  test("sin enlace no hay Google Maps", async () => {
+    await pintarCompleto({ ...completo, googleMapsUrl: null });
+
+    expect(screen.queryByText("Abrir en Google Maps")).toBeNull();
+  });
+
+  test("Editar y Eliminar van juntos dentro de la misma cápsula", async () => {
+    await pintarCompleto();
+
+    const capsula = screen.getByTestId("acciones-evento");
+    const estilo = StyleSheet.flatten(capsula.props.style);
+
+    expect(within(capsula).getByRole("button", { name: "Editar evento" })).toBeTruthy();
+    expect(within(capsula).getByRole("button", { name: "Eliminar evento" })).toBeTruthy();
+    expect(estilo).toMatchObject({ flexDirection: "row", borderRadius: 999, borderWidth: 1 });
+    expect(estilo.borderColor).toBe(Colores.border);
+  });
+
+  test("sin permiso de edición no hay cápsula de acciones", async () => {
+    await pintarCompleto(completo, false);
+
+    expect(screen.queryByTestId("acciones-evento")).toBeNull();
+  });
+
+  test("Eliminar pide confirmación con el nombre del evento antes de borrar", async () => {
+    const alerta = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const onEliminar = await pintarCompleto();
+
+    await fireEvent.press(screen.getByText("Eliminar evento"));
+
+    expect(onEliminar).not.toHaveBeenCalled();
+    expect(alerta.mock.calls[0][0]).toBe("¿Eliminar evento?");
+    expect(alerta.mock.calls[0][1]).toBe("¿Seguro que quieres eliminar «Boda Lucena del 15/05/2027»?");
+
+    const botones = alerta.mock.calls[0][2] as AlertButton[];
+
+    expect(botones.find(({ text }) => text === "Cancelar")?.style).toBe("cancel");
+    expect(botones.find(({ text }) => text === "Eliminar")?.style).toBe("destructive");
+    alerta.mockRestore();
+  });
+
+  test("Cancelar en la confirmación no borra", async () => {
+    const alerta = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const onEliminar = await pintarCompleto();
+
+    await fireEvent.press(screen.getByText("Eliminar evento"));
+    const cancelar = (alerta.mock.calls[0][2] as AlertButton[]).find(({ text }) => text === "Cancelar");
+
+    await act(async () => {
+      cancelar?.onPress?.();
+    });
+
+    expect(cancelar?.onPress).toBeUndefined();
+    expect(onEliminar).not.toHaveBeenCalled();
+    alerta.mockRestore();
+  });
+
+  test("confirmar sí borra", async () => {
+    const alerta = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const onEliminar = await pintarCompleto();
+
+    await fireEvent.press(screen.getByText("Eliminar evento"));
+    await act(async () => {
+      (alerta.mock.calls[0][2] as AlertButton[]).find(({ text }) => text === "Eliminar")?.onPress?.();
+    });
+
+    expect(onEliminar).toHaveBeenCalledWith(completo.id);
+    alerta.mockRestore();
+  });
+
+  test("el error de eliminación (por ejemplo, con movimientos) sigue debajo de las acciones", async () => {
+    await render(
+      <ListaEventos
+        eventos={[completo]}
+        tecnicos={tecnicos}
+        procesando={false}
+        puedeEditar
+        errorEliminacion={{ eventoId: completo.id, mensaje: "Tiene movimientos de finanzas" }}
+        onEliminar={jest.fn()}
+        onEditar={jest.fn()}
+      />
+    );
+    await abrir("Boda Lucena");
+
+    const renderizado = JSON.stringify(screen.toJSON());
+
+    expect(screen.getByText("Tiene movimientos de finanzas")).toBeTruthy();
+    expect(renderizado.indexOf('"Eliminar evento"')).toBeLessThan(
+      renderizado.indexOf('"Tiene movimientos de finanzas"')
+    );
   });
 });

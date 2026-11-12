@@ -6,14 +6,19 @@ import type { EstadoEvento } from "../types/evento";
 
 type ColoresTema = ReturnType<typeof useTheme>;
 
+const TAMANO_CERRAR = 44;
+
 export function crearEstilosListaEventos(colores: ColoresTema) {
   return StyleSheet.create({
     lista: {
       gap: Spacing.two,
     },
+    // Superficie elevada y borde marcado: la tarjeta se despega del fondo casi negro
     tarjeta: {
       borderRadius: 16,
-      backgroundColor: colores.backgroundElement,
+      borderWidth: 1,
+      borderColor: colores.borderStrong,
+      backgroundColor: colores.backgroundSelected,
     },
     // Toda la cabecera de la tarjeta es pulsable (más de 44 px de alto)
     vistaPrevia: {
@@ -22,8 +27,32 @@ export function crearEstilosListaEventos(colores: ColoresTema) {
       paddingVertical: Spacing.three,
       borderRadius: 16,
     },
+    // Abierta, deja sitio al botón de cierre: el badge no queda debajo
+    vistaPreviaAbierta: {
+      paddingRight: Spacing.three + TAMANO_CERRAR,
+    },
     vistaPreviaPulsada: {
-      backgroundColor: colores.backgroundSelected,
+      backgroundColor: colores.border,
+    },
+    // Arriba a la derecha, centrado con la primera línea. Zona táctil de 44 px
+    // aunque el icono sea pequeño
+    botonCerrar: {
+      position: "absolute",
+      top: Spacing.one + Spacing.half,
+      right: Spacing.one,
+      width: TAMANO_CERRAR,
+      height: TAMANO_CERRAR,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 999,
+    },
+    botonCerrarPulsado: {
+      backgroundColor: colores.border,
+    },
+    textoCerrar: {
+      fontSize: 18,
+      lineHeight: 22,
+      color: colores.textSecondary,
     },
     // Tipo, lugar y fecha, uno debajo de otro
     textosVistaPrevia: {
@@ -43,16 +72,16 @@ export function crearEstilosListaEventos(colores: ColoresTema) {
       fontWeight: "600",
       color: colores.text,
     },
-    // Segunda línea, en segundo plano
+    // Segunda y tercera línea: información secundaria, con el mismo estilo
     lugar: {
       fontSize: 15,
       lineHeight: 20,
       color: colores.textSecondary,
     },
     fechaVistaPrevia: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 20,
-      fontWeight: "500",
+      fontVariant: ["tabular-nums"],
       color: colores.textSecondary,
     },
     // Nunca se encoge: el texto largo es el tipo, no el estado

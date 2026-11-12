@@ -8,6 +8,7 @@ import type {
   TipoEvento,
 } from "../types/evento";
 import { importeParaFormulario, parsearImporte } from "../utils/dinero";
+import { hayCambiosEvento } from "../utils/formularioEvento";
 import { esEnlaceGoogleMapsValido, normalizarEnlaceGoogleMaps } from "../utils/googleMaps";
 import { generarTituloEvento } from "../utils/tituloEvento";
 
@@ -54,11 +55,18 @@ export function useEventos(options: UseEventosOptions = {}) {
   const titulo = tipo === null ? "" : generarTituloEvento(tipo, lugar, fecha);
   const [error, setError] = useState("");
   const [eventoEditandoId, setEventoEditandoId] = useState<string | null>(null);
+  // Tal como estaba al abrirlo para editar: con él se sabe si hay cambios sin guardar
+  const [eventoOriginal, setEventoOriginal] = useState<Evento | null>(null);
   // null = sin tocar: el campo enseña el caché guardado y al enviar no se cambia
   const [cacheEscrito, setCacheEscrito] = useState<string | null>(null);
   const cacheGuardado = eventoEditandoId === null ? undefined : cachesEvento[eventoEditandoId];
   const cache =
     cacheEscrito ?? (cacheGuardado === undefined ? "" : importeParaFormulario(cacheGuardado));
+  const hayCambios = hayCambiosEvento(
+    { tipo, estado, fecha, hora, lugar, notas, googleMapsUrl, tecnicoIds, cacheEscrito },
+    eventoOriginal,
+    cacheGuardado
+  );
   const [procesando, setProcesando] = useState(false);
   // La ref bloquea de inmediato; el estado solo sirve para que la interfaz se actualice
   const operacionEnCursoRef = useRef(false);
@@ -94,6 +102,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setTecnicoIds([]);
     setCacheEscrito(null);
     setError("");
+    setEventoOriginal(null);
   }
 
   // Elegir un tipo resuelve su error; cualquier otro sigue a la vista
@@ -244,6 +253,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     }
 
     setEventoEditandoId(evento.id);
+    setEventoOriginal(evento);
     setTipoElegido(evento.tipo);
     setError("");
     setFecha(evento.fecha);
@@ -270,6 +280,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     cache,
     error,
     eventoEditandoId,
+    hayCambios,
     procesando,
     setTipo,
     setEstado,

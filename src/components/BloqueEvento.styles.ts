@@ -36,6 +36,7 @@ export function crearEstilosBloqueEvento(colores: ColoresTema) {
     etiqueta: {
       fontSize: 13,
       lineHeight: 18,
+      fontWeight: "500",
       color: colores.textSecondary,
     },
     // Igual que la etiqueta de CampoFormulario

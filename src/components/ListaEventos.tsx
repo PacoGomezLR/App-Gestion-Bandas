@@ -3,16 +3,15 @@ import { Pressable, Text, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import type { CachesPorEvento, ErrorEliminacionEvento, Evento } from "../types/evento";
 import type { Tecnico } from "../types/tecnico";
+import { confirmarEliminacion } from "../utils/confirmaciones";
 import { formatearSinCerosDecimales } from "../utils/dinero";
 import { etiquetaEstadoEvento } from "../utils/estadosEvento";
 import { formatearFechaConBarras } from "../utils/fechas";
 import { etiquetaTipoEvento } from "../utils/tiposEvento";
+import { AccionesEvento } from "./AccionesEvento";
 import { BloqueEvento } from "./BloqueEvento";
 import { BotonGoogleMaps } from "./BotonGoogleMaps";
-import { crearEstilosBloqueEvento } from "./BloqueEvento.styles";
 import { coloresBadge, crearEstilosListaEventos } from "./ListaEventos.styles";
-import { Mensaje } from "./PantallaBase";
-import { BotonDestructivo, BotonSecundario } from "./PantallaInterior";
 
 interface ListaEventosProps {
   eventos: Evento[];
@@ -70,7 +69,6 @@ export function ListaEventos({
   const [eventoAbiertoId, setEventoAbiertoId] = useState<string | null>(null);
   const tema = useTheme();
   const estilos = useMemo(() => crearEstilosListaEventos(tema), [tema]);
-  const estilosBloque = useMemo(() => crearEstilosBloqueEvento(tema), [tema]);
   const badges = useMemo(() => coloresBadge(estilos), [estilos]);
 
   return (
@@ -98,6 +96,7 @@ export function ListaEventos({
               onPress={() => setEventoAbiertoId(abierto ? null : evento.id)}
               style={({ pressed }) => [
                 estilos.vistaPrevia,
+                abierto && estilos.vistaPreviaAbierta,
                 pressed && estilos.vistaPreviaPulsada,
               ]}
             >
@@ -120,6 +119,19 @@ export function ListaEventos({
               </View>
             </Pressable>
 
+            {/* Solo abierta. Hermano de la cabecera, no dentro: un botón dentro de otro
+                no se puede alcanzar con el lector de pantalla */}
+            {abierto && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Cerrar detalles de ${tituloVistaPrevia}`}
+                onPress={() => setEventoAbiertoId(null)}
+                style={({ pressed }) => [estilos.botonCerrar, pressed && estilos.botonCerrarPulsado]}
+              >
+                <Text style={estilos.textoCerrar}>✕</Text>
+              </Pressable>
+            )}
+
             {abierto && (
               <View style={estilos.detalle}>
                 {/* El título se sigue guardando, pero no se muestra: repite tipo, lugar y fecha.
@@ -132,9 +144,6 @@ export function ListaEventos({
                   {nombresTecnicos.length > 0 ? nombresTecnicos.join(", ") : "Sin asignar"}
                 </BloqueEvento>
 
-                {/* Para toda la banda: sin enlace no queda hueco */}
-                {evento.googleMapsUrl ? <BotonGoogleMaps url={evento.googleMapsUrl} /> : null}
-
                 {datosEconomicos !== null && (
                   <BloqueEvento etiqueta="Caché">
                     {textoCache(datosEconomicos.caches[evento.id], datosEconomicos)}
@@ -143,26 +152,24 @@ export function ListaEventos({
 
                 {evento.notas !== "" && <BloqueEvento etiqueta="Notas">{evento.notas}</BloqueEvento>}
 
+                {/* Al final de la información, como acción útil: para toda la banda y
+                    sin enlace no queda hueco */}
+                {evento.googleMapsUrl ? <BotonGoogleMaps url={evento.googleMapsUrl} /> : null}
+
                 {puedeEditar && (
-                  <View style={estilosBloque.acciones}>
-                    <View style={estilosBloque.accionSecundaria}>
-                      <BotonSecundario
-                        titulo="Editar evento"
-                        onPress={() => onEditar(evento)}
-                        disabled={procesando}
-                      />
-
-                      <BotonDestructivo
-                        titulo="Eliminar evento"
-                        onPress={() => onEliminar(evento.id)}
-                        disabled={procesando}
-                      />
-                    </View>
-
-                    {errorEliminacion?.eventoId === evento.id && (
-                      <Mensaje tipo="error" texto={errorEliminacion.mensaje} />
-                    )}
-                  </View>
+                  <AccionesEvento
+                    procesando={procesando}
+                    errorEliminacion={
+                      errorEliminacion?.eventoId === evento.id ? errorEliminacion.mensaje : null
+                    }
+                    onEditar={() => onEditar(evento)}
+                    // Borrar no se deshace: primero se confirma con el nombre del evento
+                    onEliminar={() =>
+                      confirmarEliminacion(`${tituloVistaPrevia} del ${fechaVisible}`, () =>
+                        onEliminar(evento.id)
+                      )
+                    }
+                  />
                 )}
               </View>
             )}

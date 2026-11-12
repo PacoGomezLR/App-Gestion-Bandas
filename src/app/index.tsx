@@ -26,6 +26,7 @@ import { useTecnicosContext } from "../context/TecnicosContext";
 import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 import type { Evento } from "../types/evento";
 import { eventosPasados, eventosProximos, LIMITE_PROXIMAS_FECHAS } from "../utils/agenda";
+import { avisarCambiosSinGuardar } from "../utils/confirmaciones";
 import {
   contarNoDisponiblesPorFecha,
   indisponibilidadPropia,
@@ -57,6 +58,7 @@ export default function Index() {
     cache,
     error,
     eventoEditandoId,
+    hayCambios,
     setTipo,
     setEstado,
     setFecha,
@@ -163,6 +165,21 @@ export default function Index() {
     setFormularioAbierto(true);
   }
 
+  // Toda salida del formulario pasa por aquí. Sin cambios reales sale sin
+  // preguntar; con cambios: Guardar (y, si se guarda, trasGuardar), Descartar
+  // (sale sin guardar) o Cancelar (se queda en el formulario)
+  function confirmarSalida(salir: () => void, trasGuardar?: () => void) {
+    if (!formularioAbierto || !hayCambios) {
+      salir();
+      return;
+    }
+
+    avisarCambiosSinGuardar({
+      onGuardar: () => guardarConAviso(trasGuardar),
+      onDescartar: salir,
+    });
+  }
+
   function abrirHistorial(origen: "inicio" | "todas") {
     setOrigenHistorial(origen);
     setVista("historial");
@@ -188,21 +205,23 @@ export default function Index() {
       return () => {};
     }
 
-    return formularioAbierto ? cancelarFormulario : cerrarPanel;
+    return formularioAbierto ? () => confirmarSalida(cancelarFormulario) : cerrarPanel;
   }
 
   // Las pestañas siguen montadas: Atrás solo se intercepta en la que se ve
   const enFoco = useIsFocused();
   useAtrasAndroid(enFoco ? accionAtras() : null);
 
-  async function guardarYCerrar() {
+  // trasGuardar: lo que el usuario quería hacer al salir (por ejemplo, editar otro evento)
+  async function guardarYCerrar(trasGuardar?: () => void) {
     if (await guardarEvento()) {
       cerrarPanel();
+      trasGuardar?.();
     }
   }
 
   // La disponibilidad solo advierte: el admin puede confirmar igualmente
-  function guardarConAviso() {
+  function guardarConAviso(trasGuardar?: () => void) {
     const resumen = resumirNoDisponibles(
       indisponibilidades,
       fecha,
@@ -220,7 +239,7 @@ export default function Index() {
         noDisponibles: resumen.total,
       })
     ) {
-      void guardarYCerrar();
+      void guardarYCerrar(trasGuardar);
       return;
     }
 
@@ -239,7 +258,7 @@ export default function Index() {
       ].join("\n\n"),
       [
         { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar igualmente", onPress: () => void guardarYCerrar() },
+        { text: "Confirmar igualmente", onPress: () => void guardarYCerrar(trasGuardar) },
       ]
     );
   }
@@ -261,7 +280,8 @@ export default function Index() {
           esAdmin ? { caches: cachesEvento, cargando: cargandoCaches, error: errorCaches } : null
         }
         onEliminar={eliminarEvento}
-        onEditar={editar}
+        // Con otro evento a medio escribir, antes se pregunta qué hacer con él
+        onEditar={(evento) => confirmarSalida(() => editar(evento), () => editar(evento))}
       />
     );
   }
@@ -375,8 +395,8 @@ export default function Index() {
                 onCambiarGoogleMapsUrl={setGoogleMapsUrl}
                 onCambiarNotas={setNotas}
                 onAlternarTecnico={alternarTecnico}
-                onGuardar={guardarConAviso}
-                onCancelar={cancelarFormulario}
+                onGuardar={() => guardarConAviso()}
+                onCancelar={() => confirmarSalida(cancelarFormulario)}
               />
             ) : null
           }
@@ -394,8 +414,15 @@ export default function Index() {
                 indisponibilidadPropia(indisponibilidades, usuarioActualId, diaElegido) !== null
               }
               procesando={procesandoDisponibilidad}
-              onGuardar={(noDisponible) => void guardarDisponibilidad(noDisponible)}
-              onCancelar={cerrarPanel}
+              // Guardar la disponibilidad o cerrar cierra también el panel: si hay un
+              // evento a medio escribir, antes se pregunta qué hacer con él
+              onGuardar={(noDisponible) =>
+                confirmarSalida(
+                  () => void guardarDisponibilidad(noDisponible),
+                  () => void guardarDisponibilidad(noDisponible)
+                )
+              }
+              onCancelar={() => confirmarSalida(cerrarPanel)}
             />
           }
           crearEvento={
