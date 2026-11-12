@@ -6,6 +6,7 @@ import { InvitarUsuario } from "../components/InvitarUsuario";
 import { ListaIntegrantes } from "../components/ListaIntegrantes";
 import { Mensaje } from "../components/PantallaBase";
 import { PantallaFinanzas } from "../components/PantallaFinanzas";
+import { PantallaLogoBanda } from "../components/PantallaLogoBanda";
 import {
   BotonSecundario,
   CabeceraPantalla,
@@ -26,7 +27,7 @@ import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 // Índice de la banda y sus apartados. Son vistas de la misma pantalla, no rutas
 // (igual que Todas las fechas o Historial en el Calendario): el botón Atrás de
 // Android las recorre con useAtrasAndroid.
-type Vista = "principal" | "integrantes" | "tecnicos" | "invitar" | "finanzas";
+type Vista = "principal" | "integrantes" | "tecnicos" | "invitar" | "finanzas" | "logo";
 
 export default function BandaScreen() {
   const { esAdmin, bandaActual } = useBandaContext();
@@ -52,7 +53,7 @@ export default function BandaScreen() {
     setVista("principal");
   }
 
-  // Técnicos y Finanzas gestionan su propio Atrás. En el índice no se intercepta
+  // Técnicos, Finanzas y el logo gestionan su propio Atrás. En el índice no se intercepta
   const interceptarAtras =
     enFoco && (vistaVisible === "integrantes" || vistaVisible === "invitar");
   useAtrasAndroid(interceptarAtras ? volver : null);
@@ -92,6 +93,12 @@ export default function BandaScreen() {
         <ListaIntegrantes integrantes={integrantes} />
       </PantallaInterior>
     );
+  }
+
+  // La base y Storage vuelven a comprobar el rol al cambiar el logo
+  if (vistaVisible === "logo" && bandaActual !== null) {
+    // Gestiona su propio Atrás: con cambios sin guardar, antes pregunta
+    return <PantallaLogoBanda nombreBanda={bandaActual.nombre} enFoco={enFoco} onVolver={volver} />;
   }
 
   // La base vuelve a comprobar el rol al crear la invitación
@@ -143,6 +150,7 @@ export default function BandaScreen() {
         <GrupoFilas>
           <FilaNavegable titulo="Invitar usuario" onPress={() => setVista("invitar")} />
           <FilaNavegable titulo="Finanzas" onPress={() => setVista("finanzas")} />
+          <FilaNavegable titulo="Logo de la banda" onPress={() => setVista("logo")} />
         </GrupoFilas>
       </Seccion>
     </PantallaInterior>

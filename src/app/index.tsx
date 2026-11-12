@@ -6,6 +6,7 @@ import { AvisoNoDisponibles } from "../components/AvisoNoDisponibles";
 import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
 import { CalendarioEventos } from "../components/CalendarioEventos";
 import { FormularioEvento } from "../components/FormularioEvento";
+import { CabeceraConLogo } from "../components/LogoBanda";
 import { ListaEventos } from "../components/ListaEventos";
 import { PanelDia } from "../components/PanelDia";
 import { BotonPrincipal, Mensaje } from "../components/PantallaBase";
@@ -22,6 +23,7 @@ import { useBandaContext } from "../context/BandaContext";
 import { useDisponibilidadContext } from "../context/DisponibilidadContext";
 import { useEventosContext } from "../context/EventosContext";
 import { useIntegrantesContext } from "../context/IntegrantesContext";
+import { useLogoBandaContext } from "../context/LogoBandaContext";
 import { useTecnicosContext } from "../context/TecnicosContext";
 import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 import type { Evento } from "../types/evento";
@@ -102,6 +104,8 @@ export default function Index() {
     cargando: cargandoIntegrantes,
     errorPersistencia: errorPersistenciaIntegrantes,
   } = useIntegrantesContext();
+
+  const { url: logoUrl, escala: escalaLogo } = useLogoBandaContext();
 
   const [vista, setVista] = useState<Vista>("inicio");
   // Desde dónde se abrió el historial: Volver (y Atrás) regresa allí
@@ -348,7 +352,13 @@ export default function Index() {
       {/* Respeta la barra de estado (SafeAreaView propio) y queda arriba a la derecha */}
       <BotonCerrarSesion />
 
-      <CabeceraPantalla titulo="Calendario" subtitulo={bandaActual?.nombre} />
+      {/* La portada: con logo, a la izquierda del título */}
+      <CabeceraConLogo
+        titulo="Calendario"
+        nombreBanda={bandaActual?.nombre}
+        logoUrl={logoUrl}
+        escala={escalaLogo}
+      />
 
       {errores.map((mensaje) => (
         <Mensaje key={mensaje} tipo="error" texto={mensaje} />

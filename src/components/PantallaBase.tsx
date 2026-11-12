@@ -148,21 +148,22 @@ export function AccionSecundaria({ pregunta, titulo, onPress, disabled = false }
 }
 
 interface MensajeProps {
-  tipo: "error" | "info";
+  tipo: "error" | "info" | "exito";
   texto: string;
 }
 
 export function Mensaje({ tipo, texto }: MensajeProps) {
   const estilos = useEstilos();
-  const esError = tipo === "error";
+  const fondo = { error: estilos.mensajeError, info: estilos.mensajeInfo, exito: estilos.mensajeExito };
+  const color = { error: estilos.textoError, info: estilos.textoInfo, exito: estilos.textoExito };
 
   return (
     <View
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      style={[estilos.mensaje, esError ? estilos.mensajeError : estilos.mensajeInfo]}
+      style={[estilos.mensaje, fondo[tipo]]}
     >
-      <Text style={esError ? estilos.textoError : estilos.textoInfo}>{texto}</Text>
+      <Text style={color[tipo]}>{texto}</Text>
     </View>
   );
 }

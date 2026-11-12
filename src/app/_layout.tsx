@@ -10,6 +10,7 @@ import { DisponibilidadProvider } from '@/context/DisponibilidadContext';
 import { EventosProvider } from '@/context/EventosContext';
 import { IntegrantesProvider } from '@/context/IntegrantesContext';
 import { InvitacionPendienteProvider } from '@/context/InvitacionPendienteContext';
+import { LogoBandaProvider } from '@/context/LogoBandaContext';
 import { RepertorioProvider } from '@/context/RepertorioContext';
 import { TemaNavegacion } from '@/constants/temaNavegacion';
 import { TecnicosProvider } from '@/context/TecnicosContext';
@@ -33,7 +34,9 @@ export default function TabLayout() {
                 <IntegrantesProvider>
                   <DisponibilidadProvider>
                     <RepertorioProvider>
-                      <AppTabs />
+                      <LogoBandaProvider>
+                        <AppTabs />
+                      </LogoBandaProvider>
                     </RepertorioProvider>
                   </DisponibilidadProvider>
                 </IntegrantesProvider>

@@ -190,7 +190,7 @@ describe("migraciones ejecutadas", () => {
     );
   });
 
-  test("después de 006 solo están 007, 008, 009, 010 y 011", () => {
+  test("después de 006 solo están 007 a 013", () => {
     expect(fs.readdirSync("supabase/migrations").sort()).toEqual([
       "001_usuarios_roles.sql",
       "002_datos_banda.sql",
@@ -203,6 +203,8 @@ describe("migraciones ejecutadas", () => {
       "009_cache_eventos.sql",
       "010_google_maps_eventos.sql",
       "011_repertorio.sql",
+      "012_logo_banda.sql",
+      "013_escala_logo_banda.sql",
     ]);
   });
 });

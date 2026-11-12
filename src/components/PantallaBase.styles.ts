@@ -119,5 +119,13 @@ export function crearEstilosPantallaBase(colores: ColoresTema) {
     textoInfo: {
       color: colores.info,
     },
+    // Confirmación de que algo se ha guardado
+    mensajeExito: {
+      backgroundColor: colores.successBackground,
+    },
+    textoExito: {
+      color: colores.success,
+      fontWeight: "600",
+    },
   });
 }

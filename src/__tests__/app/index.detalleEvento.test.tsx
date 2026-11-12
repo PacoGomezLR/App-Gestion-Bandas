@@ -18,6 +18,7 @@ jest.mock("../../utils/fechas", () => ({
 jest.mock("expo-router", () => ({ useIsFocused: () => true }));
 
 jest.mock("../../global.css", () => ({}));
+jest.mock("../../context/LogoBandaContext", () => ({ useLogoBandaContext: () => ({ url: null }) }));
 
 // Los contextos reales importan el cliente Supabase; aquí nunca se usa
 jest.mock("../../lib/supabase", () => ({ supabase: {} }));

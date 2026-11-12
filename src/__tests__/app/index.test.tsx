@@ -25,6 +25,14 @@ let mockEnFoco = true;
 jest.mock("expo-router", () => ({ useIsFocused: () => mockEnFoco }));
 
 jest.mock("../../global.css", () => ({}));
+
+// El logo vive en Supabase Storage: aquí solo importa si hay URL o no
+let mockLogoUrl: string | null = null;
+let mockEscalaLogo = 1;
+
+jest.mock("../../context/LogoBandaContext", () => ({
+  useLogoBandaContext: () => ({ url: mockLogoUrl, escala: mockEscalaLogo }),
+}));
 jest.mock("../../lib/supabase", () => ({ supabase: {} }));
 
 // El calendario real no se puede pulsar día a día en Jest: un botón por día
@@ -230,6 +238,8 @@ async function elegir(opcion: "Disponible" | "No disponible") {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockLogoUrl = null;
+  mockEscalaLogo = 1;
 });
 
 describe("Calendario: próximas fechas, todas e historial", () => {
@@ -1053,7 +1063,9 @@ describe("Calendario: ayuda para crear eventos", () => {
 
     expect(screen.getByText(AYUDA)).toBeTruthy();
     expect(screen.getByTestId("ayuda-calendario")).toBeTruthy();
-    estaEnOrden(["Calendario", "Cathaline", AYUDA, "marked-dates"]);
+    estaEnOrden(["Calendario", AYUDA, "marked-dates"]);
+    // La portada no repite el nombre de la banda bajo el título
+    expect(screen.queryByText("Cathaline")).toBeNull();
   });
 
   test("un usuario normal no la ve", async () => {
@@ -1270,5 +1282,43 @@ describe("Calendario: cambios sin guardar", () => {
 
     expect(alerta.mock.calls[0][0]).toBe("Tienes cambios sin guardar");
     expect(screen.getByText("Guardar evento")).toBeTruthy();
+  });
+});
+
+describe("Calendario: logo de la banda", () => {
+  test("aplica la escala que ha guardado el admin para toda la banda", async () => {
+    simular();
+    mockLogoUrl = "https://cdn.test/b1/logo-1.png";
+    mockEscalaLogo = 1.7;
+    await render(<Index />);
+
+    const imagen = StyleSheet.flatten(screen.getByTestId("imagen-logo-banda").props.style);
+
+    expect(imagen.transform).toEqual([{ scale: 1.7 }]);
+    expect(StyleSheet.flatten(screen.getByTestId("logo-banda").props.style).width).toBe("100%");
+  });
+
+  test("con logo, arriba y a todo el ancho, sin romper la pantalla", async () => {
+    simular({ eventos: [evento("f1", "2026-11-14", "F1")] });
+    mockLogoUrl = "https://cdn.test/b1/logo-1.jpg";
+    await render(<Index />);
+
+    const logo = screen.getByRole("image", { name: "Logo de Cathaline" });
+    const renderizado = JSON.stringify(screen.toJSON());
+
+    expect(logo).toBeTruthy();
+    expect(screen.getByText("Calendario")).toBeTruthy();
+    // Arriba de todo: antes del título, del calendario y de las próximas fechas
+    expect(renderizado.indexOf("Logo de Cathaline")).toBeLessThan(renderizado.indexOf('"Calendario"'));
+    expect(renderizado.indexOf('"Calendario"')).toBeLessThan(renderizado.indexOf('"Próximas fechas"'));
+    expect(screen.getByRole("button", { name: /^Ver detalles de Ensayo F1,/ })).toBeTruthy();
+  });
+
+  test("sin logo, la cabecera de siempre", async () => {
+    simular();
+    await render(<Index />);
+
+    expect(screen.queryByTestId("logo-banda")).toBeNull();
+    expect(screen.getByText("Calendario")).toBeTruthy();
   });
 });

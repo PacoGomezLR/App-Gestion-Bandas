@@ -41,6 +41,18 @@ jest.mock("../../components/BotonCerrarSesion", () => {
 
 jest.mock("../../context/BandaContext", () => ({ useBandaContext: jest.fn() }));
 jest.mock("../../context/EventosContext", () => ({ useEventosContext: jest.fn() }));
+jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock("../../context/LogoBandaContext", () => ({
+  useLogoBandaContext: () => ({
+    url: null,
+    escala: 1,
+    procesando: false,
+    errorOperacion: "",
+    guardarLogo: jest.fn(),
+    quitarLogo: jest.fn(),
+    limpiarErrorOperacion: jest.fn(),
+  }),
+}));
 
 const mockListarIntegrantes = jest.fn<Promise<IntegranteBanda[]>, []>();
 
@@ -175,6 +187,20 @@ describe("Banda: pantalla principal", () => {
     expect(screen.queryByText("Generar invitación")).toBeNull();
   });
 
+  test("el admin abre Logo de la banda desde Administración y vuelve", async () => {
+    simular();
+    await abrirBanda();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Logo de la banda" }));
+
+    expect(screen.getByRole("header", { name: "Logo de la banda" })).toBeTruthy();
+    expect(screen.getByText("Sin logo")).toBeTruthy();
+
+    await fireEvent.press(screen.getByText("Volver a Banda"));
+
+    expect(screen.getByText("Equipo")).toBeTruthy();
+  });
+
   test("el admin ve Administración con Invitar usuario", async () => {
     simular();
     await abrirBanda();
@@ -210,8 +236,8 @@ describe("Banda: pantalla principal", () => {
     simular();
     await abrirBanda();
 
-    // Integrantes, Técnicos, Invitar usuario y Finanzas
-    expect(screen.getAllByText("›")).toHaveLength(4);
+    // Integrantes, Técnicos, Invitar usuario, Finanzas y Logo de la banda
+    expect(screen.getAllByText("›")).toHaveLength(5);
     expect(StyleSheet.flatten(screen.getByText("Integrantes").props.style).textAlign).toBeUndefined();
   });
 
@@ -595,6 +621,17 @@ describe("Banda: botón Atrás de Android", () => {
     simular();
     await abrirTecnicos();
 
+    expect(await pulsarAtras()).toBe(true);
+    expect(screen.getByText("Equipo")).toBeTruthy();
+    expect(manejadores).toHaveLength(0);
+  });
+
+  test("Logo de la banda → Banda", async () => {
+    simular();
+    await abrirBanda();
+    await fireEvent.press(screen.getByRole("button", { name: "Logo de la banda" }));
+
+    expect(screen.getByRole("button", { name: "Añadir logo" })).toBeTruthy();
     expect(await pulsarAtras()).toBe(true);
     expect(screen.getByText("Equipo")).toBeTruthy();
     expect(manejadores).toHaveLength(0);
