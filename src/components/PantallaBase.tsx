@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useMemo, useState } from "react";
+import { type PropsWithChildren, type Ref, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Pressable,
@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import type { CampoNativo } from "@/hooks/plataformaDesplazamiento";
 import { crearEstilosPantallaBase } from "./PantallaBase.styles";
 
 // Piezas visuales compartidas por acceso, creación de banda y estados de carga.
@@ -63,6 +64,8 @@ interface CampoFormularioProps
   etiqueta: string;
   // Sin etiqueta visible cuando el placeholder ya la dice; se sigue leyendo en voz alta
   etiquetaVisible?: boolean;
+  // Para poder enfocarlo desde la pantalla (por ejemplo, al llevar al usuario a un error)
+  ref?: Ref<CampoNativo>;
 }
 
 // Etiqueta visible encima del campo; la misma etiqueta es su nombre accesible

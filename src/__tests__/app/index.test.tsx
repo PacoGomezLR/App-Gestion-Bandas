@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import { useState } from "react";
 import { Alert, type AlertButton, BackHandler, Platform, StyleSheet } from "react-native";
 
@@ -34,6 +34,23 @@ jest.mock("../../context/LogoBandaContext", () => ({
   useLogoBandaContext: () => ({ url: mockLogoUrl, escala: mockEscalaLogo }),
 }));
 jest.mock("../../lib/supabase", () => ({ supabase: {} }));
+
+// Llevar al siguiente paso: se simula solo la plataforma (medir, desplazar,
+// enfocar). Cada medición pide primero la zona (0..800) y luego el objetivo, que
+// está fuera de la vista: si se pide ir a él, hay desplazamiento
+let mockMediciones = 0;
+const mockDesplazarA = jest.fn();
+const mockEnfocarCampo = jest.fn();
+
+jest.mock("../../hooks/plataformaDesplazamiento", () => ({
+  medirEnVentana: () => {
+    mockMediciones += 1;
+    return Promise.resolve(mockMediciones % 2 === 1 ? { arriba: 0, alto: 800 } : { arriba: 1500, alto: 48 });
+  },
+  altoVentana: () => 800,
+  desplazarA: (_scroll: unknown, y: number) => mockDesplazarA(y),
+  enfocarCampo: (campo: { current: unknown }) => mockEnfocarCampo(campo.current),
+}))
 
 // El calendario real no se puede pulsar día a día en Jest: un botón por día
 // y un texto con las marcas (punto / anillo) que recibe
@@ -83,6 +100,9 @@ const mockMarcarNoDisponible = jest.fn((_fecha: string) => {});
 const mockMarcarDisponible = jest.fn((_fecha: string) => {});
 
 // El mismo hook que usa EventosContext, con el estado dentro de la pantalla
+// Lo que pone EventosContext cuando la base rechaza el guardado
+let mockErrorPersistenciaEventos = "";
+
 function mockUsarEventos() {
   const estado = useEventos({
     datosIniciales: mockEventosIniciales,
@@ -93,7 +113,7 @@ function mockUsarEventos() {
   return {
     ...estado,
     cargando: false,
-    errorPersistencia: "",
+    errorPersistencia: mockErrorPersistenciaEventos,
     errorEliminacion: mockErrorEliminacion,
     cachesEvento: {},
     cargandoCaches: false,
@@ -1320,5 +1340,200 @@ describe("Calendario: logo de la banda", () => {
 
     expect(screen.queryByTestId("logo-banda")).toBeNull();
     expect(screen.getByText("Calendario")).toBeTruthy();
+  });
+});
+
+describe("Calendario: llevar al siguiente paso", () => {
+  // requestAnimationFrame en Jest es un setTimeout(0): un fotograma y las medidas
+  async function esperarFotograma() {
+    await act(async () => {
+      await new Promise((resolver) => setTimeout(resolver, 0));
+    });
+  }
+
+  // El destino se ha pintado y colocado (en el móvil lo hace el propio onLayout)
+  async function colocar(clave: string) {
+    await fireEvent(screen.getByTestId(`destino-${clave}`), "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 48 } },
+    });
+    await esperarFotograma();
+  }
+
+  beforeEach(() => {
+    mockMediciones = 0;
+    mockErrorPersistenciaEventos = "";
+  });
+
+  test("admin: tocar un día lleva a + Crear evento", async () => {
+    simular();
+    await render(<Index />);
+
+    await tocarDia("2026-11-21");
+    expect(mockDesplazarA).not.toHaveBeenCalled();
+
+    await colocar("crear-evento");
+
+    expect(mockDesplazarA).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("destino-crear-evento")).toContainElement(screen.getByText("+ Crear evento"));
+  });
+
+  test("usuario normal: tocar un día no lleva a ningún sitio y sigue sin poder crear eventos", async () => {
+    simular({ esAdmin: false });
+    await render(<Index />);
+
+    await tocarDia("2026-11-21");
+    await esperarFotograma();
+
+    expect(screen.queryByText("+ Crear evento")).toBeNull();
+    expect(screen.queryByTestId("destino-crear-evento")).toBeNull();
+    expect(mockDesplazarA).not.toHaveBeenCalled();
+  });
+
+  test("con el formulario abierto, tocar otro día solo cambia la fecha: no mueve la pantalla", async () => {
+    simular();
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await colocar("evento.tipo");
+    mockDesplazarA.mockClear();
+
+    await tocarDia("2026-11-30");
+    await esperarFotograma();
+
+    expect(mockDesplazarA).not.toHaveBeenCalled();
+  });
+
+  test("+ Crear evento lleva al primer dato del formulario (Tipo de evento), sin teclado", async () => {
+    simular();
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+
+    await colocar("evento.tipo");
+
+    expect(mockDesplazarA).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("destino-evento.tipo")).toContainElement(
+      screen.getByRole("button", { name: /^Tipo de evento:/ })
+    );
+    // Es un desplegable, no un campo de texto: no se abre el teclado
+    expect(mockEnfocarCampo).not.toHaveBeenCalled();
+  });
+
+  test("Editar evento lleva al mismo sitio", async () => {
+    simular({ eventos: [evento("e1", "2026-11-21", "Lucena")] });
+    await render(<Index />);
+    await fireEvent.press(screen.getAllByRole("button", { name: /^Ver detalles de Ensayo Lucena,/ })[0]);
+
+    await fireEvent.press(screen.getByText("Editar evento"));
+    await colocar("evento.tipo");
+
+    expect(mockDesplazarA).toHaveBeenCalledTimes(1);
+  });
+
+  test("escribir no mueve la pantalla", async () => {
+    simular();
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await colocar("evento.tipo");
+    mockDesplazarA.mockClear();
+
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await fireEvent.changeText(screen.getByLabelText("Notas"), "Llevar cables");
+    await esperarFotograma();
+
+    expect(mockDesplazarA).not.toHaveBeenCalled();
+    expect(mockEnfocarCampo).not.toHaveBeenCalled();
+  });
+
+  test("Guardar sin tipo lleva a Tipo de evento y el error sigue a la vista", async () => {
+    simular();
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await colocar("evento.tipo");
+    mockDesplazarA.mockClear();
+
+    await fireEvent.press(screen.getByText("Guardar evento"));
+    await esperarFotograma();
+
+    expect(mockDesplazarA).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Selecciona un tipo de evento.")).toBeTruthy();
+    expect(mockPersistirEvento).not.toHaveBeenCalled();
+  });
+
+  test("un enlace de Google Maps no válido lleva a ese campo y lo enfoca", async () => {
+    simular();
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await elegirTipo("Concierto abierto");
+    await fireEvent.changeText(screen.getByLabelText("Enlace de Google Maps"), "https://otra-web.com/x");
+    mockDesplazarA.mockClear();
+
+    await fireEvent.press(screen.getByText("Guardar evento"));
+    await esperarFotograma();
+
+    expect(mockDesplazarA).toHaveBeenCalledTimes(1);
+    expect(mockEnfocarCampo).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("destino-evento.maps")).toContainElement(
+      screen.getByLabelText("Enlace de Google Maps")
+    );
+    expect(screen.getByText("Introduce un enlace válido de Google Maps.")).toBeTruthy();
+  });
+
+  test("un error al guardar en la base (no de un campo) lleva al mensaje, sin enfocar nada", async () => {
+    simular();
+    mockPersistirEvento.mockImplementationOnce(async () => {
+      mockErrorPersistenciaEventos = "No se ha podido guardar el evento";
+      return null as unknown as Evento;
+    });
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await elegirTipo("Concierto abierto");
+    mockDesplazarA.mockClear();
+
+    await fireEvent.press(screen.getByText("Guardar evento"));
+    await colocar("evento.error");
+
+    expect(mockDesplazarA).toHaveBeenCalledTimes(1);
+    // Junto a Guardar (también sale arriba, con los demás errores de la pantalla)
+    expect(
+      within(screen.getByTestId("destino-evento.error")).getByText("No se ha podido guardar el evento")
+    ).toBeTruthy();
+    expect(mockEnfocarCampo).not.toHaveBeenCalled();
+  });
+
+  test("un error que aparece sin pulsar Guardar (por ejemplo, al recargar) no mueve la pantalla", async () => {
+    simular();
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await colocar("evento.tipo");
+    mockDesplazarA.mockClear();
+
+    // El error llega mientras se escribe, sin ningún Guardar
+    mockErrorPersistenciaEventos = "No se han podido cargar los eventos";
+    await fireEvent.changeText(screen.getByLabelText("Lugar"), "Montilla");
+    await colocar("evento.error");
+
+    expect(mockDesplazarA).not.toHaveBeenCalled();
+  });
+
+  test("guardar bien no lleva a ningún error", async () => {
+    simular();
+    await render(<Index />);
+    await tocarDia("2026-11-21");
+    await fireEvent.press(screen.getByText("+ Crear evento"));
+    await elegirTipo("Concierto abierto");
+    mockDesplazarA.mockClear();
+
+    await fireEvent.press(screen.getByText("Guardar evento"));
+    await esperarFotograma();
+
+    expect(mockPersistirEvento).toHaveBeenCalledTimes(1);
+    expect(mockDesplazarA).not.toHaveBeenCalled();
+    expect(mockEnfocarCampo).not.toHaveBeenCalled();
   });
 });

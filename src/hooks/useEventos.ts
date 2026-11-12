@@ -19,6 +19,10 @@ const SIN_CACHES: CachesPorEvento = {};
 
 const ERROR_SIN_TIPO = "Selecciona un tipo de evento.";
 
+// Campo del formulario al que se refiere un error de validación: la pantalla
+// lleva al usuario hasta él
+export type CampoEvento = "tipo" | "fecha" | "hora" | "maps" | "cache";
+
 interface UseEventosOptions {
   datosIniciales?: Evento[];
   // Devuelve el evento tal como quedó guardado (con el id definitivo) o null si falla
@@ -54,6 +58,13 @@ export function useEventos(options: UseEventosOptions = {}) {
   // Se recalcula en cada cambio de tipo, lugar o fecha: no hay campo de título
   const titulo = tipo === null ? "" : generarTituloEvento(tipo, lugar, fecha);
   const [error, setError] = useState("");
+  // null: sin error, o un error que no es de un campo (por ejemplo, al guardar)
+  const [campoConError, setCampoConError] = useState<CampoEvento | null>(null);
+
+  function marcarError(mensaje: string, campo: CampoEvento) {
+    setError(mensaje);
+    setCampoConError(campo);
+  }
   const [eventoEditandoId, setEventoEditandoId] = useState<string | null>(null);
   // Tal como estaba al abrirlo para editar: con él se sabe si hay cambios sin guardar
   const [eventoOriginal, setEventoOriginal] = useState<Evento | null>(null);
@@ -102,6 +113,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setTecnicoIds([]);
     setCacheEscrito(null);
     setError("");
+    setCampoConError(null);
     setEventoOriginal(null);
   }
 
@@ -109,6 +121,7 @@ export function useEventos(options: UseEventosOptions = {}) {
   function setTipo(nuevoTipo: TipoEvento) {
     setTipoElegido(nuevoTipo);
     setError((actual) => (actual === ERROR_SIN_TIPO ? "" : actual));
+    setCampoConError((actual) => (actual === "tipo" ? null : actual));
   }
 
   function alternarTecnico(tecnicoId: string) {
@@ -122,23 +135,23 @@ export function useEventos(options: UseEventosOptions = {}) {
   async function guardarEvento(): Promise<boolean> {
     // El título se genera solo: lo obligatorio es la fecha y el tipo
     if (fecha.trim() === "") {
-      setError("La fecha es obligatoria");
+      marcarError("La fecha es obligatoria", "fecha");
       return false;
     }
 
     if (tipo === null) {
-      setError(ERROR_SIN_TIPO);
+      marcarError(ERROR_SIN_TIPO, "tipo");
       return false;
     }
 
     // La hora es opcional, pero si se escribe debe ser válida
     if (hora.trim() !== "" && !FORMATO_HORA.test(hora.trim())) {
-      setError("La hora debe tener formato HH:MM");
+      marcarError("La hora debe tener formato HH:MM", "hora");
       return false;
     }
 
     if (!esEnlaceGoogleMapsValido(googleMapsUrl)) {
-      setError("Introduce un enlace válido de Google Maps.");
+      marcarError("Introduce un enlace válido de Google Maps.", "maps");
       return false;
     }
 
@@ -152,7 +165,7 @@ export function useEventos(options: UseEventosOptions = {}) {
         const importe = parsearImporte(cacheEscrito, { permitirCero: true });
 
         if (!importe.valido) {
-          setError(importe.error);
+          marcarError(importe.error, "cache");
           return false;
         }
 
@@ -163,6 +176,9 @@ export function useEventos(options: UseEventosOptions = {}) {
     if (!iniciarOperacion()) {
       return false;
     }
+
+    // Validado: si ahora falla, no es culpa de ningún campo
+    setCampoConError(null);
 
     try {
       const editando = eventoEditandoId !== null;
@@ -256,6 +272,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     setEventoOriginal(evento);
     setTipoElegido(evento.tipo);
     setError("");
+    setCampoConError(null);
     setFecha(evento.fecha);
     setHora(evento.hora);
     setLugar(evento.lugar);
@@ -279,6 +296,7 @@ export function useEventos(options: UseEventosOptions = {}) {
     tecnicoIds,
     cache,
     error,
+    campoConError,
     eventoEditandoId,
     hayCambios,
     procesando,

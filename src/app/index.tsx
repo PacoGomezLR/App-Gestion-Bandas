@@ -1,10 +1,11 @@
 import { useIsFocused } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 
 import { AvisoNoDisponibles } from "../components/AvisoNoDisponibles";
 import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
 import { CalendarioEventos } from "../components/CalendarioEventos";
+import { DestinoDesplazamiento } from "../components/DestinoDesplazamiento";
 import { FormularioEvento } from "../components/FormularioEvento";
 import { CabeceraConLogo } from "../components/LogoBanda";
 import { ListaEventos } from "../components/ListaEventos";
@@ -26,6 +27,7 @@ import { useIntegrantesContext } from "../context/IntegrantesContext";
 import { useLogoBandaContext } from "../context/LogoBandaContext";
 import { useTecnicosContext } from "../context/TecnicosContext";
 import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
+import { useDesplazamiento } from "../hooks/useDesplazamiento";
 import type { Evento } from "../types/evento";
 import { eventosPasados, eventosProximos, LIMITE_PROXIMAS_FECHAS } from "../utils/agenda";
 import { avisarCambiosSinGuardar } from "../utils/confirmaciones";
@@ -60,6 +62,7 @@ export default function Index() {
     cache,
     error,
     eventoEditandoId,
+    campoConError,
     hayCambios,
     setTipo,
     setEstado,
@@ -107,6 +110,12 @@ export default function Index() {
 
   const { url: logoUrl, escala: escalaLogo } = useLogoBandaContext();
 
+  // Lleva al usuario al siguiente paso (Crear evento, el primer campo, un error)
+  const desplazamiento = useDesplazamiento();
+  // Cada Guardar que no se ha podido completar: lleva al campo con el error
+  const [guardadosFallidos, setGuardadosFallidos] = useState(0);
+  const guardadosFallidosAtendidos = useRef(0);
+
   const [vista, setVista] = useState<Vista>("inicio");
   // Desde dónde se abrió el historial: Volver (y Atrás) regresa allí
   const [origenHistorial, setOrigenHistorial] = useState<"inicio" | "todas">("todas");
@@ -138,7 +147,18 @@ export default function Index() {
     // Con el formulario abierto, tocar otro día solo cambia la fecha del evento
     if (!formularioAbierto) {
       setPanelAbierto(true);
+
+      // El siguiente paso del admin: crear un evento ese día
+      if (esAdmin) {
+        desplazamiento.llevarA("crear-evento");
+      }
     }
+  }
+
+  // Al abrir el formulario, al primer dato que hay que rellenar
+  function abrirFormulario() {
+    setFormularioAbierto(true);
+    desplazamiento.llevarA("evento.tipo");
   }
 
   async function guardarDisponibilidad(noDisponible: boolean) {
@@ -167,6 +187,7 @@ export default function Index() {
     setVista("inicio");
     setPanelAbierto(true);
     setFormularioAbierto(true);
+    desplazamiento.llevarA("evento.tipo");
   }
 
   // Toda salida del formulario pasa por aquí. Sin cambios reales sale sin
@@ -221,8 +242,27 @@ export default function Index() {
     if (await guardarEvento()) {
       cerrarPanel();
       trasGuardar?.();
+    } else {
+      setGuardadosFallidos((total) => total + 1);
     }
   }
+
+  // Tras un Guardar fallido (y solo entonces: nunca mientras se escribe), al
+  // campo con el error; si es un campo de texto, con el foco. Si el error no es
+  // de un campo (por ejemplo, al guardar en la base), al mensaje
+  useEffect(() => {
+    if (guardadosFallidos === guardadosFallidosAtendidos.current) {
+      return;
+    }
+
+    guardadosFallidosAtendidos.current = guardadosFallidos;
+
+    if (campoConError !== null) {
+      desplazamiento.llevarA(`evento.${campoConError}`, { enfocar: true });
+    } else if (error !== "" || errorPersistenciaEventos !== "") {
+      desplazamiento.llevarA("evento.error");
+    }
+  }, [guardadosFallidos, campoConError, error, errorPersistenciaEventos, desplazamiento]);
 
   // La disponibilidad solo advierte: el admin puede confirmar igualmente
   function guardarConAviso(trasGuardar?: () => void) {
@@ -303,7 +343,7 @@ export default function Index() {
     const volverAlCalendario = !esHistorial || origenHistorial === "inicio";
 
     return (
-      <PantallaInterior>
+      <PantallaInterior desplazamiento={desplazamiento}>
         <BotonCerrarSesion />
 
         <CabeceraPantalla
@@ -348,7 +388,7 @@ export default function Index() {
       : resumirNoDisponibles(indisponibilidades, diaElegido, usuarioActualId, nombresPorUsuario);
 
   return (
-    <PantallaInterior keyboardShouldPersistTaps="handled">
+    <PantallaInterior keyboardShouldPersistTaps="handled" desplazamiento={desplazamiento}>
       {/* Respeta la barra de estado (SafeAreaView propio) y queda arriba a la derecha */}
       <BotonCerrarSesion />
 
@@ -438,11 +478,13 @@ export default function Index() {
           crearEvento={
             esAdmin ? (
               // Con el formulario ya desplegado debajo, el botón queda inactivo
-              <BotonPrincipal
-                titulo="+ Crear evento"
-                onPress={() => setFormularioAbierto(true)}
-                disabled={procesando || formularioAbierto}
-              />
+              <DestinoDesplazamiento clave="crear-evento">
+                <BotonPrincipal
+                  titulo="+ Crear evento"
+                  onPress={abrirFormulario}
+                  disabled={procesando || formularioAbierto}
+                />
+              </DestinoDesplazamiento>
             ) : null
           }
         />

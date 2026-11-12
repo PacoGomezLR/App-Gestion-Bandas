@@ -16,6 +16,10 @@ export function crearEstilosPantallaInterior(colores: ColoresTema) {
       flex: 1,
       backgroundColor: colores.background,
     },
+    // El ScrollView ocupa toda la página: se mide la página para saber qué se ve
+    desplazable: {
+      flex: 1,
+    },
     contenido: {
       paddingHorizontal: Spacing.three,
       // Deja libre la zona de las pestañas inferiores

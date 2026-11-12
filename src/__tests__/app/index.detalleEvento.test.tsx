@@ -132,6 +132,7 @@ function simularPantalla(esAdmin: boolean) {
     error: "",
     eventoEditandoId: null,
     hayCambios: false,
+    campoConError: null,
     setTipo: jest.fn(),
     setEstado: jest.fn(),
     setFecha: jest.fn(),

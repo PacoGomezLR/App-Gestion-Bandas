@@ -1,6 +1,7 @@
-import { Children, isValidElement, type PropsWithChildren, type ReactNode, useMemo } from "react";
+import { Children, isValidElement, type PropsWithChildren, type ReactNode, useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   ScrollView,
   type ScrollViewProps,
@@ -9,6 +10,7 @@ import {
 } from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
+import { type ControlDesplazamiento, DesplazamientoContext, useDesplazamiento } from "@/hooks/useDesplazamiento";
 import { crearEstilosPantallaInterior } from "./PantallaInterior.styles";
 
 // Piezas visuales de las pantallas interiores de la app (con banda ya elegida).
@@ -22,19 +24,50 @@ function useEstilos() {
 interface PantallaInteriorProps extends PropsWithChildren {
   // Con formularios: un toque en Guardar no se gasta en cerrar el teclado
   keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
+  // Solo si la pantalla necesita llevar al usuario a un sitio (useDesplazamiento);
+  // si no, cada PantallaInterior tiene el suyo para sus DestinoDesplazamiento
+  desplazamiento?: ControlDesplazamiento;
 }
 
-export function PantallaInterior({ children, keyboardShouldPersistTaps }: PantallaInteriorProps) {
+export function PantallaInterior({
+  children,
+  keyboardShouldPersistTaps,
+  desplazamiento,
+}: PantallaInteriorProps) {
   const estilos = useEstilos();
+  const propio = useDesplazamiento();
+  const control = desplazamiento ?? propio;
+
+  // El teclado reduce lo que se ve: se tiene en cuenta al centrar
+  useEffect(() => {
+    const mostrar = Keyboard.addListener("keyboardDidShow", (evento) =>
+      control.alMostrarTeclado(evento.endCoordinates.height)
+    );
+    const ocultar = Keyboard.addListener("keyboardDidHide", () => control.alOcultarTeclado());
+
+    return () => {
+      mostrar.remove();
+      ocultar.remove();
+    };
+  }, [control]);
 
   return (
-    <ScrollView
-      style={estilos.pagina}
-      contentContainerStyle={estilos.contenido}
-      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-    >
-      {children}
-    </ScrollView>
+    <DesplazamientoContext.Provider value={control}>
+      <View ref={control.zonaRef} style={estilos.pagina}>
+        <ScrollView
+          ref={control.scrollRef}
+          style={estilos.desplazable}
+          contentContainerStyle={estilos.contenido}
+          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+          onScroll={control.alDesplazar}
+          scrollEventThrottle={16}
+          // iOS: el contenido se recoloca solo para que el teclado no tape el campo enfocado
+          automaticallyAdjustKeyboardInsets
+        >
+          {children}
+        </ScrollView>
+      </View>
+    </DesplazamientoContext.Provider>
   );
 }
 
