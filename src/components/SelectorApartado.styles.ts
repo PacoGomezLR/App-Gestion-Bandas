@@ -13,8 +13,11 @@ export function crearEstilosSelectorApartado(colores: ColoresTema) {
       gap: Spacing.one,
       padding: Spacing.one,
       borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colores.border,
       backgroundColor: colores.backgroundElement,
     },
+    // Borde transparente sin elegir: al elegir no cambia el tamaño
     segmento: {
       flex: 1,
       minHeight: 44,
@@ -22,9 +25,13 @@ export function crearEstilosSelectorApartado(colores: ColoresTema) {
       justifyContent: "center",
       paddingHorizontal: Spacing.two,
       borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "transparent",
     },
+    // Elegido: fondo suave y borde de acento, sin una masa de color
     segmentoElegido: {
-      backgroundColor: colores.background,
+      backgroundColor: colores.primarySoft,
+      borderColor: colores.primary,
     },
     pulsado: {
       opacity: 0.6,

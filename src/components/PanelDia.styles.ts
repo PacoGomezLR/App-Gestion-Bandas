@@ -32,7 +32,7 @@ export function crearEstilosPanelDia(colores: ColoresTema) {
     formulario: {
       paddingBottom: Spacing.three,
       borderBottomWidth: 1,
-      borderBottomColor: colores.backgroundSelected,
+      borderBottomColor: colores.border,
       gap: Spacing.two,
     },
     tituloBloque: {

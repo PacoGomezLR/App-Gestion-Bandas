@@ -85,7 +85,7 @@ export function CampoFormulario({
         editable={editable}
         onFocus={() => setEnfocado(true)}
         onBlur={() => setEnfocado(false)}
-        placeholderTextColor={tema.textSecondary}
+        placeholderTextColor={tema.textMuted}
         style={[
           estilos.entrada,
           enfocado && estilos.entradaEnfocada,

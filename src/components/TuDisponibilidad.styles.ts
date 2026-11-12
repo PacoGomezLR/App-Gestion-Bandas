@@ -35,7 +35,7 @@ export function crearEstilosTuDisponibilidad(colores: ColoresTema) {
       paddingHorizontal: Spacing.two,
       borderRadius: RADIO_BOTON,
       borderWidth: 1,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.background,
     },
     opcionDisponible: {

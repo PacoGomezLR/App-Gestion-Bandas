@@ -1,6 +1,6 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
@@ -11,14 +11,17 @@ import { EventosProvider } from '@/context/EventosContext';
 import { IntegrantesProvider } from '@/context/IntegrantesContext';
 import { InvitacionPendienteProvider } from '@/context/InvitacionPendienteContext';
 import { RepertorioProvider } from '@/context/RepertorioContext';
+import { TemaNavegacion } from '@/constants/temaNavegacion';
 import { TecnicosProvider } from '@/context/TecnicosContext';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    // Un solo tema, oscuro: no depende del esquema del sistema
+    <ThemeProvider value={TemaNavegacion}>
+      {/* Iconos claros sobre el fondo oscuro */}
+      <StatusBar style="light" />
       {/* Fuera de Auth: un enlace de invitación puede llegar antes de haber sesión */}
       <InvitacionPendienteProvider>
         <AuthProvider>

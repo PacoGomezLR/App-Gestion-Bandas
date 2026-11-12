@@ -62,17 +62,20 @@ export function crearEstilosPantallaInterior(colores: ColoresTema) {
       color: colores.text,
     },
     // Acción secundaria con zona táctil de 44 px
+    // Secundario: superficie oscura con borde visible y texto claro
     botonTexto: {
       minHeight: 44,
       justifyContent: "center",
       paddingHorizontal: Spacing.three,
       borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colores.border,
       backgroundColor: colores.backgroundElement,
     },
     textoBotonTexto: {
       fontSize: 15,
       fontWeight: "600",
-      color: colores.primary,
+      color: colores.text,
     },
     pulsado: {
       opacity: 0.6,
@@ -95,6 +98,8 @@ export function crearEstilosPantallaInterior(colores: ColoresTema) {
     tarjeta: {
       padding: Spacing.three,
       borderRadius: RADIO_TARJETA,
+      borderWidth: 1,
+      borderColor: colores.border,
       backgroundColor: colores.backgroundElement,
       gap: Spacing.three,
     },
@@ -106,13 +111,15 @@ export function crearEstilosPantallaInterior(colores: ColoresTema) {
     },
     grupoFilas: {
       borderRadius: RADIO_TARJETA,
+      borderWidth: 1,
+      borderColor: colores.border,
       overflow: "hidden",
       backgroundColor: colores.backgroundElement,
     },
     // Línea dibujada como borde: siempre de un píxel físico, igual en todas las filas
     separadorFila: {
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colores.backgroundSelected,
+      borderTopColor: colores.border,
     },
     fila: {
       minHeight: ALTURA_FILA,
@@ -163,6 +170,8 @@ export function crearEstilosPantallaInterior(colores: ColoresTema) {
       paddingVertical: Spacing.five,
       paddingHorizontal: Spacing.four,
       borderRadius: RADIO_TARJETA,
+      borderWidth: 1,
+      borderColor: colores.border,
       alignItems: "center",
       gap: Spacing.one,
       backgroundColor: colores.backgroundElement,

@@ -20,7 +20,7 @@ export function crearEstilosBotonGoogleMaps(colores: ColoresTema) {
       paddingHorizontal: Spacing.three,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.background,
     },
     pulsado: {
@@ -29,7 +29,7 @@ export function crearEstilosBotonGoogleMaps(colores: ColoresTema) {
     texto: {
       fontSize: 15,
       fontWeight: "600",
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
   });
 }

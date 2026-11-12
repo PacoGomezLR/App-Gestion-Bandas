@@ -21,7 +21,7 @@ export function crearEstilosBotonCerrarSesion(colores: ColoresTema) {
     texto: {
       fontSize: 15,
       fontWeight: "600",
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
     pulsado: {
       opacity: 0.6,

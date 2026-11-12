@@ -5,7 +5,7 @@ import {
 } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
 
-import { Colors } from "../../constants/theme";
+import { Colores } from "../../constants/theme";
 import { CalendarioEventos } from "../CalendarioEventos";
 import { crearMarcaNoDisponible } from "../CalendarioEventos.styles";
 
@@ -225,7 +225,7 @@ describe("CalendarioEventos", () => {
   });
 
   test("crearMarcaNoDisponible devuelve objetos nuevos y extensibles en cada llamada", () => {
-    const colores = { conflict: "#C2410C" } as Parameters<typeof crearMarcaNoDisponible>[0];
+    const colores = { ...Colores, conflict: "#C2410C" } as unknown as Parameters<typeof crearMarcaNoDisponible>[0];
     const primera = crearMarcaNoDisponible(colores, false);
     const segunda = crearMarcaNoDisponible(colores, false);
 
@@ -235,12 +235,9 @@ describe("CalendarioEventos", () => {
     expect(primera.container.borderRadius).toBe(16);
   });
 
-  test("el anillo usa el color de conflicto del tema claro y del oscuro", () => {
-    const { Colors } = jest.requireActual<typeof import("@/constants/theme")>("@/constants/theme");
-
-    expect(crearMarcaNoDisponible(Colors.light, false).container.borderColor).toBe(Colors.light.conflict);
-    expect(crearMarcaNoDisponible(Colors.dark, false).container.borderColor).toBe(Colors.dark.conflict);
-    expect(Colors.light.conflict).not.toBe(Colors.dark.conflict);
+  test("el anillo usa el color de conflicto del tema, distinto del estado Pendiente", () => {
+    expect(crearMarcaNoDisponible(Colores, false).container.borderColor).toBe(Colores.conflict);
+    expect(Colores.conflict).not.toBe(Colores.warning);
   });
 });
 
@@ -270,8 +267,8 @@ describe("CalendarioEventos: texto de ayuda", () => {
     expect(estilo.paddingVertical).toBeGreaterThan(0);
     expect(estilo.paddingHorizontal).toBeGreaterThan(0);
     // Información, no error ni advertencia
-    expect(estilo.backgroundColor).toBe(Colors.light.infoBackground);
-    expect(StyleSheet.flatten(getByText(AYUDA).props.style).color).toBe(Colors.light.info);
+    expect(estilo.backgroundColor).toBe(Colores.infoBackground);
+    expect(StyleSheet.flatten(getByText(AYUDA).props.style).color).toBe(Colores.info);
   });
 
   test("el texto va centrado", async () => {

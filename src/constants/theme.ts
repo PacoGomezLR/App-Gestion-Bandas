@@ -1,56 +1,62 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Identidad visual de MI Banda: un único tema oscuro, sin modo claro.
+ * Toda la app toma sus colores de aquí (a través de useTheme): ninguna pantalla
+ * debe escribir un color propio.
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
-export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-    primary: '#1A68D1',
-    onPrimary: '#ffffff',
-    error: '#B42318',
-    errorBackground: '#FDECEC',
-    info: '#1A4F8F',
-    infoBackground: '#E8F1FD',
-    // Estados de evento: tonos suaves con texto de buen contraste
-    success: '#166534',
-    successBackground: '#DCFCE7',
-    warning: '#78350F',
-    warningBackground: '#FEF3C7',
-    // Algún integrante no disponible: tono propio, distinto del estado Pendiente
-    conflict: '#C2410C',
-    conflictBackground: '#FFEDD5',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-    primary: '#5AA2F7',
-    onPrimary: '#000000',
-    error: '#FDA29B',
-    errorBackground: '#3A1715',
-    info: '#9CC4F7',
-    infoBackground: '#13263D',
-    success: '#86EFAC',
-    successBackground: '#0F2E1C',
-    warning: '#FCD34D',
-    warningBackground: '#3A2A0B',
-    conflict: '#FDBA74',
-    conflictBackground: '#3B1D0A',
-  },
+export const Colores = {
+  // Superficies, de la más profunda a la más elevada. La profundidad sale del
+  // contraste entre ellas y de los bordes, no de sombras
+  background: '#0B0D0F',
+  // Superficie: tarjetas, listas y campos
+  backgroundElement: '#14181C',
+  // Superficie elevada: pulsado, elegido y fondos de apoyo
+  backgroundSelected: '#1A2025',
+  // Bordes de tarjetas y campos, y separadores de listas
+  border: '#2A3238',
+  // Borde más marcado: tarjetas que deben despegarse del fondo (eventos)
+  borderStrong: '#353F46',
+
+  text: '#F4F6F7',
+  textSecondary: '#9DA7AE',
+  // Placeholders y datos muy secundarios. Algo más claro que #6F7A82, que
+  // sobre una superficie no llegaba a 4,5:1
+  textMuted: '#7E8990',
+  // Solo días de otros meses en el calendario (no son contenido, AA no aplica)
+  textDisabled: '#4B565E',
+
+  // Azul petróleo. Rellenos (botón principal, día elegido), foco, bordes e
+  // indicadores. Un poco más oscuro que #2F8A9A para que el texto claro encima
+  // pase de 4,5:1
+  primary: '#27798A',
+  // Acento sobre fondo oscuro: textos, enlaces e iconos activos o elegidos
+  primaryPressed: '#3DA4B5',
+  // Fondo de lo elegido, sin una masa de color
+  primarySoft: '#17353B',
+  onPrimary: '#F4F6F7',
+
+  // Algo más claro que #D65A57: así pasa de 4,5:1 también sobre la superficie
+  // elevada (Eliminar evento dentro de la tarjeta)
+  error: '#DA625F',
+  errorBackground: '#251413',
+  info: '#6CC0CE',
+  infoBackground: '#17353B',
+  // Estados de evento: color + texto, nunca solo color
+  success: '#4FA36C',
+  successBackground: '#142A1B',
+  warning: '#D39A43',
+  warningBackground: '#33270F',
+  // Algún integrante no disponible: naranja propio, distinto del estado Pendiente
+  conflict: '#E58A5C',
+  conflictBackground: '#35200F',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export type ColoresTema = typeof Colores;
+export type ThemeColor = keyof ColoresTema;
 
 export const Fonts = Platform.select({
   ios: {

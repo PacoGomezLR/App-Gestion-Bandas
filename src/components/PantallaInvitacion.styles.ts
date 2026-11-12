@@ -29,7 +29,7 @@ export function crearEstilosPantallaInvitacion(colores: ColoresTema) {
       lineHeight: 32,
       fontWeight: "700",
       textAlign: "center",
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
   });
 }

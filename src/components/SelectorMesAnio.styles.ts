@@ -26,6 +26,9 @@ export function crearEstilosSelectorMesAnio(colores: ColoresTema) {
       paddingTop: Spacing.four,
       borderTopLeftRadius: 16,
       borderTopRightRadius: 16,
+      // Sobre el velo oscuro, el borde marca dónde empieza el panel
+      borderTopWidth: 1,
+      borderColor: colores.border,
       backgroundColor: colores.backgroundElement,
     },
     titulo: {
@@ -59,7 +62,7 @@ export function crearEstilosSelectorMesAnio(colores: ColoresTema) {
       gap: Spacing.one,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.background,
     },
     opcionAnio: {
@@ -81,7 +84,7 @@ export function crearEstilosSelectorMesAnio(colores: ColoresTema) {
       color: colores.text,
     },
     textoElegido: {
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
     // Con el fondo de las opciones: el de BotonSecundario es el mismo que el del
     // panel y se perdería. Sin relleno de color: la principal es elegir un mes
@@ -93,13 +96,13 @@ export function crearEstilosSelectorMesAnio(colores: ColoresTema) {
       paddingHorizontal: Spacing.three,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.background,
     },
     textoBotonHoy: {
       fontSize: 16,
       fontWeight: "600",
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
   });
 }

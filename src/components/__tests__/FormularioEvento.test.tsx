@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { type StyleProp, StyleSheet, type ViewStyle } from "react-native";
 
-import { Colors } from "../../constants/theme";
+import { Colores } from "../../constants/theme";
 import type { Tecnico } from "../../types/tecnico";
 import { FormularioEvento } from "../FormularioEvento";
 
@@ -545,7 +545,7 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
   test("Guardar evento es la única acción con el color principal", async () => {
     await pintar();
 
-    const principal = Colors.light.primary;
+    const principal = Colores.primary;
 
     expect(fondo(screen.getByRole("button", { name: "Guardar evento" }))).toBe(principal);
     expect(fondo(screen.getByRole("button", { name: "Cancelar" }))).not.toBe(principal);
@@ -722,8 +722,8 @@ describe("FormularioEvento: jerarquía y datos económicos", () => {
       );
 
       expect(estilo.minHeight).toBeGreaterThanOrEqual(44);
-      expect(estilo.backgroundColor).toBe(Colors.light.backgroundElement);
-      expect(estilo.borderColor).toBe(Colors.light.backgroundSelected);
+      expect(estilo.backgroundColor).toBe(Colores.backgroundElement);
+      expect(estilo.borderColor).toBe(Colores.border);
     });
   });
 

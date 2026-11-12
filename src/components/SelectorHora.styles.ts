@@ -18,7 +18,7 @@ export function crearEstilosSelectorHora(colores: ColoresTema) {
       paddingHorizontal: Spacing.three,
       borderWidth: 1,
       borderRadius: 12,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.backgroundElement,
     },
     texto: {

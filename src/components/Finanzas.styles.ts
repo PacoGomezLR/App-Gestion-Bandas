@@ -126,7 +126,7 @@ export function crearEstilosFinanzas(colores: ColoresTema) {
       paddingHorizontal: Spacing.three,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.background,
     },
     opcionElegida: {
@@ -150,7 +150,7 @@ export function crearEstilosFinanzas(colores: ColoresTema) {
       backgroundColor: colores.backgroundSelected,
     },
     textoOpcionSuave: {
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
     // Campo que abre un selector: se ve como los de texto
     campoSelector: {
@@ -162,7 +162,7 @@ export function crearEstilosFinanzas(colores: ColoresTema) {
       paddingVertical: Spacing.two,
       borderWidth: 1,
       borderRadius: RADIO_CONTROL,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.background,
     },
     // Sobre el fondo del formulario de eventos: igual que sus campos de texto
@@ -212,7 +212,7 @@ export function crearEstilosFinanzas(colores: ColoresTema) {
     },
     textoOpcionEventoElegida: {
       fontWeight: "700",
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
     periodoInforme: {
       fontSize: 15,

@@ -27,7 +27,7 @@ export function crearEstilosInvitarUsuario(colores: ColoresTema) {
       paddingVertical: Spacing.two,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
       backgroundColor: colores.background,
     },
     opcionElegida: {

@@ -62,7 +62,7 @@ export function crearEstilosPantallaBase(colores: ColoresTema) {
       fontSize: 16,
       color: colores.text,
       backgroundColor: colores.backgroundElement,
-      borderColor: colores.backgroundSelected,
+      borderColor: colores.border,
     },
     entradaEnfocada: {
       borderColor: colores.primary,
@@ -101,7 +101,7 @@ export function crearEstilosPantallaBase(colores: ColoresTema) {
     enlace: {
       fontWeight: "600",
       paddingVertical: Spacing.one,
-      color: colores.primary,
+      color: colores.primaryPressed,
     },
     mensaje: {
       padding: Spacing.three,

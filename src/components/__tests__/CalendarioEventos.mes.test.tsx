@@ -3,7 +3,7 @@ import { page } from "react-native-calendars/src/dateutils";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { Colors } from "../../constants/theme";
+import { Colores } from "../../constants/theme";
 import { CalendarioEventos } from "../CalendarioEventos";
 import { SEMANAS_RESERVADAS } from "../CalendarioEventos.styles";
 
@@ -334,7 +334,7 @@ describe("selector de mes y año", () => {
     expect(estilo.minHeight).toBeGreaterThanOrEqual(44);
     // Con el mismo fondo que el panel parecería un texto suelto
     expect(estilo.backgroundColor).not.toBe(panel.backgroundColor);
-    expect(estilo.backgroundColor).not.toBe(Colors.light.primary);
+    expect(estilo.backgroundColor).not.toBe(Colores.primary);
   });
 
   test("tocar fuera lo cierra sin cambiar de mes", async () => {

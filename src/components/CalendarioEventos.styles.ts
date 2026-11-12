@@ -35,6 +35,8 @@ export function crearEstilosCalendarioEventos(colores: ColoresTema) {
     },
     calendario: {
       borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colores.border,
       paddingBottom: Spacing.two,
       overflow: "hidden",
       backgroundColor: colores.backgroundElement,
@@ -53,7 +55,7 @@ export function crearEstilosCalendarioEventos(colores: ColoresTema) {
       justifyContent: "center",
     },
     imagenFlecha: {
-      tintColor: colores.primary,
+      tintColor: colores.primaryPressed,
     },
     diasSemana: {
       flexDirection: "row",
@@ -152,12 +154,14 @@ export function crearTemaCalendario(colores: ColoresTema): Theme {
     dayTextColor: colores.text,
     textDayFontSize: 16,
     textDayFontWeight: "500",
-    textDisabledColor: colores.backgroundSelected,
-    todayTextColor: colores.primary,
+    // Días de otros meses: presentes pero sin competir con los del mes
+    textDisabledColor: colores.textDisabled,
+    // Hoy: acento en el número; el relleno de color queda solo para el día elegido
+    todayTextColor: colores.primaryPressed,
     selectedDayBackgroundColor: colores.primary,
     selectedDayTextColor: colores.onPrimary,
     dotColor: colores.primary,
     selectedDotColor: colores.onPrimary,
-    arrowColor: colores.primary,
+    arrowColor: colores.primaryPressed,
   };
 }

@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Linking, StyleSheet } from "react-native";
 import type { Evento } from "../../types/evento";
 import type { Tecnico } from "../../types/tecnico";
-import { Colors } from "../../constants/theme";
+import { Colores } from "../../constants/theme";
 import { ListaEventos } from "../ListaEventos";
 
 // constants/theme importa global.css, que Jest no puede interpretar
@@ -753,6 +753,6 @@ describe("ListaEventos: enlace de Google Maps", () => {
     const estilo = StyleSheet.flatten(boton().props.style);
 
     expect(estilo.minHeight).toBeGreaterThanOrEqual(44);
-    expect(estilo.backgroundColor).not.toBe(Colors.light.primary);
+    expect(estilo.backgroundColor).not.toBe(Colores.primary);
   });
 });
