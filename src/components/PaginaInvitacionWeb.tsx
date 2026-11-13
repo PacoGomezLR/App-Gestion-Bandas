@@ -17,9 +17,8 @@ interface PaginaInvitacionWebProps {
 // la valida la app contra Supabase. El token nunca se muestra, se registra ni se
 // guarda, y la app solo se intenta abrir si la persona pulsa el botón.
 // - Android: botón «Abrir MI Banda» con mibanda:// (hasta tener App Links).
-// - iPhone / iPad: sin botón. Sin la app, mibanda:// da un error de Safari; con
-//   Universal Links activos el enlace https ya abrirá la app sin pasar por aquí.
-// - Escritorio: sin botón; la app es para el móvil.
+//   Es la única plataforma que la ve (invitacion.web.tsx).
+// - Resto: sin botón; mibanda:// daría un error en Safari o en el escritorio.
 export function PaginaInvitacionWeb({ token }: PaginaInvitacionWebProps) {
   const tema = useTheme();
   const estilos = useMemo(() => crearEstilosPaginaInvitacionWeb(tema), [tema]);
@@ -88,25 +87,7 @@ export function PaginaInvitacionWeb({ token }: PaginaInvitacionWebProps) {
               </>
             )}
 
-            {plataforma === "ios" && (
-              <>
-                <Text style={estilos.texto}>
-                  Te han invitado a unirte a una banda en MI Banda, pero la app no se ha abierto en
-                  este iPhone o iPad.
-                </Text>
-
-                <View style={estilos.nota}>
-                  <Text style={estilos.tituloNota}>MI Banda no está instalada en este dispositivo</Text>
-                  <Text style={estilos.textoNota}>
-                    MI Banda todavía no está disponible para iPhone ni iPad. Cuando lo esté, este
-                    mismo enlace abrirá la app directamente. Mientras tanto, ábrelo en un móvil
-                    Android con MI Banda instalada.
-                  </Text>
-                </View>
-              </>
-            )}
-
-            {plataforma === "otra" && (
+            {plataforma !== "android" && (
               <>
                 <Text style={estilos.texto}>
                   Te han invitado a unirte a una banda en MI Banda. MI Banda es una app para el

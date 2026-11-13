@@ -153,4 +153,55 @@ describe("esEnlaceCallbackAuth", () => {
     expect(esEnlaceCallbackAuth("mibanda://tecnicos")).toBe(false);
     expect(esEnlaceCallbackAuth("/")).toBe(false);
   });
+
+  test("web: reconoce https://dominio/auth/callback por la ruta, no por el host", () => {
+    expect(esEnlaceCallbackAuth("https://mibanda.expo.app/auth/callback")).toBe(true);
+    expect(esEnlaceCallbackAuth("https://mibanda.expo.app/auth/callback/#a=b")).toBe(true);
+    expect(esEnlaceCallbackAuth("https://auth.ejemplo.es/callback")).toBe(false);
+    expect(esEnlaceCallbackAuth("https://mibanda.expo.app/")).toBe(false);
+    expect(esEnlaceCallbackAuth("https://mibanda.expo.app/invitacion?token=x")).toBe(false);
+    expect(esEnlaceCallbackAuth("https://mibanda.expo.app/otra/auth/callback")).toBe(false);
+  });
+});
+
+describe("procesarEnlaceAuth en web", () => {
+  test("establece la sesión con los tokens del fragmento de https://dominio/auth/callback", async () => {
+    const resultado = await procesarEnlaceAuth(
+      `https://mibanda.expo.app/auth/callback#access_token=${ACCESS}&refresh_token=${REFRESH}&type=signup`,
+      auth
+    );
+
+    expect(resultado).toBe("sesion_establecida");
+    expect(mockSetSession).toHaveBeenCalledWith({ access_token: ACCESS, refresh_token: REFRESH });
+  });
+
+  test("canjea el code de la query", async () => {
+    const resultado = await procesarEnlaceAuth(
+      `https://mibanda.expo.app/auth/callback?code=${CODE}`,
+      auth
+    );
+
+    expect(resultado).toBe("sesion_establecida");
+    expect(mockExchange).toHaveBeenCalledWith(CODE);
+  });
+
+  test("un error de Supabase en el enlace web es un error", async () => {
+    expect(
+      await procesarEnlaceAuth(
+        "https://mibanda.expo.app/auth/callback#error=access_denied&error_code=otp_expired",
+        auth
+      )
+    ).toBe("error");
+    expect(mockSetSession).not.toHaveBeenCalled();
+  });
+
+  test("las demás páginas web se ignoran aunque lleven tokens", async () => {
+    expect(
+      await procesarEnlaceAuth(
+        `https://mibanda.expo.app/#access_token=${ACCESS}&refresh_token=${REFRESH}`,
+        auth
+      )
+    ).toBe("ignorado");
+    expect(mockSetSession).not.toHaveBeenCalled();
+  });
 });

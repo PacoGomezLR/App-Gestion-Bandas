@@ -46,11 +46,15 @@ describe("navegación principal", () => {
         "_layout.tsx",
         "index.tsx",
         "repertorio.tsx",
-        "repertorio.web.tsx",
         "banda.tsx",
-        "banda.web.tsx",
+        "invitacion.tsx",
         "invitacion.web.tsx",
+        "auth",
       ])
+    );
+    // La web usa las mismas pantallas que la app
+    expect(rutas.filter((archivo) => /^(index|banda|repertorio|_layout)\.web\./.test(archivo))).toEqual(
+      []
     );
     // Técnicos ya no es una ruta propia: vive dentro de Banda
     expect(rutas.filter((archivo) => /tecnicos/i.test(archivo))).toEqual([]);

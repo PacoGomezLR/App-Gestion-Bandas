@@ -24,8 +24,14 @@ function leerUrl(url: string): URL | null {
   }
 }
 
-// mibanda://auth/callback (build) o exp://IP:PUERTO/--/auth/callback (Expo Go)
+// mibanda://auth/callback (build), exp://IP:PUERTO/--/auth/callback (Expo Go) o
+// https://dominio/auth/callback (web: la URL de la propia página, el host no es
+// parte de la ruta)
 function esRutaCallback(destino: URL): boolean {
+  if (destino.protocol === "https:" || destino.protocol === "http:") {
+    return destino.pathname.replace(/^\/+|\/+$/g, "") === RUTA_CALLBACK_AUTH;
+  }
+
   const ruta = `${destino.host}${destino.pathname}`.replace(/^\/+|\/+$/g, "");
 
   return ruta === RUTA_CALLBACK_AUTH || ruta.endsWith(`/--/${RUTA_CALLBACK_AUTH}`);

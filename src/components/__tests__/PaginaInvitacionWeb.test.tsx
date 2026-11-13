@@ -72,10 +72,17 @@ describe("PaginaInvitacionWeb en iPhone / iPad", () => {
     await render(<PaginaInvitacionWeb token={TOKEN} />);
 
     expect(await screen.findByText("Invitación a una banda")).toBeTruthy();
-    expect(screen.getByText("MI Banda no está instalada en este dispositivo")).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByText("Abrir MI Banda")).toBeNull();
     expect(mockOpenURL).not.toHaveBeenCalled();
+  });
+
+  test("no dice que MI Banda no funcione en iPhone o iPad", async () => {
+    await render(<PaginaInvitacionWeb token={TOKEN} />);
+    await screen.findByText("Invitación a una banda");
+
+    expect(screen.queryByText(/no está disponible para iPhone|no está instalada en este dispositivo/)).toBeNull();
+    expect(screen.queryByText(/móvil Android/)).toBeNull();
   });
 
   test("no inventa una ficha de App Store", async () => {
@@ -120,15 +127,14 @@ describe.each(["android", "ios", "otra"] as const)("PaginaInvitacionWeb (%s)", (
   });
 });
 
-describe("página web: sin registro, almacenamiento ni Supabase", () => {
+describe("página web de invitación: sin registro, almacenamiento ni Supabase", () => {
+  // La app web completa sí usa Supabase (como Android); esta página y su
+  // selección por plataforma, no
   const archivosWeb = [
     "src/components/PaginaInvitacionWeb.tsx",
     "src/utils/plataformaWeb.ts",
     "src/app/invitacion.web.tsx",
-    "src/app/index.web.tsx",
-    "src/app/_layout.web.tsx",
-    "src/app/banda.web.tsx",
-    "src/app/repertorio.web.tsx",
+    "src/hooks/useInvitacionAndroidWeb.web.ts",
     "src/app/+html.tsx",
   ];
 
@@ -167,12 +173,4 @@ describe("página web: sin registro, almacenamiento ni Supabase", () => {
     expect(html).toContain('<meta name="referrer" content="no-referrer" />');
   });
 
-  test("en web no se compilan la URL ni la clave de Supabase", () => {
-    const web = fs.readFileSync("src/config/entornoSupabase.web.ts", "utf8");
-    const nativo = fs.readFileSync("src/config/entornoSupabase.ts", "utf8");
-
-    expect(web).not.toContain("process.env");
-    expect(nativo).toContain("process.env.EXPO_PUBLIC_SUPABASE_URL");
-    expect(nativo).toContain("process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-  });
 });

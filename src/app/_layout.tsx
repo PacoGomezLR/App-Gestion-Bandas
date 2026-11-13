@@ -1,4 +1,4 @@
-import { ThemeProvider } from 'expo-router';
+import { Slot, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
@@ -14,10 +14,23 @@ import { LogoBandaProvider } from '@/context/LogoBandaContext';
 import { RepertorioProvider } from '@/context/RepertorioContext';
 import { TemaNavegacion } from '@/constants/temaNavegacion';
 import { TecnicosProvider } from '@/context/TecnicosContext';
+import { useInvitacionAndroidWeb } from '@/hooks/useInvitacionAndroidWeb';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function TabLayout() {
+  // Solo en un navegador Android con /invitacion: la página para abrir la app
+  // nativa, sin sesión ni datos. En la app y en el resto de la web, siempre false
+  const paginaAbrirApp = useInvitacionAndroidWeb();
+
+  if (paginaAbrirApp) {
+    return (
+      <ThemeProvider value={TemaNavegacion}>
+        <Slot />
+      </ThemeProvider>
+    );
+  }
+
   return (
     // Un solo tema, oscuro: no depende del esquema del sistema
     <ThemeProvider value={TemaNavegacion}>
