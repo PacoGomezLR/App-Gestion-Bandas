@@ -1,4 +1,5 @@
 import type { Evento } from "../types/evento";
+import { etiquetaMes } from "./fechas";
 
 // En el inicio solo se muestran las fechas más próximas
 export const LIMITE_PROXIMAS_FECHAS = 5;
@@ -22,4 +23,38 @@ export function eventosPasados(eventos: Evento[], hoy: string): Evento[] {
   return eventos
     .filter((evento) => evento.fecha < hoy)
     .sort((a, b) => b.fecha.localeCompare(a.fecha) || compararMismoDia(a, b));
+}
+
+export interface GrupoMesEventos {
+  // YYYY-MM: estable, no depende del idioma
+  clave: string;
+  // «Febrero 2026»
+  titulo: string;
+  eventos: Evento[];
+}
+
+// Agrupa por mes y año una lista YA ordenada (próximas, todas o historial),
+// sin reordenar nada: los grupos salen en el orden en que aparece cada mes y,
+// dentro de cada uno, los eventos conservan su orden. Solo hay grupos para los
+// meses con eventos. La fecha es civil (YYYY-MM-DD): el mes se lee del texto,
+// sin Date ni UTC, así que no puede cambiar de día ni de mes.
+export function agruparEventosPorMes(eventos: Evento[]): GrupoMesEventos[] {
+  const grupos = new Map<string, Evento[]>();
+
+  for (const evento of eventos) {
+    const clave = evento.fecha.slice(0, 7);
+    const grupo = grupos.get(clave);
+
+    if (grupo === undefined) {
+      grupos.set(clave, [evento]);
+    } else {
+      grupo.push(evento);
+    }
+  }
+
+  return [...grupos].map(([clave, eventosMes]) => ({
+    clave,
+    titulo: etiquetaMes(clave),
+    eventos: eventosMes,
+  }));
 }

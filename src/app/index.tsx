@@ -311,11 +311,14 @@ export default function Index() {
     return <CargandoInterior texto="Cargando datos..." />;
   }
 
-  // Las mismas tarjetas (con su detalle y permisos) en todas las listas
-  function lista(eventosLista: Evento[]) {
+  // Las mismas tarjetas (con su detalle y permisos) en todas las listas.
+  // Próximas, Todas e Historial van por mes y año; el panel de un día, no (sería
+  // siempre un único encabezado)
+  function lista(eventosLista: Evento[], agruparPorMes = true) {
     return (
       <ListaEventos
         eventos={eventosLista}
+        agruparPorMes={agruparPorMes}
         tecnicos={tecnicos}
         procesando={procesando}
         puedeEditar={esAdmin}
@@ -450,7 +453,7 @@ export default function Index() {
               />
             ) : null
           }
-          eventos={eventosDelDia.length > 0 ? lista(eventosDelDia) : null}
+          eventos={eventosDelDia.length > 0 ? lista(eventosDelDia, false) : null}
           noDisponibles={
             resumenDia !== null && resumenDia.total > 0 ? (
               <AvisoNoDisponibles resumen={resumenDia} />

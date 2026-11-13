@@ -13,6 +13,21 @@ export function crearEstilosListaEventos(colores: ColoresTema) {
     lista: {
       gap: Spacing.two,
     },
+    // Agrupada por mes: más aire entre meses que entre tarjetas
+    grupos: {
+      gap: Spacing.four,
+    },
+    grupoMes: {
+      gap: Spacing.two,
+    },
+    // Encabezado del mes: acento del tema, por debajo del título de la pantalla
+    // (32) y de las secciones (20)
+    cabeceraMes: {
+      fontSize: 17,
+      lineHeight: 22,
+      fontWeight: "700",
+      color: colores.primaryPressed,
+    },
     // Superficie elevada y borde marcado: la tarjeta se despega del fondo casi negro
     tarjeta: {
       borderRadius: 16,
