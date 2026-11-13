@@ -17,6 +17,14 @@ export function crearEstilosPestanasWeb(colores: ColoresTema) {
     contenido: {
       flex: 1,
     },
+    // El contenedor de TabSlot trae flexShrink 0 y altura según el contenido:
+    // sin esto, la pantalla crece hasta su contenido, sus ScrollView no tienen
+    // alto limitado y (con body sin scroll) no se puede desplazar nada.
+    // flex 1 (grow 1, shrink 1, basis 0) lo ajusta al hueco sobre la barra,
+    // sin depender de alturas en porcentaje
+    pantallas: {
+      flex: 1,
+    },
     // Solo declara las rutas del navegador de pestañas: no se ve
     rutas: {
       display: "none",

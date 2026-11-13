@@ -27,7 +27,7 @@ export default function AppTabs() {
   return (
     <Tabs style={estilos.tabs}>
       <View style={estilos.contenido}>
-        <TabSlot />
+        <TabSlot style={estilos.pantallas} />
       </View>
 
       <View

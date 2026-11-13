@@ -25,7 +25,8 @@ jest.mock("expo-router/ui", () => {
     Tabs: Caja,
     // La lista oculta solo declara las rutas: no son pestañas visibles
     TabList: () => null,
-    TabSlot: () => null,
+    // Expone el estilo que recibe el contenedor de las pantallas
+    TabSlot: ({ style }: { style?: unknown }) => <View testID="tab-slot" style={style as object} />,
     TabTrigger: ({ name }: { name: string }) => <Text>{`pestaña:${name}`}</Text>,
   };
 });
@@ -96,6 +97,15 @@ describe("pestañas web", () => {
     await pintarPestanasWeb();
 
     expect(pestanasWeb()).toEqual(["index", "repertorio"]);
+  });
+
+  // Sin alto acotado, la pantalla crecía hasta su contenido y sus ScrollView no
+  // se podían desplazar (body sin scroll): en iPhone no había forma de bajar
+  test("las pantallas ocupan solo el hueco sobre la barra (flex 1), para que hagan scroll", async () => {
+    simular(true);
+    await pintarPestanasWeb();
+
+    expect(StyleSheet.flatten(screen.getByTestId("tab-slot").props.style)).toMatchObject({ flex: 1 });
   });
 
   test("la barra deja libre la zona segura inferior (indicador de inicio del iPhone)", async () => {
