@@ -13,6 +13,20 @@ export function crearEstilosBotonCerrarSesion(colores: ColoresTema) {
       // Se suma al margen de la barra de estado que añade SafeAreaView
       paddingTop: Spacing.two,
     },
+    // Con una acción a la izquierda («‹ Atrás»): ocupa todo el ancho
+    fila: {
+      alignSelf: "stretch",
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+    },
+    izquierda: {
+      alignItems: "flex-start",
+    },
+    derecha: {
+      alignItems: "flex-end",
+      gap: Spacing.one,
+    },
     boton: {
       minHeight: 44,
       justifyContent: "center",

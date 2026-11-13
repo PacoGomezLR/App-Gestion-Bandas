@@ -6,6 +6,7 @@ import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 import type { Cancion, EstadoCancion } from "../types/cancion";
 import { etiquetaApartado } from "../utils/canciones";
 import { confirmar } from "../utils/dialogo";
+import { BotonAtras } from "./BotonAtras";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { FormularioCancion } from "./FormularioCancion";
 import { BotonPrincipal, Mensaje } from "./PantallaBase";
@@ -194,7 +195,8 @@ export function PantallaRepertorio({ enFoco }: PantallaRepertorioProps) {
 
   return (
     <PantallaInterior>
-      <BotonCerrarSesion />
+      {/* Vista principal de la pestaña: «‹ Atrás» vuelve a la pantalla anterior del router */}
+      <BotonCerrarSesion izquierda={<BotonAtras />} />
       <CabeceraPantalla titulo="Repertorio" subtitulo={bandaActual?.nombre} />
 
       <SelectorApartado

@@ -1,6 +1,7 @@
 import { Redirect, useIsFocused } from "expo-router";
 import { useState } from "react";
 
+import { BotonAtras } from "../components/BotonAtras";
 import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
 import { InvitarUsuario } from "../components/InvitarUsuario";
 import { ListaIntegrantes } from "../components/ListaIntegrantes";
@@ -121,7 +122,8 @@ export default function BandaScreen() {
 
   return (
     <PantallaInterior>
-      <BotonCerrarSesion />
+      {/* Vista principal de la pestaña: «‹ Atrás» vuelve a la pantalla anterior del router */}
+      <BotonCerrarSesion izquierda={<BotonAtras />} />
       <CabeceraPantalla titulo="Banda" subtitulo={bandaActual?.nombre} />
 
       {[errorIntegrantes, errorTecnicos]
