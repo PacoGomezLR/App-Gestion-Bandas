@@ -160,11 +160,50 @@ describe("iconos", () => {
     expect(png.opaco).toBe(true);
   });
 
-  test("control: el lector detecta la translucidez del icono original (base de los anteriores)", () => {
-    const original = leerPng("assets/images/icon.png");
+  test("control: el lector detecta la transparencia (icono antiguo de Expo y primer plano adaptativo)", () => {
+    expect(leerPng("assets/images/icon.png").opaco).toBe(false);
+    expect(leerPng("assets/images/android-icon-foreground.png").opaco).toBe(false);
+  });
+});
 
-    expect(original.ancho).toBe(1024);
-    expect(original.opaco).toBe(false);
+describe("icono MI Banda (LogoMB)", () => {
+  const appJson = JSON.parse(fs.readFileSync("app.json", "utf8")) as {
+    expo: {
+      icon: string;
+      android: { adaptiveIcon: Record<string, string> };
+      web: { favicon: string };
+    };
+  };
+
+  test("LogoMB.png es la base: cuadrado y opaco", () => {
+    const logo = leerPng("assets/images/LogoMB.png");
+
+    expect(logo.ancho).toBe(logo.alto);
+    expect(logo.opaco).toBe(true);
+  });
+
+  test("app.json: icono principal LogoMB y favicon de siempre", () => {
+    expect(appJson.expo.icon).toBe("./assets/images/LogoMB.png");
+    expect(appJson.expo.web.favicon).toBe("./assets/images/favicon.png");
+  });
+
+  test("Android: primer plano MB sobre el fondo oscuro de la placa, sin restos de Expo", () => {
+    expect(appJson.expo.android.adaptiveIcon).toEqual({
+      backgroundColor: "#01080B",
+      foregroundImage: "./assets/images/android-icon-foreground.png",
+    });
+
+    const primerPlano = leerPng("assets/images/android-icon-foreground.png");
+    expect(primerPlano.ancho).toBe(1024);
+    expect(primerPlano.alto).toBe(1024);
+  });
+
+  test("favicon 48x48 y opaco", () => {
+    const favicon = leerPng("assets/images/favicon.png");
+
+    expect(favicon.ancho).toBe(48);
+    expect(favicon.alto).toBe(48);
+    expect(favicon.opaco).toBe(true);
   });
 });
 

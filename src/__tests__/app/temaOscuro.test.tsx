@@ -65,15 +65,10 @@ describe("un solo tema", () => {
       );
     });
 
-    // Únicos casos:
-    // - el degradado del icono de Expo en el splash animado (recurso de la plantilla);
-    // - "black" en +html.tsx: es el valor de la meta apple-mobile-web-app-status-bar-style
-    //   (barra de estado opaca en la PWA de iPhone), no un color de la interfaz
-    expect(conColores).toEqual([
-      'app/+html.tsx: "black"',
-      "components/animated-icon.tsx: #3C9FFE",
-      "components/animated-icon.tsx: #0274DF",
-    ]);
+    // Único caso: "black" en +html.tsx, el valor de la meta
+    // apple-mobile-web-app-status-bar-style (barra de estado opaca en la PWA de
+    // iPhone), no un color de la interfaz. El degradado del icono de Expo ya no existe
+    expect(conColores).toEqual(['app/+html.tsx: "black"']);
   });
 
   test("app.json: interfaz oscura y mismo fondo en la raíz y en el splash nativo", () => {
