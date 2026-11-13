@@ -53,6 +53,13 @@ jest.mock("../CompletarPerfil", () => {
   };
 });
 
+jest.mock("../NuevaContrasena", () => {
+  const { Text } = require("react-native");
+  return {
+    NuevaContrasena: () => <Text>Pantalla de nueva contraseña</Text>,
+  };
+});
+
 jest.mock("../CrearBanda", () => {
   const { Text } = require("react-native");
 
@@ -104,7 +111,8 @@ const perfilConNombre: PerfilUsuario = {
 function simularAuth(
   cargando: boolean,
   session: Session | null,
-  perfil: PerfilUsuario | null = session === null ? null : perfilConNombre
+  perfil: PerfilUsuario | null = session === null ? null : perfilConNombre,
+  recuperandoContrasena = false
 ) {
   useAuthContextMock.mockReturnValue({
     session,
@@ -113,6 +121,12 @@ function simularAuth(
     cargando,
     error: "",
     iniciarSesion: jest.fn(),
+    correoSinVerificar: null,
+    reenviarVerificacion: jest.fn(),
+    recuperandoContrasena,
+    solicitarRecuperacion: jest.fn(),
+    actualizarContrasena: jest.fn(),
+    finalizarRecuperacion: jest.fn(),
     crearCuenta: jest.fn(),
     completarNombreVisible: jest.fn(),
     cerrarSesion: jest.fn(),
@@ -329,5 +343,52 @@ describe("AppAuthGate", () => {
       expect(getByText("Aplicación")).toBeTruthy();
       expect(queryByText("Pantalla de invitación")).toBeNull();
     });
+  });
+});
+
+describe("AppAuthGate en la recuperación de contraseña", () => {
+  test("con la sesión del enlace muestra la nueva contraseña antes que la app", async () => {
+    simularAuth(false, sesion, perfilConNombre, true);
+    simularBanda(false, cathaline);
+
+    const { getByText, queryByText } = await renderizarGate();
+
+    expect(getByText("Pantalla de nueva contraseña")).toBeTruthy();
+    expect(queryByText("Proveedor de banda montado")).toBeNull();
+    expect(queryByText("Pantalla de acceso")).toBeNull();
+    expect(montajeApp).not.toHaveBeenCalled();
+  });
+
+  test("mientras se establece la sesión del enlace muestra Cargando, nunca el acceso", async () => {
+    simularAuth(false, null, null, true);
+
+    const { getByText, queryByText } = await renderizarGate();
+
+    expect(getByText("Cargando...")).toBeTruthy();
+    expect(queryByText("Pantalla de acceso")).toBeNull();
+    expect(queryByText("Pantalla de nueva contraseña")).toBeNull();
+  });
+
+  // La invitación no se toca: al terminar, el gate sigue con ella (como en
+  // «con sesión, tras entrar o confirmar el correo, continúa con la invitación»)
+  test("con una invitación pendiente, primero la contraseña", async () => {
+    mockTokenPendiente = "a".repeat(64);
+    simularAuth(false, sesion, perfilConNombre, true);
+    simularBanda(false, cathaline);
+
+    const { getByText, queryByText } = await renderizarGate();
+
+    expect(getByText("Pantalla de nueva contraseña")).toBeTruthy();
+    expect(queryByText("Pantalla de invitación")).toBeNull();
+  });
+
+  test("terminada la recuperación entra en la app como siempre", async () => {
+    simularAuth(false, sesion, perfilConNombre, false);
+    simularBanda(false, cathaline);
+
+    const { getByText, queryByText } = await renderizarGate();
+
+    expect(getByText("Aplicación")).toBeTruthy();
+    expect(queryByText("Pantalla de nueva contraseña")).toBeNull();
   });
 });

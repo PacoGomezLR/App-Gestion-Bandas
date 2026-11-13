@@ -1,5 +1,5 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { type ResultadoCrearCuenta, useAuthContext } from "../../context/AuthContext";
+import { type ResultadoCrearCuenta, type ResultadoReenvio, useAuthContext } from "../../context/AuthContext";
 import { PantallaAcceso } from "../PantallaAcceso";
 
 // constants/theme importa global.css, que Jest no puede interpretar
@@ -21,16 +21,22 @@ jest.mock("../../context/InvitacionPendienteContext", () => ({
 
 const useAuthContextMock = jest.mocked(useAuthContext);
 
-const AVISO_CONFIRMACION = "Cuenta creada. Revisa tu correo para confirmar tu cuenta.";
+const AVISO_CONFIRMACION = "Cuenta creada. Revisa tu correo y confirma tu cuenta antes de iniciar sesión.";
 
 function simularAuth({
   iniciarSesion = jest.fn(async () => true),
   crearCuenta = jest.fn(async (): Promise<ResultadoCrearCuenta> => "sesion_iniciada"),
   error = "",
+  correoSinVerificar = null,
+  reenviarVerificacion = jest.fn(async (): Promise<ResultadoReenvio> => "enviado"),
+  solicitarRecuperacion = jest.fn(async (_email: string): Promise<ResultadoReenvio> => "enviado"),
 }: {
   iniciarSesion?: (email: string, password: string) => Promise<boolean>;
   crearCuenta?: (nombre: string, email: string, password: string) => Promise<ResultadoCrearCuenta>;
   error?: string;
+  correoSinVerificar?: string | null;
+  reenviarVerificacion?: () => Promise<ResultadoReenvio>;
+  solicitarRecuperacion?: (email: string) => Promise<ResultadoReenvio>;
 } = {}) {
   useAuthContextMock.mockReturnValue({
     session: null,
@@ -38,7 +44,13 @@ function simularAuth({
     perfil: null,
     cargando: false,
     error,
+    correoSinVerificar,
     iniciarSesion,
+    reenviarVerificacion,
+    recuperandoContrasena: false,
+    solicitarRecuperacion,
+    actualizarContrasena: jest.fn(),
+    finalizarRecuperacion: jest.fn(),
     crearCuenta,
     completarNombreVisible: jest.fn(),
     cerrarSesion: jest.fn(),
@@ -403,5 +415,240 @@ describe("PantallaAcceso: invitación pendiente", () => {
     await abrirRegistro(pantalla);
     expect(pantalla.getByText(AVISO)).toBeTruthy();
     expect(pantalla.queryByText(/a{64}/)).toBeNull();
+  });
+});
+
+describe("correo sin verificar", () => {
+  const SIN_VERIFICAR =
+    "Tu correo todavía no está verificado. Revisa tu bandeja de entrada y pulsa el enlace de confirmación.";
+  const REENVIADO = "Correo de verificación reenviado. Revisa tu bandeja de entrada y la carpeta de spam.";
+  const LIMITE = "Has solicitado demasiados correos. Espera unos minutos antes de intentarlo de nuevo.";
+  const REENVIAR = { name: "Reenviar correo de verificación" };
+
+  async function pantallaEntrar(email: string) {
+    const pantalla = await render(<PantallaAcceso />);
+    await fireEvent.changeText(pantalla.getByLabelText("Correo electrónico"), email);
+    return pantalla;
+  }
+
+  test("al entrar sin verificar muestra su aviso (no «Correo o contraseña incorrectos») y ofrece reenviar", async () => {
+    simularAuth({ error: SIN_VERIFICAR, correoSinVerificar: "paco@email.com" });
+
+    const pantalla = await pantallaEntrar("Paco@Email.com ");
+
+    expect(pantalla.getByText(SIN_VERIFICAR)).toBeTruthy();
+    expect(pantalla.queryByText("Correo o contraseña incorrectos")).toBeNull();
+    expect(pantalla.getByRole("button", REENVIAR)).toBeTruthy();
+  });
+
+  test("con credenciales incorrectas no se ofrece reenviar", async () => {
+    simularAuth({ error: "Correo o contraseña incorrectos", correoSinVerificar: null });
+
+    const pantalla = await pantallaEntrar("paco@email.com");
+
+    expect(pantalla.getByText("Correo o contraseña incorrectos")).toBeTruthy();
+    expect(pantalla.queryByRole("button", REENVIAR)).toBeNull();
+  });
+
+  test("si se escribe otro correo, la acción desaparece", async () => {
+    simularAuth({ error: SIN_VERIFICAR, correoSinVerificar: "paco@email.com" });
+
+    const pantalla = await pantallaEntrar("otra@email.com");
+
+    expect(pantalla.queryByRole("button", REENVIAR)).toBeNull();
+  });
+
+  test("en el registro no se ofrece reenviar", async () => {
+    simularAuth({ correoSinVerificar: "paco@email.com" });
+
+    const pantalla = await pantallaEntrar("paco@email.com");
+    await abrirRegistro(pantalla);
+
+    expect(pantalla.queryByRole("button", REENVIAR)).toBeNull();
+  });
+
+  test("tras crear la cuenta sin sesión: aviso de verificación y opción de reenviar", async () => {
+    simularAuth({
+      crearCuenta: jest.fn(async (): Promise<ResultadoCrearCuenta> => "confirmacion_requerida"),
+      correoSinVerificar: "paco@email.com",
+    });
+
+    const pantalla = await render(<PantallaAcceso />);
+    await abrirRegistro(pantalla);
+    await rellenarRegistro(pantalla, "paco@email.com", "secreta", "secreta");
+    await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
+
+    expect(pantalla.getByText(AVISO_CONFIRMACION)).toBeTruthy();
+    // Ya en Entrar, con el correo escrito y sin contraseñas
+    expect(pantalla.getByRole("button", { name: "Entrar" })).toBeTruthy();
+    expect(pantalla.getByRole("button", REENVIAR)).toBeTruthy();
+  });
+
+  test("reenviar con éxito muestra el aviso de reenviado", async () => {
+    const reenviarVerificacion = jest.fn(async (): Promise<ResultadoReenvio> => "enviado");
+    simularAuth({ error: SIN_VERIFICAR, correoSinVerificar: "paco@email.com", reenviarVerificacion });
+
+    const pantalla = await pantallaEntrar("paco@email.com");
+    await fireEvent.press(pantalla.getByRole("button", REENVIAR));
+
+    expect(reenviarVerificacion).toHaveBeenCalledTimes(1);
+    expect(pantalla.getByText(REENVIADO)).toBeTruthy();
+  });
+
+  test("si falla (límite de correos) no inventa éxito: el motivo llega por el error del contexto", async () => {
+    const reenviarVerificacion = jest.fn(async (): Promise<ResultadoReenvio> => "error");
+    simularAuth({ error: LIMITE, correoSinVerificar: "paco@email.com", reenviarVerificacion });
+
+    const pantalla = await pantallaEntrar("paco@email.com");
+    await fireEvent.press(pantalla.getByRole("button", REENVIAR));
+
+    expect(reenviarVerificacion).toHaveBeenCalledTimes(1);
+    expect(pantalla.queryByText(REENVIADO)).toBeNull();
+    expect(pantalla.getByText(LIMITE)).toBeTruthy();
+  });
+
+  test("mientras reenvía queda deshabilitado y un doble toque no envía dos veces", async () => {
+    let terminar: (resultado: ResultadoReenvio) => void = () => {};
+    const reenviarVerificacion = jest.fn(
+      () => new Promise<ResultadoReenvio>((resolver) => (terminar = resolver))
+    );
+    simularAuth({ error: SIN_VERIFICAR, correoSinVerificar: "paco@email.com", reenviarVerificacion });
+
+    const pantalla = await pantallaEntrar("paco@email.com");
+    const boton = pantalla.getByRole("button", REENVIAR);
+
+    await act(async () => {
+      fireEvent.press(boton);
+      fireEvent.press(boton);
+    });
+
+    expect(reenviarVerificacion).toHaveBeenCalledTimes(1);
+    expect(pantalla.getByRole("button", REENVIAR).props.accessibilityState).toMatchObject({ disabled: true });
+
+    await act(async () => {
+      terminar("enviado");
+    });
+
+    expect(pantalla.getByRole("button", REENVIAR).props.accessibilityState).toMatchObject({ disabled: false });
+  });
+
+  test("con una invitación pendiente, el aviso de verificación no la descarta", async () => {
+    mockTokenPendiente = "a".repeat(64);
+    simularAuth({
+      crearCuenta: jest.fn(async (): Promise<ResultadoCrearCuenta> => "confirmacion_requerida"),
+      correoSinVerificar: "paco@email.com",
+    });
+
+    const pantalla = await render(<PantallaAcceso />);
+    await abrirRegistro(pantalla);
+    await rellenarRegistro(pantalla, "paco@email.com", "secreta", "secreta");
+    await fireEvent.press(pantalla.getByRole("button", { name: "Crear cuenta" }));
+
+    const INVITACION = "Tienes una invitación a una banda. Entra o crea tu cuenta para continuar.";
+
+    expect(pantalla.getByText(AVISO_CONFIRMACION)).toBeTruthy();
+    expect(pantalla.getByText(INVITACION)).toBeTruthy();
+
+    await fireEvent.press(pantalla.getByRole("button", REENVIAR));
+
+    // Reenviar tampoco la toca: sigue pendiente hasta que haya sesión
+    expect(pantalla.getByText(REENVIADO)).toBeTruthy();
+    expect(pantalla.getByText(INVITACION)).toBeTruthy();
+  });
+});
+
+describe("restablecer contraseña", () => {
+  const ENVIADO = "Te hemos enviado un correo para restablecer tu contraseña.";
+  const RESTABLECER = { name: "Restablecer contraseña" };
+
+  test("en Entrar se ofrece «¿Has olvidado tu contraseña?»; en el registro, no", async () => {
+    simularAuth();
+    const pantalla = await render(<PantallaAcceso />);
+
+    expect(pantalla.getByText("¿Has olvidado tu contraseña?")).toBeTruthy();
+    expect(pantalla.getByRole("button", RESTABLECER)).toBeTruthy();
+
+    await abrirRegistro(pantalla);
+
+    expect(pantalla.queryByRole("button", RESTABLECER)).toBeNull();
+  });
+
+  test("solo pide el correo", async () => {
+    simularAuth();
+    const pantalla = await render(<PantallaAcceso />);
+
+    await fireEvent.press(pantalla.getByRole("button", RESTABLECER));
+
+    expect(pantalla.getByText("Restablecer contraseña")).toBeTruthy();
+    expect(pantalla.getByLabelText("Correo electrónico")).toBeTruthy();
+    expect(pantalla.queryByLabelText("Contraseña")).toBeNull();
+    expect(pantalla.getByRole("button", { name: "Enviar enlace" })).toBeTruthy();
+  });
+
+  test("sin correo avisa y no llama a Supabase", async () => {
+    const solicitarRecuperacion = jest.fn(async (_email: string): Promise<ResultadoReenvio> => "enviado");
+    simularAuth({ solicitarRecuperacion });
+    const pantalla = await render(<PantallaAcceso />);
+
+    await fireEvent.press(pantalla.getByRole("button", RESTABLECER));
+    await fireEvent.press(pantalla.getByRole("button", { name: "Enviar enlace" }));
+
+    expect(pantalla.getByText("Introduce el correo electrónico")).toBeTruthy();
+    expect(solicitarRecuperacion).not.toHaveBeenCalled();
+  });
+
+  test("con éxito avisa (sin decir si la cuenta existe) y vuelve a Entrar con el correo escrito", async () => {
+    const solicitarRecuperacion = jest.fn(async (_email: string): Promise<ResultadoReenvio> => "enviado");
+    simularAuth({ solicitarRecuperacion });
+    const pantalla = await render(<PantallaAcceso />);
+
+    await fireEvent.press(pantalla.getByRole("button", RESTABLECER));
+    await fireEvent.changeText(pantalla.getByLabelText("Correo electrónico"), "paco@email.com");
+    await fireEvent.press(pantalla.getByRole("button", { name: "Enviar enlace" }));
+
+    expect(solicitarRecuperacion).toHaveBeenCalledWith("paco@email.com");
+    expect(pantalla.getByText(ENVIADO)).toBeTruthy();
+    expect(pantalla.getByRole("button", { name: "Entrar" })).toBeTruthy();
+    expect(pantalla.getByLabelText("Correo electrónico").props.value).toBe("paco@email.com");
+  });
+
+  test("si falla no inventa éxito: el motivo llega por el error del contexto", async () => {
+    const LIMITE = "Has solicitado demasiados correos. Espera unos minutos antes de intentarlo de nuevo.";
+    simularAuth({
+      solicitarRecuperacion: jest.fn(async (): Promise<ResultadoReenvio> => "error"),
+      error: LIMITE,
+    });
+    const pantalla = await render(<PantallaAcceso />);
+
+    await fireEvent.press(pantalla.getByRole("button", RESTABLECER));
+    await fireEvent.changeText(pantalla.getByLabelText("Correo electrónico"), "paco@email.com");
+    await fireEvent.press(pantalla.getByRole("button", { name: "Enviar enlace" }));
+
+    expect(pantalla.queryByText(ENVIADO)).toBeNull();
+    expect(pantalla.getByText(LIMITE)).toBeTruthy();
+    expect(pantalla.getByRole("button", { name: "Enviar enlace" })).toBeTruthy();
+  });
+
+  test("«¿La recuerdas? Entrar» vuelve a Entrar", async () => {
+    simularAuth();
+    const pantalla = await render(<PantallaAcceso />);
+
+    await fireEvent.press(pantalla.getByRole("button", RESTABLECER));
+    await fireEvent.press(pantalla.getByRole("button", { name: "Entrar" }));
+
+    expect(pantalla.getByLabelText("Contraseña")).toBeTruthy();
+    expect(pantalla.getByRole("button", RESTABLECER)).toBeTruthy();
+  });
+
+  test("con una invitación pendiente el aviso sigue a la vista", async () => {
+    mockTokenPendiente = "a".repeat(64);
+    simularAuth();
+    const pantalla = await render(<PantallaAcceso />);
+
+    await fireEvent.press(pantalla.getByRole("button", RESTABLECER));
+
+    expect(
+      pantalla.getByText("Tienes una invitación a una banda. Entra o crea tu cuenta para continuar.")
+    ).toBeTruthy();
   });
 });

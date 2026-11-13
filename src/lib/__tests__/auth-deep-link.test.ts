@@ -2,7 +2,9 @@ import { AuthError } from "@supabase/supabase-js";
 
 import {
   type ClienteAuthEnlace,
+  esEnlaceCaducado,
   esEnlaceCallbackAuth,
+  esEnlaceRecuperacion,
   procesarEnlaceAuth,
 } from "../auth-deep-link";
 
@@ -203,5 +205,55 @@ describe("procesarEnlaceAuth en web", () => {
       )
     ).toBe("ignorado");
     expect(mockSetSession).not.toHaveBeenCalled();
+  });
+});
+
+describe("recuperación de contraseña", () => {
+  test.each([
+    "mibanda://auth/callback",
+    "https://mibanda.expo.app/auth/callback",
+  ])("%s#…&type=recovery establece la sesión y devuelve recuperacion", async (base) => {
+    const resultado = await procesarEnlaceAuth(
+      `${base}#access_token=${ACCESS}&refresh_token=${REFRESH}&type=recovery`,
+      auth
+    );
+
+    expect(resultado).toBe("recuperacion");
+    expect(mockSetSession).toHaveBeenCalledWith({ access_token: ACCESS, refresh_token: REFRESH });
+  });
+
+  test("un enlace de confirmación (type=signup) sigue siendo sesion_establecida", async () => {
+    expect(
+      await procesarEnlaceAuth(
+        `mibanda://auth/callback#access_token=${ACCESS}&refresh_token=${REFRESH}&type=signup`,
+        auth
+      )
+    ).toBe("sesion_establecida");
+  });
+
+  test("si la sesión del enlace de recuperación falla, es un error", async () => {
+    mockSetSession.mockResolvedValueOnce({ error: new AuthError("Invalid Refresh Token", 400) });
+
+    expect(
+      await procesarEnlaceAuth(
+        `mibanda://auth/callback#access_token=${ACCESS}&refresh_token=${REFRESH}&type=recovery`,
+        auth
+      )
+    ).toBe("error");
+  });
+
+  test("esEnlaceRecuperacion: solo callback con type=recovery y sin error", () => {
+    expect(esEnlaceRecuperacion("mibanda://auth/callback#access_token=a&refresh_token=b&type=recovery")).toBe(true);
+    expect(esEnlaceRecuperacion("https://mibanda.expo.app/auth/callback#type=recovery&access_token=a")).toBe(true);
+    expect(esEnlaceRecuperacion("mibanda://auth/callback#type=signup&access_token=a")).toBe(false);
+    expect(esEnlaceRecuperacion("mibanda://auth/callback#type=recovery&error=access_denied")).toBe(false);
+    expect(esEnlaceRecuperacion("https://mibanda.expo.app/invitacion?type=recovery")).toBe(false);
+  });
+
+  test("esEnlaceCaducado: otp_expired en el callback", () => {
+    expect(esEnlaceCaducado("mibanda://auth/callback#error=access_denied&error_code=otp_expired")).toBe(true);
+    expect(esEnlaceCaducado("https://mibanda.expo.app/auth/callback#error_code=otp_expired")).toBe(true);
+    expect(esEnlaceCaducado("mibanda://auth/callback#error=server_error")).toBe(false);
+    expect(esEnlaceCaducado("mibanda://otra#error_code=otp_expired")).toBe(false);
   });
 });

@@ -4,7 +4,10 @@ import { URL, URLSearchParams } from "react-native-url-polyfill";
 // Ruta a la que Supabase devuelve al usuario tras confirmar el correo
 export const RUTA_CALLBACK_AUTH = "auth/callback";
 
-export type ResultadoEnlaceAuth = "ignorado" | "sesion_establecida" | "error";
+// recuperacion: sesión establecida desde un enlace de «restablecer contraseña»
+// (type=recovery). Con flujo implícito y detectSessionInUrl desactivado,
+// Supabase no emite PASSWORD_RECOVERY: hay que leerlo del enlace
+export type ResultadoEnlaceAuth = "ignorado" | "sesion_establecida" | "recuperacion" | "error";
 
 // Lo único que se necesita de supabase.auth: permite probar el helper sin cliente real
 export interface ClienteAuthEnlace {
@@ -57,6 +60,33 @@ function leerParametros(destino: URL): URLSearchParams {
   return parametros;
 }
 
+// Parámetros del enlace de callback, o null si no es un callback de auth
+function parametrosCallback(url: string): URLSearchParams | null {
+  const destino = leerUrl(url);
+
+  return destino !== null && esRutaCallback(destino) ? leerParametros(destino) : null;
+}
+
+function tieneError(parametros: URLSearchParams): boolean {
+  return (
+    parametros.has("error") || parametros.has("error_code") || parametros.has("error_description")
+  );
+}
+
+// Enlace de «restablecer contraseña» sin error: se sabe antes de establecer la
+// sesión, así la app no llega a enseñar sus pantallas con esa sesión
+export function esEnlaceRecuperacion(url: string): boolean {
+  const parametros = parametrosCallback(url);
+
+  return parametros !== null && !tieneError(parametros) && parametros.get("type") === "recovery";
+}
+
+// Enlace caducado o ya usado (confirmación o recuperación): Supabase devuelve
+// error_code=otp_expired sin decir de qué tipo era
+export function esEnlaceCaducado(url: string): boolean {
+  return parametrosCallback(url)?.get("error_code") === "otp_expired";
+}
+
 // Nunca registra la URL ni sus valores: contienen credenciales
 export async function procesarEnlaceAuth(
   url: string,
@@ -70,13 +100,12 @@ export async function procesarEnlaceAuth(
 
   const parametros = leerParametros(destino);
 
-  if (
-    parametros.has("error") ||
-    parametros.has("error_code") ||
-    parametros.has("error_description")
-  ) {
+  if (tieneError(parametros)) {
     return "error";
   }
+
+  const exito: ResultadoEnlaceAuth =
+    parametros.get("type") === "recovery" ? "recuperacion" : "sesion_establecida";
 
   const code = parametros.get("code");
   const accessToken = parametros.get("access_token");
@@ -85,7 +114,7 @@ export async function procesarEnlaceAuth(
   try {
     if (code) {
       const { error } = await auth.exchangeCodeForSession(code);
-      return error ? "error" : "sesion_establecida";
+      return error ? "error" : exito;
     }
 
     if (accessToken === null && refreshToken === null) {
@@ -102,7 +131,7 @@ export async function procesarEnlaceAuth(
       access_token: accessToken,
       refresh_token: refreshToken,
     });
-    return error ? "error" : "sesion_establecida";
+    return error ? "error" : exito;
   } catch {
     return "error";
   }

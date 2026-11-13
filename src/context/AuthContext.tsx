@@ -10,7 +10,13 @@ import {
   useState,
 } from "react";
 
-import { procesarEnlaceAuth, RUTA_CALLBACK_AUTH } from "../lib/auth-deep-link";
+import {
+  esEnlaceCaducado,
+  esEnlaceRecuperacion,
+  procesarEnlaceAuth,
+  RUTA_CALLBACK_AUTH,
+} from "../lib/auth-deep-link";
+import { limpiarUrlAuth } from "../lib/limpiarUrlAuth";
 import { supabase } from "../lib/supabase";
 import { guardarNombreVisiblePropio } from "../services/supabase/perfiles";
 import type { PerfilUsuario } from "../types/usuario";
@@ -22,18 +28,61 @@ export type ResultadoCrearCuenta =
   | "confirmacion_requerida"
   | "error";
 
+export type ResultadoReenvio = "enviado" | "error";
+
+// Mensajes de acceso para personas: nunca el texto técnico de Supabase
+export const ERROR_CORREO_SIN_VERIFICAR =
+  "Tu correo todavía no está verificado. Revisa tu bandeja de entrada y pulsa el enlace de confirmación.";
+export const ERROR_LIMITE_CORREOS =
+  "Has solicitado demasiados correos. Espera unos minutos antes de intentarlo de nuevo.";
+export const ERROR_ENLACE_CADUCADO =
+  "El enlace ha caducado o ya se ha usado. Solicita uno nuevo.";
+export const ERROR_ENLACE_RECUPERACION =
+  "No se ha podido abrir el enlace para restablecer la contraseña. Solicita uno nuevo.";
+
+export type ResultadoNuevaContrasena = "actualizada" | "error";
+
+// Códigos de Supabase Auth para «demasiados envíos o peticiones»
+const CODIGOS_LIMITE = new Set(["over_email_send_rate_limit", "over_request_rate_limit"]);
+
+// Adonde vuelve el enlace de los correos de Supabase (registro, reenvío y
+// recuperación de contraseña):
+// mibanda://auth/callback en una build, exp://.../--/auth/callback en Expo Go y
+// https://dominio/auth/callback en web
+function urlCallbackAuth(): string {
+  return Linking.createURL(RUTA_CALLBACK_AUTH);
+}
+
+function normalizarEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 interface AuthContextValue {
   session: Session | null;
   usuario: User | null;
   perfil: PerfilUsuario | null;
   cargando: boolean;
   error: string;
+  // Correo (normalizado) de una cuenta creada que aún no ha confirmado su correo:
+  // tras registrarse o al intentar entrar con ella. Nunca la contraseña
+  correoSinVerificar: string | null;
   iniciarSesion: (email: string, password: string) => Promise<boolean>;
+  // Vuelve a enviar el correo de confirmación a correoSinVerificar
+  reenviarVerificacion: () => Promise<ResultadoReenvio>;
   // Solo crea la cuenta (con su nombre visible): sin banda ni rol
   crearCuenta: (nombre: string, email: string, password: string) => Promise<ResultadoCrearCuenta>;
   // Una sola vez, para cuentas antiguas sin nombre visible
   completarNombreVisible: (nombre: string) => Promise<boolean>;
   cerrarSesion: () => Promise<void>;
+  // Recuperación de contraseña: la sesión viene de un enlace «restablecer
+  // contraseña» y hay que elegir una nueva antes de seguir
+  recuperandoContrasena: boolean;
+  // Pide el correo de recuperación (no dice si la cuenta existe)
+  solicitarRecuperacion: (email: string) => Promise<ResultadoReenvio>;
+  // Guarda la nueva contraseña de la sesión de recuperación
+  actualizarContrasena: (password: string) => Promise<ResultadoNuevaContrasena>;
+  // Sale del modo recuperación (tras guardar o al cancelar)
+  finalizarRecuperacion: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -72,6 +121,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   // Id del usuario cuyo perfil ya se ha intentado cargar (con éxito o no)
   const [perfilResueltoId, setPerfilResueltoId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [correoSinVerificar, setCorreoSinVerificar] = useState<string | null>(null);
+  const [recuperandoContrasena, setRecuperandoContrasena] = useState(false);
+  // Impide dos reenvíos a la vez (un doble toque llega antes de repintar)
+  const reenviandoRef = useRef(false);
   // Un mismo enlace puede llegar como URL inicial y como evento: solo se procesa una vez
   const enlacesProcesados = useRef(new Set<string>());
 
@@ -100,9 +153,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
       });
 
     // Sin llamadas a Supabase dentro del callback: el perfil se carga en otro efecto
-    const { data } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
-      if (activo) {
-        setSession(nuevaSesion);
+    const { data } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
+      if (!activo) {
+        return;
+      }
+
+      setSession(nuevaSesion);
+
+      // PKCE (exchangeCodeForSession) sí avisa con PASSWORD_RECOVERY; el flujo
+      // implícito actual se detecta por el enlace (type=recovery)
+      if (evento === "PASSWORD_RECOVERY") {
+        setRecuperandoContrasena(true);
+      }
+
+      if (evento === "SIGNED_OUT") {
+        setRecuperandoContrasena(false);
       }
     });
 
@@ -123,11 +188,38 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       enlacesProcesados.current.add(url);
 
+      const recuperacion = esEnlaceRecuperacion(url);
+
+      // Antes de establecer la sesión: así la app no llega a mostrarse con ella
+      if (recuperacion) {
+        setRecuperandoContrasena(true);
+      }
+
       // Sin navegación manual: la sesión llega por onAuthStateChange y AppAuthGate decide
       const resultado = await procesarEnlaceAuth(url, supabase.auth);
 
-      if (activo && resultado === "error") {
-        setError("No se ha podido confirmar la cuenta");
+      // Web: los tokens del enlace no se quedan en la barra de direcciones
+      if (resultado !== "ignorado") {
+        limpiarUrlAuth();
+      }
+
+      if (!activo) {
+        return;
+      }
+
+      if (resultado === "recuperacion") {
+        setRecuperandoContrasena(true);
+      }
+
+      if (resultado === "error") {
+        setRecuperandoContrasena(false);
+        setError(
+          esEnlaceCaducado(url)
+            ? ERROR_ENLACE_CADUCADO
+            : recuperacion
+              ? ERROR_ENLACE_RECUPERACION
+              : "No se ha podido confirmar la cuenta"
+        );
       }
     }
 
@@ -200,14 +292,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const iniciarSesion = useCallback(async (email: string, password: string) => {
     setError("");
+    setCorreoSinVerificar(null);
 
     try {
+      const emailNormalizado = normalizarEmail(email);
       const { error: errorAcceso } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: emailNormalizado,
         password,
       });
 
       if (errorAcceso) {
+        // Por código, no por el texto en inglés. La cuenta existe y la contraseña
+        // es correcta, pero falta confirmar el correo: no es un acceso incorrecto
+        if (errorAcceso.code === "email_not_confirmed") {
+          setCorreoSinVerificar(emailNormalizado);
+          setError(ERROR_CORREO_SIN_VERIFICAR);
+          return false;
+        }
+
         setError(
           errorAcceso.code === "invalid_credentials"
             ? "Correo o contraseña incorrectos"
@@ -235,14 +337,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return "error";
       }
 
+      setCorreoSinVerificar(null);
+
       try {
+        const emailNormalizado = normalizarEmail(email);
         // No se comprueba antes si el correo existe: eso permitiría enumerar cuentas
         const { data, error: errorRegistro } = await supabase.auth.signUp({
-          email: email.trim().toLowerCase(),
+          email: emailNormalizado,
           password,
           options: {
-            // mibanda://auth/callback en una build; exp://.../--/auth/callback en Expo Go
-            emailRedirectTo: Linking.createURL(RUTA_CALLBACK_AUTH),
+            emailRedirectTo: urlCallbackAuth(),
             // El trigger de perfiles (005) copia solo esta clave a nombre_visible
             data: { nombre_visible: nombreVisible },
           },
@@ -259,6 +363,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
 
         if (data.user) {
+          setCorreoSinVerificar(emailNormalizado);
           return "confirmacion_requerida";
         }
 
@@ -302,6 +407,100 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [usuarioId]
   );
 
+  const reenviarVerificacion = useCallback(async (): Promise<ResultadoReenvio> => {
+    if (correoSinVerificar === null || reenviandoRef.current) {
+      return "error";
+    }
+
+    reenviandoRef.current = true;
+    setError("");
+
+    try {
+      const { error: errorReenvio } = await supabase.auth.resend({
+        type: "signup",
+        email: correoSinVerificar,
+        options: { emailRedirectTo: urlCallbackAuth() },
+      });
+
+      if (errorReenvio) {
+        setError(
+          CODIGOS_LIMITE.has(errorReenvio.code ?? "") || errorReenvio.status === 429
+            ? ERROR_LIMITE_CORREOS
+            : "No se ha podido reenviar el correo de verificación"
+        );
+        return "error";
+      }
+
+      return "enviado";
+    } catch {
+      setError("No se ha podido reenviar el correo de verificación");
+      return "error";
+    } finally {
+      reenviandoRef.current = false;
+    }
+  }, [correoSinVerificar]);
+
+  const solicitarRecuperacion = useCallback(async (email: string): Promise<ResultadoReenvio> => {
+    setError("");
+
+    try {
+      const { error: errorSolicitud } = await supabase.auth.resetPasswordForEmail(
+        normalizarEmail(email),
+        { redirectTo: urlCallbackAuth() }
+      );
+
+      if (errorSolicitud) {
+        setError(
+          CODIGOS_LIMITE.has(errorSolicitud.code ?? "") || errorSolicitud.status === 429
+            ? ERROR_LIMITE_CORREOS
+            : "No se ha podido enviar el correo de recuperación"
+        );
+        return "error";
+      }
+
+      return "enviado";
+    } catch {
+      setError("No se ha podido enviar el correo de recuperación");
+      return "error";
+    }
+  }, []);
+
+  const actualizarContrasena = useCallback(
+    async (password: string): Promise<ResultadoNuevaContrasena> => {
+      setError("");
+
+      try {
+        const { error: errorCambio } = await supabase.auth.updateUser({ password });
+
+        if (errorCambio) {
+          const codigo = errorCambio.code ?? "";
+
+          setError(
+            codigo === "same_password"
+              ? "La nueva contraseña debe ser distinta de la anterior"
+              : codigo === "weak_password"
+                ? "La contraseña no es lo bastante segura. Prueba con una más larga"
+                : codigo === "session_not_found" || errorCambio.name === "AuthSessionMissingError"
+                  ? ERROR_ENLACE_RECUPERACION
+                  : "No se ha podido cambiar la contraseña"
+          );
+          return "error";
+        }
+
+        return "actualizada";
+      } catch {
+        setError("No se ha podido cambiar la contraseña");
+        return "error";
+      }
+    },
+    []
+  );
+
+  const finalizarRecuperacion = useCallback(() => {
+    setRecuperandoContrasena(false);
+    setError("");
+  }, []);
+
   const cerrarSesion = useCallback(async () => {
     setError("");
 
@@ -331,10 +530,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         perfil: perfilActual,
         cargando,
         error,
+        correoSinVerificar,
         iniciarSesion,
+        reenviarVerificacion,
         crearCuenta,
         completarNombreVisible,
         cerrarSesion,
+        recuperandoContrasena,
+        solicitarRecuperacion,
+        actualizarContrasena,
+        finalizarRecuperacion,
       }}
     >
       {children}

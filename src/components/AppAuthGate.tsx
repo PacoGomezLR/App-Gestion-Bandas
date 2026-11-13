@@ -8,6 +8,7 @@ import { CompletarPerfil } from "./CompletarPerfil";
 import { useTheme } from "@/hooks/use-theme";
 import { crearEstilosAppAuthGate } from "./AppAuthGate.styles";
 import { CrearBanda } from "./CrearBanda";
+import { NuevaContrasena } from "./NuevaContrasena";
 import { BotonPrincipal, Mensaje, PantallaBase } from "./PantallaBase";
 import { PantallaAcceso } from "./PantallaAcceso";
 import { PantallaInvitacion } from "./PantallaInvitacion";
@@ -66,10 +67,17 @@ function ContenidoBanda({ children }: PropsWithChildren) {
 
 // Sin sesión no se montan los hijos: los datos locales no se cargan antes de autenticar
 export function AppAuthGate({ children }: PropsWithChildren) {
-  const { cargando, session, perfil } = useAuthContext();
+  const { cargando, session, perfil, recuperandoContrasena } = useAuthContext();
 
   if (cargando) {
     return <Cargando />;
+  }
+
+  // Enlace «restablecer contraseña»: primero la nueva contraseña, antes que la
+  // app, la banda o una invitación (que sigue pendiente). Mientras se
+  // establece la sesión del enlace, cargando
+  if (recuperandoContrasena) {
+    return session === null ? <Cargando /> : <NuevaContrasena />;
   }
 
   if (session === null) {
