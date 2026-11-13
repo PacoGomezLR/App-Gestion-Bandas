@@ -1,6 +1,5 @@
 import { useIsFocused } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
 
 import { AvisoNoDisponibles } from "../components/AvisoNoDisponibles";
 import { BotonCerrarSesion } from "../components/BotonCerrarSesion";
@@ -31,6 +30,7 @@ import { useDesplazamiento } from "../hooks/useDesplazamiento";
 import type { Evento } from "../types/evento";
 import { eventosPasados, eventosProximos, LIMITE_PROXIMAS_FECHAS } from "../utils/agenda";
 import { avisarCambiosSinGuardar } from "../utils/confirmaciones";
+import { confirmar } from "../utils/dialogo";
 import {
   contarNoDisponiblesPorFecha,
   indisponibilidadPropia,
@@ -293,18 +293,18 @@ export default function Index() {
         : `Hay ${resumen.total} integrantes que han marcado esta fecha como no disponible`;
 
     // Cancelar no guarda nada y deja el formulario tal como estaba
-    Alert.alert(
-      "Integrantes no disponibles",
-      [
+    confirmar({
+      titulo: "Integrantes no disponibles",
+      mensaje: [
         `${integrantes}:`,
         lineasNoDisponibles(resumen).join("\n"),
         "¿Quieres confirmar la fecha igualmente?",
       ].join("\n\n"),
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar igualmente", onPress: () => void guardarYCerrar(trasGuardar) },
-      ]
-    );
+      textoCancelar: "Cancelar",
+      textoConfirmar: "Confirmar igualmente",
+      destructivo: false,
+      onConfirmar: () => void guardarYCerrar(trasGuardar),
+    });
   }
 
   if (cargandoEventos || cargandoTecnicos || cargandoDisponibilidad || cargandoIntegrantes) {

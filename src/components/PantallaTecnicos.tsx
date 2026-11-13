@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Alert } from "react-native";
 
 import { useTecnicosContext } from "../context/TecnicosContext";
 import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 import type { Tecnico } from "../types/tecnico";
+import { confirmar } from "../utils/dialogo";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { FormularioTecnico } from "./FormularioTecnico";
 import { ListaTecnicos } from "./ListaTecnicos";
@@ -90,10 +90,14 @@ export function PantallaTecnicos({ enFoco, puedeGestionar, onVolver }: PantallaT
   }
 
   function confirmarEliminacion({ id, nombre: nombreTecnico }: Tecnico) {
-    Alert.alert("Eliminar técnico", `¿Seguro que quieres eliminar a ${nombreTecnico}?`, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Eliminar", style: "destructive", onPress: () => void eliminar(id) },
-    ]);
+    confirmar({
+      titulo: "Eliminar técnico",
+      mensaje: `¿Seguro que quieres eliminar a ${nombreTecnico}?`,
+      textoCancelar: "Cancelar",
+      textoConfirmar: "Eliminar",
+      destructivo: true,
+      onConfirmar: () => void eliminar(id),
+    });
   }
 
   // Atrás de Android, del nivel más interno al más externo:

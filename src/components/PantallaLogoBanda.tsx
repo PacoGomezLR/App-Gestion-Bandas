@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
 import { useLogoBandaContext } from "../context/LogoBandaContext";
@@ -11,6 +11,7 @@ import {
   porcentajeEscalaLogo,
   reducirEscalaLogo,
 } from "../utils/escalaLogo";
+import { confirmar } from "../utils/dialogo";
 import type { ImagenElegida } from "../utils/formatoLogo";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { LogoBanda } from "./LogoBanda";
@@ -115,17 +116,17 @@ export function PantallaLogoBanda({ nombreBanda, enFoco, onVolver }: PantallaLog
   }
 
   function confirmarQuitar() {
-    Alert.alert("¿Quitar el logo?", `«${nombreBanda}» se quedará sin logo.`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Quitar",
-        style: "destructive",
-        onPress: () => {
-          setGuardadoConfirmado(false);
-          void quitarLogo();
-        },
+    confirmar({
+      titulo: "¿Quitar el logo?",
+      mensaje: `«${nombreBanda}» se quedará sin logo.`,
+      textoCancelar: "Cancelar",
+      textoConfirmar: "Quitar",
+      destructivo: true,
+      onConfirmar: () => {
+        setGuardadoConfirmado(false);
+        void quitarLogo();
       },
-    ]);
+    });
   }
 
   // Cancelar (y Atrás) en edición: sin cambios vuelve a consultar; con cambios, pregunta
@@ -135,10 +136,14 @@ export function PantallaLogoBanda({ nombreBanda, enFoco, onVolver }: PantallaLog
       return;
     }
 
-    Alert.alert("Tienes cambios sin guardar.", "Si descartas, el logo se queda como estaba.", [
-      { text: "Seguir editando", style: "cancel" },
-      { text: "Descartar", style: "destructive", onPress: salirDeEdicion },
-    ]);
+    confirmar({
+      titulo: "Tienes cambios sin guardar.",
+      mensaje: "Si descartas, el logo se queda como estaba.",
+      textoCancelar: "Seguir editando",
+      textoConfirmar: "Descartar",
+      destructivo: true,
+      onConfirmar: salirDeEdicion,
+    });
   }
 
   // Consultando, Atrás vuelve a Banda; editando, es Cancelar. Mientras guarda, nada

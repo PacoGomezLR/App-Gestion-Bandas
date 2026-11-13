@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Alert } from "react-native";
 
 import { useBandaContext } from "../context/BandaContext";
 import { useRepertorioContext } from "../context/RepertorioContext";
 import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 import type { Cancion, EstadoCancion } from "../types/cancion";
 import { etiquetaApartado } from "../utils/canciones";
+import { confirmar } from "../utils/dialogo";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { FormularioCancion } from "./FormularioCancion";
 import { BotonPrincipal, Mensaje } from "./PantallaBase";
@@ -110,10 +110,14 @@ export function PantallaRepertorio({ enFoco }: PantallaRepertorioProps) {
   }
 
   function confirmarEliminacion({ id, nombre }: Cancion) {
-    Alert.alert("¿Eliminar canción?", `“${nombre}” se eliminará del repertorio.`, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Eliminar", style: "destructive", onPress: () => void eliminar(id) },
-    ]);
+    confirmar({
+      titulo: "¿Eliminar canción?",
+      mensaje: `“${nombre}” se eliminará del repertorio.`,
+      textoCancelar: "Cancelar",
+      textoConfirmar: "Eliminar",
+      destructivo: true,
+      onConfirmar: () => void eliminar(id),
+    });
   }
 
   // Atrás de Android, del nivel más interno al más externo: edición → detalle →

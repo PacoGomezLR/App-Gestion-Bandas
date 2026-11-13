@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Text } from "react-native";
+import { Text } from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
 import { useBandaContext } from "../context/BandaContext";
@@ -8,6 +8,7 @@ import { useFinanzasContext } from "../context/FinanzasContext";
 import { useAtrasAndroid } from "../hooks/useAtrasAndroid";
 import type { DatosMovimiento, MovimientoFinanciero } from "../types/finanzas";
 import { formatearCentimos } from "../utils/dinero";
+import { confirmar } from "../utils/dialogo";
 import { etiquetaEvento } from "../utils/finanzas";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { DetalleMovimiento } from "./DetalleMovimiento";
@@ -114,10 +115,14 @@ export function PantallaFinanzas({ enFoco, onVolver }: PantallaFinanzasProps) {
   }
 
   function confirmarEliminacion(id: string) {
-    Alert.alert("¿Eliminar movimiento?", "Esta acción modificará el bote y los informes.", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Eliminar", style: "destructive", onPress: () => void eliminar(id) },
-    ]);
+    confirmar({
+      titulo: "¿Eliminar movimiento?",
+      mensaje: "Esta acción modificará el bote y los informes.",
+      textoCancelar: "Cancelar",
+      textoConfirmar: "Eliminar",
+      destructivo: true,
+      onConfirmar: () => void eliminar(id),
+    });
   }
 
   // Atrás de Android, del nivel más interno al más externo. Mientras se guarda, no hace nada
