@@ -10,9 +10,13 @@ export function crearEstilosPaginaInvitacionWeb(colores: ColoresTema) {
   return StyleSheet.create({
     pagina: {
       flex: 1,
+      backgroundColor: colores.background,
+    },
+    // Los mismos márgenes de antes, dentro del ScrollView
+    contenido: {
+      flexGrow: 1,
       paddingHorizontal: Spacing.four,
       paddingVertical: Spacing.five,
-      backgroundColor: colores.background,
     },
     // Ocupa todo el ancho en móvil y se limita en escritorio
     columna: {

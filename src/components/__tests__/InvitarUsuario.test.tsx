@@ -144,4 +144,66 @@ describe("InvitarUsuario", () => {
     expect(screen.getByText("Solo un administrador de la banda puede invitar.")).toBeTruthy();
     expect(screen.queryByText("Invitación preparada")).toBeNull();
   });
+
+  describe("compartir en web", () => {
+    // Safari: cerrar la hoja de compartir sin elegir rechaza navigator.share con AbortError
+    function abortado() {
+      const error = new Error("Share canceled");
+      error.name = "AbortError";
+      return error;
+    }
+
+    async function prepararYCompartir() {
+      await renderizar();
+      await fireEvent.press(screen.getByText("Generar invitación"));
+      await fireEvent.press(screen.getByText("Compartir invitación"));
+    }
+
+    test("cancelar no muestra error ni deja la promesa sin capturar", async () => {
+      const compartir = jest.spyOn(Share, "share").mockRejectedValue(abortado());
+      const sinCapturar = jest.fn();
+      process.on("unhandledRejection", sinCapturar);
+
+      await prepararYCompartir();
+      await new Promise<void>((resolver) => setImmediate(() => resolver()));
+
+      expect(compartir).toHaveBeenCalledTimes(1);
+      expect(sinCapturar).not.toHaveBeenCalled();
+      expect(screen.queryByText("No se ha podido compartir la invitación.")).toBeNull();
+      // Sigue en la invitación preparada: se puede volver a compartir
+      expect(screen.getByText("Compartir invitación")).toBeTruthy();
+      process.off("unhandledRejection", sinCapturar);
+      compartir.mockRestore();
+    });
+
+    test("un fallo real (navegador sin compartir) se explica y se puede reintentar", async () => {
+      const compartir = jest
+        .spyOn(Share, "share")
+        .mockRejectedValueOnce(new Error("Share is not supported in this browser"))
+        .mockResolvedValueOnce({ action: Share.sharedAction, activityType: undefined });
+
+      await prepararYCompartir();
+
+      expect(screen.getByText("No se ha podido compartir la invitación.")).toBeTruthy();
+      // El detalle técnico no se muestra
+      expect(screen.queryByText(/not supported/)).toBeNull();
+
+      await fireEvent.press(screen.getByText("Compartir invitación"));
+
+      expect(compartir).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText("No se ha podido compartir la invitación.")).toBeNull();
+      compartir.mockRestore();
+    });
+
+    test("el mensaje ya no exige tener la app instalada", async () => {
+      const compartir = jest.spyOn(Share, "share").mockResolvedValue({ action: Share.sharedAction, activityType: undefined });
+
+      await prepararYCompartir();
+
+      const { message } = compartir.mock.calls[0][0] as { message: string };
+      expect(message).toContain("Abre este enlace en el móvil:");
+      expect(message).not.toMatch(/instalada/);
+      compartir.mockRestore();
+    });
+  });
 });

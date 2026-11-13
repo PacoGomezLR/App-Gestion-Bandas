@@ -94,11 +94,14 @@ describe("PaginaInvitacionWeb en iPhone / iPad", () => {
 });
 
 describe("PaginaInvitacionWeb en escritorio", () => {
-  test("explica que es una app para el móvil, sin botón", async () => {
+  // Fuera de Android el enlace abre la app web: la página ya no dice que haga
+  // falta instalar nada
+  test("sin botón ni textos de app instalada", async () => {
     mockPlataforma = "otra";
     await render(<PaginaInvitacionWeb token={TOKEN} />);
 
-    expect(await screen.findByText(/abre este enlace desde el teléfono/)).toBeTruthy();
+    expect(await screen.findByText("Te han invitado a unirte a una banda en MI Banda.")).toBeTruthy();
+    expect(screen.queryByText(/instalada|app para el móvil|¿No tienes la app\?/)).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
     expect(mockOpenURL).not.toHaveBeenCalled();
   });

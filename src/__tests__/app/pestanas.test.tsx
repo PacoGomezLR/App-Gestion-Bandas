@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react-native";
 import type { PropsWithChildren } from "react";
+import { StyleSheet } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import AppTabsWeb from "../../components/app-tabs.web";
 import { useBandaContext } from "../../context/BandaContext";
@@ -21,7 +23,8 @@ jest.mock("expo-router/ui", () => {
 
   return {
     Tabs: Caja,
-    TabList: Caja,
+    // La lista oculta solo declara las rutas: no son pestañas visibles
+    TabList: () => null,
     TabSlot: () => null,
     TabTrigger: ({ name }: { name: string }) => <Text>{`pestaña:${name}`}</Text>,
   };
@@ -34,6 +37,20 @@ const mockUseBandaContext = jest.mocked(useBandaContext);
 
 function simular(esAdmin: boolean) {
   mockUseBandaContext.mockReturnValue({ esAdmin } as unknown as ReturnType<typeof useBandaContext>);
+}
+
+// En la app lo pone Expo Router en la raíz; la barra web lee la zona segura inferior
+const METRICAS = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 0, left: 0, right: 0, bottom: 34 },
+};
+
+function pintarPestanasWeb() {
+  return render(
+    <SafeAreaProvider initialMetrics={METRICAS}>
+      <AppTabsWeb />
+    </SafeAreaProvider>
+  );
 }
 
 function pestanasWeb(): string[] {
@@ -69,15 +86,27 @@ describe("pestañas nativas", () => {
 describe("pestañas web", () => {
   test("admin: Calendario | Repertorio | Banda", async () => {
     simular(true);
-    await render(<AppTabsWeb />);
+    await pintarPestanasWeb();
 
-    expect(pestanasWeb()).toEqual(["home", "repertorio", "banda"]);
+    expect(pestanasWeb()).toEqual(["index", "repertorio", "banda"]);
   });
 
   test("usuario: Calendario | Repertorio, sin Banda", async () => {
     simular(false);
-    await render(<AppTabsWeb />);
+    await pintarPestanasWeb();
 
-    expect(pestanasWeb()).toEqual(["home", "repertorio"]);
+    expect(pestanasWeb()).toEqual(["index", "repertorio"]);
+  });
+
+  test("la barra deja libre la zona segura inferior (indicador de inicio del iPhone)", async () => {
+    simular(true);
+    await pintarPestanasWeb();
+
+    const barra = StyleSheet.flatten(screen.getByLabelText("Navegación principal").props.style) as {
+      paddingBottom?: number;
+    };
+
+    // Margen de siempre (8) + los 34 px de la zona segura de un iPhone con Face ID
+    expect(barra.paddingBottom).toBe(8 + METRICAS.insets.bottom);
   });
 });

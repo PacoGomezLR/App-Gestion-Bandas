@@ -1,129 +1,101 @@
-import {
-  Tabs,
-  TabList,
-  TabTrigger,
-  TabSlot,
-  TabTriggerSlotProps,
-  TabListProps,
-} from 'expo-router/ui';
-import { SymbolView } from 'expo-symbols';
-import type { ComponentRef, Ref } from 'react';
-import { Pressable, View, StyleSheet } from 'react-native';
+import { TabList, Tabs, TabSlot, TabTrigger, type TabTriggerSlotProps } from "expo-router/ui";
+import { type ComponentRef, type Ref, useMemo, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ExternalLink } from './external-link';
-import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+import { useBandaContext } from "@/context/BandaContext";
+import { useTheme } from "@/hooks/use-theme";
+import { crearEstilosPestanasWeb, estiloZonaSeguraBarra } from "./app-tabs.styles";
 
-import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useBandaContext } from '@/context/BandaContext';
-import { useTheme } from '@/hooks/use-theme';
-
+// Web: las mismas pestañas que la app (Calendario | Repertorio | Banda, esta
+// solo para el admin), en una barra inferior.
+//
+// expo-router/ui solo conoce las rutas declaradas con un TabTrigger dentro de
+// TabList. La lista oculta declara todas: las tres pestañas y las dos rutas
+// auxiliares (/invitacion y /auth/callback), que no son pestañas pero tienen
+// que poder montarse para volver al inicio. La barra visible usa TabTrigger
+// fuera de la lista, solo con las pestañas.
+// /banda se declara siempre: con un usuario normal banda.tsx vuelve al inicio.
 export default function AppTabs() {
   const { esAdmin } = useBandaContext();
+  const tema = useTheme();
+  const estilos = useMemo(() => crearEstilosPestanasWeb(tema), [tema]);
+  // Con viewport-fit=cover (+html.tsx) es env(safe-area-inset-bottom). Solo la
+  // barra la aplica: las pantallas de las pestañas no añaden margen inferior
+  const zonaSegura = useSafeAreaInsets();
 
   return (
-    <Tabs>
-      <TabSlot style={{ height: '100%' }} />
-      <TabList asChild>
-        <CustomTabList>
-          <TabTrigger name="home" href="/" asChild>
-            <TabButton>Calendario</TabButton>
+    <Tabs style={estilos.tabs}>
+      <View style={estilos.contenido}>
+        <TabSlot />
+      </View>
+
+      <View
+        accessibilityRole="tablist"
+        accessibilityLabel="Navegación principal"
+        style={[estilos.barra, estiloZonaSeguraBarra(zonaSegura.bottom)]}
+      >
+        <View style={estilos.fila}>
+          <TabTrigger name="index" asChild>
+            <BotonPestana>Calendario</BotonPestana>
           </TabTrigger>
-          <TabTrigger name="repertorio" href="/repertorio" asChild>
-            <TabButton>Repertorio</TabButton>
+          <TabTrigger name="repertorio" asChild>
+            <BotonPestana>Repertorio</BotonPestana>
           </TabTrigger>
-          {/* Solo para el admin (en web /banda además vuelve al inicio) */}
           {esAdmin && (
-            <TabTrigger name="banda" href="/banda" asChild>
-              <TabButton>Banda</TabButton>
+            <TabTrigger name="banda" asChild>
+              <BotonPestana>Banda</BotonPestana>
             </TabTrigger>
           )}
-        </CustomTabList>
+        </View>
+      </View>
+
+      <TabList style={estilos.rutas}>
+        <TabTrigger name="index" href="/" />
+        <TabTrigger name="repertorio" href="/repertorio" />
+        <TabTrigger name="banda" href="/banda" />
+        <TabTrigger name="invitacion" href="/invitacion" />
+        <TabTrigger name="callback" href="/auth/callback" />
       </TabList>
     </Tabs>
   );
 }
 
-export function TabButton({ children, isFocused, ref, ...props }: TabTriggerSlotProps) {
+type BotonPestanaProps = TabTriggerSlotProps & { children: string };
+
+function BotonPestana({ children, isFocused = false, ref, onFocus, onBlur, ...props }: BotonPestanaProps) {
+  const tema = useTheme();
+  const estilos = useMemo(() => crearEstilosPestanasWeb(tema), [tema]);
+  // Foco de teclado (Tab): se marca con un borde de acento
+  const [conFoco, setConFoco] = useState(false);
+
   return (
     <Pressable
       {...props}
-      // expo-router types this ref as RefAttributes<View>, which no longer matches Pressable in RN 0.88
+      // expo-router tipa este ref como RefAttributes<View>, que en RN 0.88 ya no
+      // coincide con Pressable
       ref={ref as Ref<ComponentRef<typeof Pressable>>}
-      style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'primarySoft' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
-          {children}
-        </ThemedText>
-      </ThemedView>
+      accessibilityRole="tab"
+      accessibilityLabel={children}
+      accessibilityState={{ selected: isFocused }}
+      onFocus={(evento) => {
+        setConFoco(true);
+        onFocus?.(evento);
+      }}
+      onBlur={(evento) => {
+        setConFoco(false);
+        onBlur?.(evento);
+      }}
+      style={({ pressed }) => [
+        estilos.pestana,
+        isFocused && estilos.pestanaActiva,
+        conFoco && estilos.pestanaConFoco,
+        pressed && estilos.pestanaPulsada,
+      ]}
+    >
+      <Text numberOfLines={1} style={[estilos.texto, isFocused && estilos.textoActivo]}>
+        {children}
+      </Text>
     </Pressable>
   );
 }
-
-export function CustomTabList(props: TabListProps) {
-  const colors = useTheme();
-
-  return (
-    <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Expo Starter
-        </ThemedText>
-
-        {props.children}
-
-        <ExternalLink href="https://docs.expo.dev" asChild>
-          <Pressable style={styles.externalPressable}>
-            <ThemedText type="link">Docs</ThemedText>
-            <SymbolView
-              tintColor={colors.text}
-              name={{ ios: 'arrow.up.right.square', web: 'link' }}
-              size={12}
-            />
-          </Pressable>
-        </ExternalLink>
-      </ThemedView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  tabListContainer: {
-    position: 'absolute',
-    width: '100%',
-    padding: Spacing.three,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexGrow: 1,
-    gap: Spacing.two,
-    maxWidth: MaxContentWidth,
-  },
-  brandText: {
-    marginRight: 'auto',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  tabButtonView: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
-  },
-  externalPressable: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginLeft: Spacing.three,
-  },
-});

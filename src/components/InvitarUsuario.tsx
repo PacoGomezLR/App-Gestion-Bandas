@@ -85,15 +85,30 @@ export function InvitarUsuario({ bandaId, bandaNombre, onCerrar }: InvitarUsuari
   }
 
   async function compartir(creada: InvitacionCreada) {
-    // El enlace con el token va solo al sistema de compartir: no se muestra ni se guarda
-    await Share.share({
-      message: [
-        `Te invito a unirte a ${bandaNombre} en MI Banda.`,
-        "Abre este enlace en el móvil con la app instalada:",
-        crearEnlaceInvitacion(creada.token),
-        `Caduca el ${fechaCaducidad(creada.expiraEn)}.`,
-      ].join("\n\n"),
-    });
+    setError("");
+
+    try {
+      // El enlace con el token va solo al sistema de compartir: no se muestra ni se guarda
+      await Share.share({
+        message: [
+          `Te invito a unirte a ${bandaNombre} en MI Banda.`,
+          "Abre este enlace en el móvil:",
+          crearEnlaceInvitacion(creada.token),
+          `Caduca el ${fechaCaducidad(creada.expiraEn)}.`,
+        ].join("\n\n"),
+      });
+    } catch (fallo) {
+      // Web: cerrar la hoja de compartir sin elegir rechaza con AbortError. No es un error
+      if (fallo instanceof Error && fallo.name === "AbortError") {
+        return;
+      }
+
+      setError(
+        fallo instanceof ErrorConfiguracionInvitacion
+          ? fallo.message
+          : "No se ha podido compartir la invitación."
+      );
+    }
   }
 
   if (invitacion !== null) {
@@ -104,6 +119,8 @@ export function InvitarUsuario({ bandaId, bandaNombre, onCerrar }: InvitarUsuari
           Comparte este enlace con la persona que quieras añadir. Caduca el{" "}
           {fechaCaducidad(invitacion.expiraEn)} y solo puede usarse una vez.
         </Text>
+
+        {error !== "" && <Mensaje tipo="error" texto={error} />}
 
         <BotonPrincipal titulo="Compartir invitación" onPress={() => void compartir(invitacion)} />
         <AccionSecundaria pregunta="¿Ya la has enviado?" titulo="Cerrar" onPress={onCerrar} />

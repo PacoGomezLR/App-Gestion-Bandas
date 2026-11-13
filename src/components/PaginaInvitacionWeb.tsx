@@ -1,6 +1,6 @@
 import * as Linking from "expo-linking";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
 import { crearEnlaceAppInvitacion } from "../lib/invitacion-deep-link";
@@ -31,20 +31,21 @@ export function PaginaInvitacionWeb({ token }: PaginaInvitacionWebProps) {
 
   if (plataforma === null) {
     return (
-      <View style={estilos.pagina}>
+      <ScrollView style={estilos.pagina} contentContainerStyle={estilos.contenido}>
         <View style={estilos.columna}>
           <Text accessibilityRole="header" style={estilos.marca}>
             MI Banda
           </Text>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
   const enlaceApp = crearEnlaceAppInvitacion(token);
 
+  // ScrollView: en web solo hacen scroll los ScrollView (ver +html.tsx)
   return (
-    <View style={estilos.pagina}>
+    <ScrollView style={estilos.pagina} contentContainerStyle={estilos.contenido}>
       <View style={estilos.columna}>
         <Text accessibilityRole="header" style={estilos.marca}>
           MI Banda
@@ -89,23 +90,15 @@ export function PaginaInvitacionWeb({ token }: PaginaInvitacionWebProps) {
 
             {plataforma !== "android" && (
               <>
+                {/* Hoy no se llega aquí: fuera de Android el enlace abre la app web */}
                 <Text style={estilos.texto}>
-                  Te han invitado a unirte a una banda en MI Banda. MI Banda es una app para el
-                  móvil: abre este enlace desde el teléfono donde la tengas instalada.
+                  Te han invitado a unirte a una banda en MI Banda.
                 </Text>
-
-                <View style={estilos.nota}>
-                  <Text style={estilos.tituloNota}>¿No tienes la app?</Text>
-                  <Text style={estilos.textoNota}>
-                    MI Banda todavía se distribuye solo entre los integrantes de cada banda. Pide a
-                    quien te invitó que te la facilite.
-                  </Text>
-                </View>
               </>
             )}
           </>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }

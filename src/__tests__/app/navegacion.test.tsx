@@ -31,7 +31,10 @@ describe("navegación principal", () => {
   test("la versión web tampoco tiene pestaña de Músicos", () => {
     const codigo = fs.readFileSync("src/components/app-tabs.web.tsx", "utf8");
 
-    expect(pestanas("src/components/app-tabs.web.tsx")).toEqual(["home", "repertorio", "banda"]);
+    // Las pestañas visibles (asChild); la lista oculta además declara las rutas auxiliares
+    const visibles = [...codigo.matchAll(/Trigger name="([^"]+)" asChild/g)].map(([, nombre]) => nombre);
+
+    expect(visibles).toEqual(["index", "repertorio", "banda"]);
     expect(codigo).not.toMatch(/Disponibilidad|disponibilidad/);
     expect(codigo).not.toMatch(/Músicos|miembros/i);
   });
